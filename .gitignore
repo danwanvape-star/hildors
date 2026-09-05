@@ -1,0 +1,15 @@
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+build/
+coverage/
+*.iml
+.idea/
+.codex_tmp/
+.protocol_review/
+*.docx
+android/.gradle/
+android/local.properties
+ios/Pods/
+ios/.symlinks/
