@@ -2,68 +2,129 @@ import 'package:flutter/material.dart';
 
 import 'community_content.dart';
 
-class CommunityDetailPage extends StatelessWidget {
-  const CommunityDetailPage({required this.content, super.key});
+class CommunityDetailPage extends StatefulWidget {
+  const CommunityDetailPage({
+    required this.content,
+    this.initiallyDownloaded = false,
+    super.key,
+  });
 
   final CommunityContent content;
+  final bool initiallyDownloaded;
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(
-          title: const Text('内容详情'),
-          actions: [
-            IconButton(
-              tooltip: '举报或版权投诉',
-              onPressed: () => _showReportSheet(context),
-              icon: const Icon(Icons.flag_outlined),
-            ),
-          ],
-        ),
-        body: ListView(
-          padding: const EdgeInsets.all(20),
-          children: [
-            Container(
-              height: 220,
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                borderRadius: BorderRadius.circular(24),
+  State<CommunityDetailPage> createState() => _CommunityDetailPageState();
+}
+
+class _CommunityDetailPageState extends State<CommunityDetailPage> {
+  late var _status = widget.initiallyDownloaded
+      ? ContentDownloadStatus.downloaded
+      : ContentDownloadStatus.notDownloaded;
+
+  CommunityContent get content => widget.content;
+
+  @override
+  Widget build(BuildContext context) => PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (didPop, _) {
+          if (!didPop) {
+            Navigator.pop(context, _status == ContentDownloadStatus.downloaded);
+          }
+        },
+        child: Scaffold(
+          appBar: AppBar(
+            title: const Text('内容详情'),
+            actions: [
+              IconButton(
+                tooltip: '举报或版权投诉',
+                onPressed: () => _showReportSheet(context),
+                icon: const Icon(Icons.flag_outlined),
               ),
-              child: const Center(child: Icon(Icons.view_in_ar, size: 80)),
-            ),
-            const SizedBox(height: 20),
-            Text(content.title,
-                style: Theme.of(context).textTheme.headlineSmall),
-            const SizedBox(height: 6),
-            Text('创作者：${content.creatorName}'),
-            const SizedBox(height: 12),
-            Text(content.summary),
-            const SizedBox(height: 20),
-            _InfoRow(
-                label: '权利状态', value: content.canInstall ? '已通过社区授权校验' : '审核中'),
-            _InfoRow(label: '使用许可', value: _licenseLabel(content.license)),
-            _InfoRow(
-                label: '目标列表',
+            ],
+          ),
+          body: ListView(
+            padding: const EdgeInsets.all(20),
+            children: [
+              Container(
+                height: 220,
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                  borderRadius: BorderRadius.circular(24),
+                ),
+                child: const Center(
+                  child: Icon(Icons.play_circle_outline, size: 80),
+                ),
+              ),
+              const SizedBox(height: 20),
+              Text(content.title,
+                  style: Theme.of(context).textTheme.headlineSmall),
+              const SizedBox(height: 6),
+              Text('创作者：${content.creatorName}'),
+              const SizedBox(height: 12),
+              Text(content.summary),
+              const SizedBox(height: 20),
+              _InfoRow(
+                label: '审核状态',
+                value: content.canDownload ? 'HILDORS 已审核' : '审核中',
+              ),
+              _InfoRow(label: '使用许可', value: _licenseLabel(content.license)),
+              _InfoRow(
+                label: '推荐列表',
                 value: content.playlistTarget == DevicePlaylistTarget.local
-                    ? '本地播放列表'
-                    : '蓝牙播放列表'),
-            _InfoRow(label: '适配设备', value: content.supportedModels.join(' / ')),
-            _InfoRow(label: '内容版本', value: content.version),
-            _InfoRow(label: '文件大小', value: '${content.fileSizeMb} MB'),
-            const SizedBox(height: 20),
-            FilledButton.icon(
-              onPressed: null,
-              icon: const Icon(Icons.send_to_mobile_outlined),
-              label: const Text('发送到设备 · 等待接口'),
-            ),
-            const SizedBox(height: 8),
-            TextButton.icon(
-              onPressed: () => _showReportSheet(context),
-              icon: const Icon(Icons.copyright_outlined),
-              label: const Text('举报或提交版权投诉'),
-            ),
-          ],
+                    ? '普通播放列表'
+                    : '蓝牙播放列表',
+              ),
+              _InfoRow(
+                  label: '适配设备', value: content.supportedModels.join(' / ')),
+              _InfoRow(label: '视频时长', value: '${content.durationSeconds} 秒'),
+              _InfoRow(label: '文件大小', value: '${content.fileSizeMb} MB'),
+              const SizedBox(height: 20),
+              if (_status == ContentDownloadStatus.downloading) ...[
+                const LinearProgressIndicator(),
+                const SizedBox(height: 10),
+                const Center(child: Text('正在下载到手机…')),
+              ] else
+                FilledButton.icon(
+                  onPressed: content.canDownload ? _handlePrimaryAction : null,
+                  icon: Icon(
+                    _status == ContentDownloadStatus.downloaded
+                        ? Icons.send_to_mobile_outlined
+                        : Icons.download_for_offline_outlined,
+                  ),
+                  label: Text(
+                    _status == ContentDownloadStatus.downloaded
+                        ? '发送到设备'
+                        : '下载到手机',
+                  ),
+                ),
+              if (_status == ContentDownloadStatus.downloaded) ...[
+                const SizedBox(height: 8),
+                const Center(child: Text('已保存到“我的下载”，断网后仍可发送。')),
+              ],
+              const SizedBox(height: 8),
+              TextButton.icon(
+                onPressed: () => _showReportSheet(context),
+                icon: const Icon(Icons.copyright_outlined),
+                label: const Text('举报或提交版权投诉'),
+              ),
+            ],
+          ),
         ),
       );
+
+  Future<void> _handlePrimaryAction() async {
+    if (_status == ContentDownloadStatus.downloaded) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('请先连接 P20/P11 局域网；设备传输接口将在协议确认后接入。'),
+        ),
+      );
+      return;
+    }
+    setState(() => _status = ContentDownloadStatus.downloading);
+    await Future<void>.delayed(const Duration(milliseconds: 650));
+    if (mounted) setState(() => _status = ContentDownloadStatus.downloaded);
+  }
 
   String _licenseLabel(CommunityLicense license) => switch (license) {
         CommunityLicense.personalUse => '仅限个人非商业使用',
@@ -83,15 +144,11 @@ class CommunityDetailPage extends StatelessWidget {
           children: [
             Text('举报与版权投诉', style: Theme.of(context).textTheme.titleLarge),
             const SizedBox(height: 12),
-            const Text('正式接入后，投诉将携带内容 ID、版本和创作者信息提交给社区运营方，并立即冻结新的设备投放。'),
+            const Text('投诉将携带内容 ID、版本和创作者信息提交给运营方，并暂停新的下载和设备投放。'),
             const SizedBox(height: 16),
             FilledButton(
-              onPressed: () {
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context)
-                    .showSnackBar(const SnackBar(content: Text('投诉接口尚未接入')));
-              },
-              child: const Text('了解投诉流程'),
+              onPressed: () => Navigator.pop(context),
+              child: const Text('了解'),
             ),
           ],
         ),
@@ -113,9 +170,9 @@ class _InfoRow extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             SizedBox(
-                width: 88,
-                child:
-                    Text(label, style: Theme.of(context).textTheme.bodySmall)),
+              width: 88,
+              child: Text(label, style: Theme.of(context).textTheme.bodySmall),
+            ),
             Expanded(child: Text(value)),
           ],
         ),

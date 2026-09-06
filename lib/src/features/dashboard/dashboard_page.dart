@@ -54,9 +54,9 @@ class _DashboardPageState extends State<DashboardPage> {
             label: '探索',
           ),
           NavigationDestination(
-            icon: Icon(Icons.people_alt_outlined),
-            selectedIcon: Icon(Icons.people_alt),
-            label: '社区',
+            icon: Icon(Icons.video_library_outlined),
+            selectedIcon: Icon(Icons.video_library),
+            label: '内容库',
           ),
           NavigationDestination(
             icon: Icon(Icons.person_outline),
