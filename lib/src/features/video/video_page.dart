@@ -65,19 +65,45 @@ class _VideoPageState extends State<VideoPage> {
   }
 
   Future<void> _delete(P20VideoEntry video) async {
+    if (_playingIndex == video.index) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('正在播放的视频不能删除，请先播放其他内容')),
+      );
+      return;
+    }
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('删除视频？'),
-        content: Text(video.fileName),
+        icon: Icon(Icons.warning_amber_rounded,
+            color: Theme.of(context).colorScheme.error),
+        title: const Text('永久删除设备文件？'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('以下视频将从全息设备中永久删除：'),
+            const SizedBox(height: 10),
+            SelectableText(video.fileName,
+                style: const TextStyle(fontWeight: FontWeight.w700)),
+            const SizedBox(height: 12),
+            Text(
+              '此操作无法撤销。手机中已下载的副本和内容购买记录不会受到影响。',
+              style: TextStyle(color: Theme.of(context).colorScheme.error),
+            ),
+          ],
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
             child: const Text('取消'),
           ),
           FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.error,
+              foregroundColor: Theme.of(context).colorScheme.onError,
+            ),
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('删除'),
+            child: const Text('永久删除'),
           ),
         ],
       ),
@@ -86,6 +112,11 @@ class _VideoPageState extends State<VideoPage> {
     try {
       await widget.session.deleteVideo(video.fileName);
       await _refresh();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('已从设备永久删除 ${video.fileName}')),
+        );
+      }
     } catch (error) {
       if (mounted) setState(() => _message = '$error');
     }
@@ -147,10 +178,30 @@ class _VideoPageState extends State<VideoPage> {
                                   tooltip: '播放',
                                   icon: const Icon(Icons.play_arrow),
                                 ),
-                                IconButton(
-                                  onPressed: () => _delete(video),
-                                  tooltip: '删除',
-                                  icon: const Icon(Icons.delete_outline),
+                                PopupMenuButton<String>(
+                                  tooltip: '更多操作',
+                                  onSelected: (value) {
+                                    if (value == 'delete') _delete(video);
+                                  },
+                                  itemBuilder: (context) => [
+                                    PopupMenuItem(
+                                      value: 'delete',
+                                      child: Row(
+                                        children: [
+                                          Icon(Icons.delete_forever_outlined,
+                                              color: Theme.of(context)
+                                                  .colorScheme
+                                                  .error),
+                                          const SizedBox(width: 10),
+                                          Text('从设备永久删除',
+                                              style: TextStyle(
+                                                  color: Theme.of(context)
+                                                      .colorScheme
+                                                      .error)),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ],
                             ),

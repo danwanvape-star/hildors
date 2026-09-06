@@ -119,6 +119,50 @@ class _PlaylistManagementPageState extends State<PlaylistManagementPage> {
     );
   }
 
+  Future<void> _removeFromPlaylist(String fileName) async {
+    final kind = _kind;
+    final previous = _draft;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('移出播放列表？'),
+        content: Text('“$fileName”只会从当前播放列表移除，不会删除手机或设备中的视频文件。'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('取消'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('移出列表'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    _update(previous.remove(fileName));
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text('已将 $fileName 移出播放列表'),
+          action: SnackBarAction(
+            label: '撤销',
+            onPressed: () {
+              if (!mounted) return;
+              setState(() {
+                if (kind == DevicePlaylistKind.startup) {
+                  _startup = previous;
+                } else {
+                  _bluetooth = previous;
+                }
+              });
+            },
+          ),
+        ),
+      );
+  }
+
   @override
   Widget build(BuildContext context) => Scaffold(
         appBar: AppBar(
@@ -250,7 +294,7 @@ class _PlaylistManagementPageState extends State<PlaylistManagementPage> {
                       IconButton(
                         tooltip: '移出草案',
                         onPressed: () =>
-                            _update(_draft.remove(_draft.videoNames[index])),
+                            _removeFromPlaylist(_draft.videoNames[index]),
                         icon: const Icon(Icons.remove_circle_outline),
                       ),
                     ],
