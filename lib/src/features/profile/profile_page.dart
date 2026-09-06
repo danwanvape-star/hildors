@@ -26,9 +26,14 @@ class ProfilePage extends StatelessWidget {
                 padding: const EdgeInsets.all(20),
                 child: Row(
                   children: [
-                    const CircleAvatar(
-                        radius: 28,
-                        child: Icon(Icons.person_outline, size: 30)),
+                    ClipOval(
+                      child: Image.asset(
+                        'assets/images/hildors_logo.jpg',
+                        width: 56,
+                        height: 56,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
                     const SizedBox(width: 16),
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,

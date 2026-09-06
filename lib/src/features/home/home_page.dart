@@ -64,7 +64,22 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) => Scaffold(
         appBar: AppBar(
-          title: const Text('HILDORS'),
+          title: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(6),
+                child: Image.asset(
+                  'assets/images/hildors_logo.jpg',
+                  width: 34,
+                  height: 34,
+                  fit: BoxFit.cover,
+                ),
+              ),
+              const SizedBox(width: 10),
+              const Text('HILDORS'),
+            ],
+          ),
           actions: [
             IconButton(
               tooltip: '设备控制',
@@ -144,7 +159,7 @@ class _HeroCard extends StatelessWidget {
         clipBehavior: Clip.antiAlias,
         child: InkWell(
           onTap: onTap,
-          child: const Padding(
+          child: Padding(
             padding: EdgeInsets.all(22),
             child: Row(
               children: [
@@ -162,7 +177,15 @@ class _HeroCard extends StatelessWidget {
                     ],
                   ),
                 ),
-                Icon(Icons.view_in_ar, size: 54),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(14),
+                  child: Image.asset(
+                    'assets/images/hildors_logo.jpg',
+                    width: 78,
+                    height: 104,
+                    fit: BoxFit.cover,
+                  ),
+                ),
               ],
             ),
           ),
