@@ -1,4 +1,4 @@
-﻿name: hildors_cockpit
+name: hildors_cockpit
 description: Hildors holographic cockpit controller for Android and iOS.
 publish_to: none
 version: 0.1.0+1
@@ -9,6 +9,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  video_player: ^2.14.0
 
 dev_dependencies:
   flutter_test:
@@ -20,6 +21,8 @@ flutter:
   assets:
     - assets/packs/tarot_major_v1/manifest.json
     - assets/images/hildors_logo.jpg
+    - assets/images/p20_product_showcase.jpg
+    - assets/videos/showcase/
   fonts:
     - family: Poppins
       fonts:

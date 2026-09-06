@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:video_player/video_player.dart';
 
 import '../../device/p20_command_session.dart';
 import '../../device/p20_device_client.dart';
@@ -179,44 +180,7 @@ class _NowPlayingCard extends StatelessWidget {
             _StatusPill(connected: connected),
           ]),
           const SizedBox(height: 14),
-          Container(
-            height: 176,
-            width: double.infinity,
-            decoration: BoxDecoration(
-              color: Colors.black.withValues(alpha: 0.46),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.09)),
-            ),
-            child: Stack(alignment: Alignment.center, children: [
-              Container(
-                width: 132,
-                height: 132,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: RadialGradient(colors: [
-                    colors.secondary.withValues(alpha: 0.32),
-                    Colors.transparent,
-                  ]),
-                ),
-              ),
-              const Icon(Icons.auto_awesome, size: 62, color: Colors.white),
-              const Positioned(
-                left: 14,
-                bottom: 12,
-                child: Chip(label: Text('日常展示')),
-              ),
-            ]),
-          ),
-          const SizedBox(height: 12),
-          Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-            const IconButton(onPressed: null, icon: Icon(Icons.skip_previous)),
-            FilledButton.tonalIcon(
-              onPressed: null,
-              icon: const Icon(Icons.play_arrow_rounded),
-              label: Text(connected ? '播放控制待协议' : '连接设备'),
-            ),
-            const IconButton(onPressed: null, icon: Icon(Icons.skip_next)),
-          ]),
+          const _ShowcaseVideoPreview(),
           const SizedBox(height: 12),
           Row(children: [
             Expanded(
@@ -238,6 +202,153 @@ class _NowPlayingCard extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+class _ShowcaseVideoPreview extends StatefulWidget {
+  const _ShowcaseVideoPreview();
+
+  @override
+  State<_ShowcaseVideoPreview> createState() => _ShowcaseVideoPreviewState();
+}
+
+class _ShowcaseVideoPreviewState extends State<_ShowcaseVideoPreview> {
+  static const _assets = [
+    'assets/videos/showcase/showcase_01.mp4',
+    'assets/videos/showcase/showcase_02.mp4',
+    'assets/videos/showcase/showcase_03.mp4',
+    'assets/videos/showcase/showcase_04.mp4',
+  ];
+
+  VideoPlayerController? _controller;
+  var _index = 0;
+  var _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _load(0);
+  }
+
+  Future<void> _load(int index) async {
+    setState(() => _loading = true);
+    final previous = _controller;
+    final next = VideoPlayerController.asset(_assets[index]);
+    try {
+      await next.initialize();
+      await next.setLooping(true);
+      await next.setVolume(0);
+      await next.play();
+      if (!mounted) {
+        await next.dispose();
+        return;
+      }
+      setState(() {
+        _controller = next;
+        _index = index;
+        _loading = false;
+      });
+      await previous?.dispose();
+    } catch (_) {
+      await next.dispose();
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  void _move(int offset) {
+    final next = (_index + offset + _assets.length) % _assets.length;
+    _load(next);
+  }
+
+  Future<void> _toggle() async {
+    final controller = _controller;
+    if (controller == null) return;
+    controller.value.isPlaying
+        ? await controller.pause()
+        : await controller.play();
+    if (mounted) setState(() {});
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final controller = _controller;
+    final ready = controller?.value.isInitialized ?? false;
+    return Container(
+      height: 220,
+      width: double.infinity,
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        color: Colors.black,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+      ),
+      child: Stack(fit: StackFit.expand, children: [
+        Image.asset('assets/images/p20_product_showcase.jpg',
+            fit: BoxFit.cover),
+        if (ready)
+          FittedBox(
+            fit: BoxFit.cover,
+            child: SizedBox(
+              width: controller!.value.size.width,
+              height: controller.value.size.height,
+              child: VideoPlayer(controller),
+            ),
+          ),
+        const DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [Colors.transparent, Color(0xCC000000)],
+            ),
+          ),
+        ),
+        if (_loading) const Center(child: CircularProgressIndicator()),
+        Positioned(
+          left: 10,
+          right: 10,
+          bottom: 8,
+          child: Row(children: [
+            IconButton.filledTonal(
+              tooltip: '上一个展示视频',
+              onPressed: () => _move(-1),
+              icon: const Icon(Icons.skip_previous),
+            ),
+            IconButton.filled(
+              tooltip: ready && controller!.value.isPlaying ? '暂停预览' : '播放预览',
+              onPressed: ready ? _toggle : null,
+              icon: Icon(ready && controller!.value.isPlaying
+                  ? Icons.pause
+                  : Icons.play_arrow),
+            ),
+            IconButton.filledTonal(
+              tooltip: '下一个展示视频',
+              onPressed: () => _move(1),
+              icon: const Icon(Icons.skip_next),
+            ),
+            const Spacer(),
+            for (var i = 0; i < _assets.length; i++)
+              Container(
+                width: i == _index ? 16 : 6,
+                height: 6,
+                margin: const EdgeInsets.only(left: 5),
+                decoration: BoxDecoration(
+                  color: i == _index
+                      ? Theme.of(context).colorScheme.primary
+                      : Colors.white38,
+                  borderRadius: BorderRadius.circular(99),
+                ),
+              ),
+          ]),
+        ),
+      ]),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller?.dispose();
+    super.dispose();
   }
 }
 
