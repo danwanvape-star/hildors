@@ -18,6 +18,8 @@ class _CommunityPageState extends State<CommunityPage> {
       widget.catalogRepository ?? const PreviewContentCatalogRepository();
   late Future<List<CommunityContent>> _contentFuture;
   var _category = '全部';
+  var _query = '';
+  var _downloadedOnly = false;
   final _downloadedIds = <String>{};
 
   @override
@@ -45,11 +47,13 @@ class _CommunityPageState extends State<CommunityPage> {
               });
             }
             final allItems = snapshot.data ?? const <CommunityContent>[];
-            final items = _category == '全部'
-                ? allItems
-                : allItems
-                    .where((item) => item.category == _category)
-                    .toList(growable: false);
+            final items = filterCatalogContent(
+              allItems,
+              category: _category,
+              query: _query,
+              downloadedIds: _downloadedIds,
+              downloadedOnly: _downloadedOnly,
+            );
             return _buildCatalog(context, items);
           },
         ),
@@ -63,7 +67,7 @@ class _CommunityPageState extends State<CommunityPage> {
         padding: const EdgeInsets.all(20),
         children: [
           TextField(
-            enabled: false,
+            onChanged: (value) => setState(() => _query = value),
             decoration: InputDecoration(
               hintText: '搜索角色、场景或创作者',
               prefixIcon: const Icon(Icons.search),
@@ -74,6 +78,17 @@ class _CommunityPageState extends State<CommunityPage> {
           ),
           const SizedBox(height: 16),
           const _DownloadNotice(),
+          const SizedBox(height: 16),
+          SegmentedButton<bool>(
+            segments: const [
+              ButtonSegment(value: false, label: Text('全部内容')),
+              ButtonSegment(value: true, label: Text('我的下载')),
+            ],
+            selected: {_downloadedOnly},
+            onSelectionChanged: (selection) {
+              setState(() => _downloadedOnly = selection.single);
+            },
+          ),
           const SizedBox(height: 18),
           Wrap(
             spacing: 8,
@@ -97,9 +112,11 @@ class _CommunityPageState extends State<CommunityPage> {
           const Text('展示已通过审核并适配设备的 MythBuild 内容。'),
           const SizedBox(height: 12),
           if (items.isEmpty)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 48),
-              child: Center(child: Text('该分类暂时没有可下载内容')),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 48),
+              child: Center(
+                child: Text(_downloadedOnly ? '还没有下载内容' : '没有找到匹配内容'),
+              ),
             ),
           for (final item in items)
             _ContentCard(

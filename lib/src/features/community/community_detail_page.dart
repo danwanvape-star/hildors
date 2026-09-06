@@ -135,11 +135,7 @@ class _CommunityDetailPageState extends State<CommunityDetailPage> {
 
   Future<void> _handlePrimaryAction() async {
     if (_status == ContentDownloadStatus.downloaded) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('请先连接 P20/P11 局域网；设备传输接口将在协议确认后接入。'),
-        ),
-      );
+      await _showPlaylistTargetSheet();
       return;
     }
 
@@ -167,6 +163,59 @@ class _CommunityDetailPageState extends State<CommunityDetailPage> {
         _downloadError = '下载失败，请检查网络后重试';
       });
     }
+  }
+
+  Future<void> _showPlaylistTargetSheet() async {
+    var selectedTarget = content.playlistTarget;
+    final target = await showModalBottomSheet<DevicePlaylistTarget>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setSheetState) => Padding(
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text('发送到哪个播放列表', style: Theme.of(context).textTheme.titleLarge),
+              const SizedBox(height: 6),
+              const Text('设备会根据蓝牙连接状态自动播放对应列表。'),
+              RadioListTile<DevicePlaylistTarget>(
+                value: DevicePlaylistTarget.local,
+                groupValue: selectedTarget,
+                title: const Text('普通播放列表'),
+                subtitle: const Text('设备未连接蓝牙时播放'),
+                onChanged: (value) {
+                  if (value != null) {
+                    setSheetState(() => selectedTarget = value);
+                  }
+                },
+              ),
+              RadioListTile<DevicePlaylistTarget>(
+                value: DevicePlaylistTarget.bluetooth,
+                groupValue: selectedTarget,
+                title: const Text('蓝牙播放列表'),
+                subtitle: const Text('设备连接蓝牙音源时播放'),
+                onChanged: (value) {
+                  if (value != null) {
+                    setSheetState(() => selectedTarget = value);
+                  }
+                },
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(context, selectedTarget),
+                child: const Text('确认发送'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (target == null || !mounted) return;
+    final label = target == DevicePlaylistTarget.local ? '普通播放列表' : '蓝牙播放列表';
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('已选择$label；设备传输接口将在通信协议确认后接入。')),
+    );
   }
 
   String _licenseLabel(CommunityLicense license) => switch (license) {

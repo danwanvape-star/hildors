@@ -16,4 +16,28 @@ void main() {
       isTrue,
     );
   });
+
+  test('catalog filter combines category query and downloaded state', () {
+    final items = filterCatalogContent(
+      communityPreviewItems,
+      category: '宠物',
+      query: '太空',
+      downloadedIds: {'preview_pet_01'},
+      downloadedOnly: true,
+    );
+
+    expect(items.map((item) => item.id), ['preview_pet_01']);
+  });
+
+  test('catalog filter matches creator and summary case-insensitively', () {
+    final items = filterCatalogContent(
+      communityPreviewItems,
+      category: '全部',
+      query: 'MYTHBUILD',
+      downloadedIds: const {},
+      downloadedOnly: false,
+    );
+
+    expect(items.length, communityPreviewItems.length);
+  });
 }
