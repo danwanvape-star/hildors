@@ -7,7 +7,6 @@ import '../../device/p20_device_client.dart';
 import '../../experience/projection_service.dart';
 import '../control/control_page.dart';
 import '../customization/customization_page.dart';
-import '../interaction/interaction_page.dart';
 import '../video/device_playlist_draft.dart';
 import '../video/playlist_management_page.dart';
 
@@ -74,12 +73,6 @@ class _HomePageState extends State<HomePage> {
         MaterialPageRoute<void>(builder: (_) => const CustomizationPage()),
       );
 
-  void _openMysticPortal() => Navigator.of(context).push(
-        MaterialPageRoute<void>(
-          builder: (_) => InteractionPage(projection: widget.projection),
-        ),
-      );
-
   @override
   Widget build(BuildContext context) => Scaffold(
         appBar: AppBar(
@@ -110,6 +103,14 @@ class _HomePageState extends State<HomePage> {
         body: ListView(
           padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
           children: [
+            _DeviceCard(
+              connection: _connection,
+              busy: _busy,
+              error: _error,
+              onConnect: _connect,
+              onControl: _openControl,
+            ),
+            const SizedBox(height: 16),
             _NowPlayingCard(
               connected: _connection == DeviceConnectionState.connected,
               onOpenStartup: () => _openPlaylist(DevicePlaylistKind.startup),
@@ -118,52 +119,6 @@ class _HomePageState extends State<HomePage> {
             ),
             const SizedBox(height: 16),
             _HeroCard(onTap: _openCustomization),
-            const SizedBox(height: 16),
-            _DeviceCard(
-              connection: _connection,
-              busy: _busy,
-              error: _error,
-              onConnect: _connect,
-              onControl: _openControl,
-            ),
-            const SizedBox(height: 24),
-            _SubscriptionCard(onTap: _openCustomization),
-            const SizedBox(height: 24),
-            Text('继续体验', style: Theme.of(context).textTheme.titleLarge),
-            const SizedBox(height: 10),
-            Card(
-              clipBehavior: Clip.antiAlias,
-              child: ListTile(
-                contentPadding: const EdgeInsets.all(16),
-                leading: const CircleAvatar(child: Icon(Icons.auto_awesome)),
-                title: const Text('Mystic Portal'),
-                subtitle: const Text('每日一牌、三牌阵与星座互动'),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: _openMysticPortal,
-              ),
-            ),
-            const SizedBox(height: 24),
-            Text('探索场景', style: Theme.of(context).textTheme.titleLarge),
-            const SizedBox(height: 10),
-            const Row(
-              children: [
-                Expanded(
-                  child: _PillarCard(
-                    icon: Icons.pets_outlined,
-                    title: '养成系宠物',
-                    subtitle: '陪伴与成长',
-                  ),
-                ),
-                SizedBox(width: 8),
-                Expanded(
-                  child: _PillarCard(
-                    icon: Icons.groups_outlined,
-                    title: '社交与家庭',
-                    subtitle: '聚会氛围角色',
-                  ),
-                ),
-              ],
-            ),
           ],
         ),
       );
@@ -187,57 +142,123 @@ class _NowPlayingCard extends StatelessWidget {
   final VoidCallback onOpenBluetooth;
 
   @override
-  Widget build(BuildContext context) => Card(
-        clipBehavior: Clip.antiAlias,
-        child: Padding(
-          padding: const EdgeInsets.all(18),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  const CircleAvatar(child: Icon(Icons.play_arrow_rounded)),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('当前播放',
-                            style: Theme.of(context).textTheme.titleLarge),
-                        Text(connected ? '设备已连接 · 等待读取播放状态' : '连接设备后查看当前内容'),
-                      ],
-                    ),
-                  ),
-                  Chip(label: Text(connected ? '局域网在线' : '未连接')),
-                ],
-              ),
-              const SizedBox(height: 18),
-              Text('播放列表', style: Theme.of(context).textTheme.titleMedium),
-              const SizedBox(height: 10),
-              Row(
-                children: [
-                  Expanded(
-                    child: _PlaylistShortcut(
-                      icon: Icons.power_settings_new,
-                      title: '开机播放列表',
-                      subtitle: '未连接蓝牙时播放',
-                      onTap: onOpenStartup,
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: _PlaylistShortcut(
-                      icon: Icons.bluetooth_audio,
-                      title: '蓝牙播放列表',
-                      subtitle: '连接蓝牙后播放',
-                      onTap: onOpenBluetooth,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: colors.secondary.withValues(alpha: 0.34)),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF062F35), Color(0xFF111527), Color(0xFF23132F)],
         ),
+        boxShadow: [
+          BoxShadow(
+            color: colors.secondary.withValues(alpha: 0.12),
+            blurRadius: 28,
+            offset: const Offset(0, 12),
+          )
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(children: [
+            Expanded(
+                child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('当前角色', style: Theme.of(context).textTheme.labelLarge),
+                const SizedBox(height: 3),
+                Text('HILDORS Collection',
+                    style: Theme.of(context).textTheme.titleLarge),
+              ],
+            )),
+            _StatusPill(connected: connected),
+          ]),
+          const SizedBox(height: 14),
+          Container(
+            height: 176,
+            width: double.infinity,
+            decoration: BoxDecoration(
+              color: Colors.black.withValues(alpha: 0.46),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.09)),
+            ),
+            child: Stack(alignment: Alignment.center, children: [
+              Container(
+                width: 132,
+                height: 132,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: RadialGradient(colors: [
+                    colors.secondary.withValues(alpha: 0.32),
+                    Colors.transparent,
+                  ]),
+                ),
+              ),
+              const Icon(Icons.auto_awesome, size: 62, color: Colors.white),
+              const Positioned(
+                left: 14,
+                bottom: 12,
+                child: Chip(label: Text('日常展示')),
+              ),
+            ]),
+          ),
+          const SizedBox(height: 12),
+          Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+            const IconButton(onPressed: null, icon: Icon(Icons.skip_previous)),
+            FilledButton.tonalIcon(
+              onPressed: null,
+              icon: const Icon(Icons.play_arrow_rounded),
+              label: Text(connected ? '播放控制待协议' : '连接设备'),
+            ),
+            const IconButton(onPressed: null, icon: Icon(Icons.skip_next)),
+          ]),
+          const SizedBox(height: 12),
+          Row(children: [
+            Expanded(
+                child: _PlaylistShortcut(
+              icon: Icons.wb_sunny_outlined,
+              title: '日常展示',
+              subtitle: '开机自动播放',
+              onTap: onOpenStartup,
+            )),
+            const SizedBox(width: 10),
+            Expanded(
+                child: _PlaylistShortcut(
+              icon: Icons.graphic_eq,
+              title: '音乐联动',
+              subtitle: '连接蓝牙后播放',
+              onTap: onOpenBluetooth,
+            )),
+          ]),
+        ],
+      ),
+    );
+  }
+}
+
+class _StatusPill extends StatelessWidget {
+  const _StatusPill({required this.connected});
+  final bool connected;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: connected
+              ? Theme.of(context).colorScheme.secondary.withValues(alpha: 0.16)
+              : Colors.white.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(99),
+        ),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          Icon(connected ? Icons.wifi : Icons.wifi_off, size: 14),
+          const SizedBox(width: 5),
+          Text(connected ? '在线' : '未连接'),
+        ]),
       );
 }
 
@@ -248,7 +269,6 @@ class _PlaylistShortcut extends StatelessWidget {
     required this.subtitle,
     required this.onTap,
   });
-
   final IconData icon;
   final String title;
   final String subtitle;
@@ -256,27 +276,32 @@ class _PlaylistShortcut extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Material(
-        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+        color: Colors.white.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(16),
         child: InkWell(
           borderRadius: BorderRadius.circular(16),
           onTap: onTap,
           child: Padding(
             padding: const EdgeInsets.all(14),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Icon(icon, color: Theme.of(context).colorScheme.primary),
-                const SizedBox(height: 12),
-                Text(title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontWeight: FontWeight.w700)),
-                const SizedBox(height: 4),
-                Text(subtitle,
-                    maxLines: 2, style: Theme.of(context).textTheme.bodySmall),
-              ],
-            ),
+            child:
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Row(children: [
+                Icon(icon,
+                    size: 21, color: Theme.of(context).colorScheme.secondary),
+                const Spacer(),
+                const Icon(Icons.chevron_right, size: 20),
+              ]),
+              const SizedBox(height: 12),
+              Text(title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontWeight: FontWeight.w700)),
+              const SizedBox(height: 4),
+              Text(subtitle,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.bodySmall),
+            ]),
           ),
         ),
       );
@@ -322,26 +347,6 @@ class _HeroCard extends StatelessWidget {
               ],
             ),
           ),
-        ),
-      );
-}
-
-class _SubscriptionCard extends StatelessWidget {
-  const _SubscriptionCard({required this.onTap});
-
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) => Card(
-        clipBehavior: Clip.antiAlias,
-        child: ListTile(
-          contentPadding: const EdgeInsets.all(16),
-          leading:
-              const CircleAvatar(child: Icon(Icons.workspace_premium_outlined)),
-          title: const Text('专属内容订阅'),
-          subtitle: const Text('持续获得角色与动作内容，订阅方案筹备中'),
-          trailing: const Icon(Icons.chevron_right),
-          onTap: onTap,
         ),
       );
 }
@@ -426,34 +431,4 @@ class _DeviceCard extends StatelessWidget {
       ),
     );
   }
-}
-
-class _PillarCard extends StatelessWidget {
-  const _PillarCard(
-      {required this.icon, required this.title, required this.subtitle});
-
-  final IconData icon;
-  final String title;
-  final String subtitle;
-
-  @override
-  Widget build(BuildContext context) => Card(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 14),
-          child: Column(
-            children: [
-              Icon(icon),
-              const SizedBox(height: 8),
-              Text(title,
-                  maxLines: 1,
-                  style: const TextStyle(fontWeight: FontWeight.w600)),
-              const SizedBox(height: 4),
-              Text(subtitle,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.bodySmall),
-            ],
-          ),
-        ),
-      );
 }

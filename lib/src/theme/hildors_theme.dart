@@ -14,18 +14,18 @@ abstract final class HildorsColors {
 
 ThemeData buildHildorsTheme() {
   final scheme = ColorScheme.fromSeed(
-    seedColor: HildorsColors.purple,
+    seedColor: HildorsColors.teal,
     brightness: Brightness.dark,
   ).copyWith(
-    primary: HildorsColors.purple,
-    onPrimary: HildorsColors.textPrimary,
-    primaryContainer: const Color(0xFF342044),
-    onPrimaryContainer: const Color(0xFFF5E9FF),
-    secondary: HildorsColors.teal,
+    primary: HildorsColors.teal,
+    onPrimary: HildorsColors.background,
+    primaryContainer: const Color(0xFF073B38),
+    onPrimaryContainer: const Color(0xFFD9FFFB),
+    secondary: HildorsColors.blue,
     onSecondary: HildorsColors.background,
     secondaryContainer: const Color(0xFF073B38),
     onSecondaryContainer: const Color(0xFFD9FFFB),
-    tertiary: HildorsColors.blue,
+    tertiary: HildorsColors.purpleBright,
     onTertiary: HildorsColors.background,
     surface: HildorsColors.surface,
     onSurface: HildorsColors.textPrimary,
@@ -58,11 +58,11 @@ ThemeData buildHildorsTheme() {
     ),
     navigationBarTheme: NavigationBarThemeData(
       backgroundColor: HildorsColors.surface,
-      indicatorColor: HildorsColors.purple.withValues(alpha: 0.28),
+      indicatorColor: HildorsColors.teal.withValues(alpha: 0.18),
       iconTheme: WidgetStateProperty.resolveWith(
         (states) => IconThemeData(
           color: states.contains(WidgetState.selected)
-              ? HildorsColors.purpleBright
+              ? HildorsColors.teal
               : HildorsColors.textSecondary,
         ),
       ),
@@ -80,8 +80,8 @@ ThemeData buildHildorsTheme() {
     ),
     filledButtonTheme: FilledButtonThemeData(
       style: FilledButton.styleFrom(
-        backgroundColor: HildorsColors.purple,
-        foregroundColor: HildorsColors.textPrimary,
+        backgroundColor: HildorsColors.teal,
+        foregroundColor: HildorsColors.background,
         shape: rounded,
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
       ),
@@ -102,12 +102,12 @@ ThemeData buildHildorsTheme() {
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.all(Radius.circular(14)),
-        borderSide: BorderSide(color: HildorsColors.purple),
+        borderSide: BorderSide(color: HildorsColors.teal),
       ),
     ),
     chipTheme: ChipThemeData(
       backgroundColor: HildorsColors.surfaceElevated,
-      selectedColor: HildorsColors.purple.withValues(alpha: 0.28),
+      selectedColor: HildorsColors.teal.withValues(alpha: 0.18),
       side: const BorderSide(color: Color(0xFF453B4A)),
       shape: const StadiumBorder(),
     ),
