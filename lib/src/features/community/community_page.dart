@@ -2,26 +2,64 @@ import 'package:flutter/material.dart';
 
 import 'community_content.dart';
 import 'community_detail_page.dart';
+import 'content_catalog_repository.dart';
 
 class CommunityPage extends StatefulWidget {
-  const CommunityPage({super.key});
+  const CommunityPage({this.catalogRepository, super.key});
+
+  final ContentCatalogRepository? catalogRepository;
 
   @override
   State<CommunityPage> createState() => _CommunityPageState();
 }
 
 class _CommunityPageState extends State<CommunityPage> {
+  late final ContentCatalogRepository _catalog =
+      widget.catalogRepository ?? const PreviewContentCatalogRepository();
+  late Future<List<CommunityContent>> _contentFuture;
   var _category = '全部';
   final _downloadedIds = <String>{};
 
   @override
-  Widget build(BuildContext context) {
-    final items = _category == '全部'
-        ? communityPreviewItems
-        : communityPreviewItems.where((item) => item.category == _category);
-    return Scaffold(
-      appBar: AppBar(title: const Text('内容库')),
-      body: ListView(
+  void initState() {
+    super.initState();
+    _loadContent();
+  }
+
+  void _loadContent() {
+    _contentFuture = _catalog.fetchApprovedContent();
+  }
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+        appBar: AppBar(title: const Text('内容库')),
+        body: FutureBuilder<List<CommunityContent>>(
+          future: _contentFuture,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState != ConnectionState.done) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            if (snapshot.hasError) {
+              return _CatalogError(onRetry: () {
+                setState(_loadContent);
+              });
+            }
+            final allItems = snapshot.data ?? const <CommunityContent>[];
+            final items = _category == '全部'
+                ? allItems
+                : allItems
+                    .where((item) => item.category == _category)
+                    .toList(growable: false);
+            return _buildCatalog(context, items);
+          },
+        ),
+      );
+
+  Widget _buildCatalog(
+    BuildContext context,
+    List<CommunityContent> items,
+  ) =>
+      ListView(
         padding: const EdgeInsets.all(20),
         children: [
           TextField(
@@ -58,6 +96,11 @@ class _CommunityPageState extends State<CommunityPage> {
           const SizedBox(height: 4),
           const Text('展示已通过审核并适配设备的 MythBuild 内容。'),
           const SizedBox(height: 12),
+          if (items.isEmpty)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 48),
+              child: Center(child: Text('该分类暂时没有可下载内容')),
+            ),
           for (final item in items)
             _ContentCard(
               item: item,
@@ -77,9 +120,34 @@ class _CommunityPageState extends State<CommunityPage> {
               },
             ),
         ],
-      ),
-    );
-  }
+      );
+}
+
+class _CatalogError extends StatelessWidget {
+  const _CatalogError({required this.onRetry});
+
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) => Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.cloud_off_outlined, size: 52),
+              const SizedBox(height: 12),
+              const Text('内容库加载失败，请检查网络后重试'),
+              const SizedBox(height: 16),
+              OutlinedButton.icon(
+                onPressed: onRetry,
+                icon: const Icon(Icons.refresh),
+                label: const Text('重新加载'),
+              ),
+            ],
+          ),
+        ),
+      );
 }
 
 class _DownloadNotice extends StatelessWidget {
