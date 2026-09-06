@@ -33,8 +33,8 @@ class _DashboardPageState extends State<DashboardPage> {
   Widget build(BuildContext context) {
     final pages = [
       HomePage(client: _client, projection: _projection),
-      ExplorePage(projection: _projection),
       const CommunityPage(),
+      ExplorePage(projection: _projection),
       ProfilePage(client: _client, session: _session),
     ];
     return Scaffold(
@@ -49,14 +49,14 @@ class _DashboardPageState extends State<DashboardPage> {
             label: '首页',
           ),
           NavigationDestination(
-            icon: Icon(Icons.explore_outlined),
-            selectedIcon: Icon(Icons.explore),
-            label: '探索',
+            icon: Icon(Icons.collections_bookmark_outlined),
+            selectedIcon: Icon(Icons.collections_bookmark),
+            label: '藏品',
           ),
           NavigationDestination(
-            icon: Icon(Icons.video_library_outlined),
-            selectedIcon: Icon(Icons.video_library),
-            label: '内容库',
+            icon: Icon(Icons.explore_outlined),
+            selectedIcon: Icon(Icons.explore),
+            label: '发现',
           ),
           NavigationDestination(
             icon: Icon(Icons.person_outline),

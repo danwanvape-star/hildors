@@ -8,8 +8,8 @@ void main() {
     expect(find.text('HILDORS'), findsOneWidget);
     expect(find.text('定制你的专属全息角色'), findsOneWidget);
     expect(find.text('首页'), findsOneWidget);
-    expect(find.text('探索'), findsOneWidget);
-    expect(find.text('内容库'), findsOneWidget);
+    expect(find.text('藏品'), findsOneWidget);
+    expect(find.text('发现'), findsOneWidget);
     expect(find.text('我的'), findsOneWidget);
   });
 }
