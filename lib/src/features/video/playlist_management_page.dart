@@ -1,16 +1,32 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 
+import '../../device/p20_command_session.dart';
+import '../../device/p20_device_client.dart';
 import 'device_playlist_draft.dart';
 
 class PlaylistManagementPage extends StatefulWidget {
-  const PlaylistManagementPage({super.key});
+  const PlaylistManagementPage({
+    required this.client,
+    required this.session,
+    super.key,
+  });
+
+  final P20DeviceClient client;
+  final P20CommandSession session;
 
   @override
   State<PlaylistManagementPage> createState() => _PlaylistManagementPageState();
 }
 
 class _PlaylistManagementPageState extends State<PlaylistManagementPage> {
+  StreamSubscription<DeviceConnectionState>? _subscription;
+  late DeviceConnectionState _connection;
   var _kind = DevicePlaylistKind.startup;
+  var _loading = false;
+  List<P20VideoEntry> _deviceVideos = const [];
+  String? _error;
+
   late var _startup = const DevicePlaylistDraft(
     kind: DevicePlaylistKind.startup,
     enabled: true,
@@ -24,8 +40,18 @@ class _PlaylistManagementPageState extends State<PlaylistManagementPage> {
     videoNames: ['MUSIC_JELLYFISH.MP4', 'NEON_EARTH.MP4'],
   );
 
+  bool get _connected => _connection == DeviceConnectionState.connected;
   DevicePlaylistDraft get _draft =>
       _kind == DevicePlaylistKind.startup ? _startup : _bluetooth;
+
+  @override
+  void initState() {
+    super.initState();
+    _connection = widget.client.connectionState;
+    _subscription = widget.client.connectionStates.listen((value) {
+      if (mounted) setState(() => _connection = value);
+    });
+  }
 
   void _update(DevicePlaylistDraft value) {
     setState(() {
@@ -37,13 +63,87 @@ class _PlaylistManagementPageState extends State<PlaylistManagementPage> {
     });
   }
 
+  Future<void> _readDeviceVideos() async {
+    if (!_connected || _loading) return;
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    try {
+      final videos = await widget.session.queryVideos();
+      if (mounted) setState(() => _deviceVideos = videos);
+    } catch (error) {
+      if (mounted) setState(() => _error = '读取设备视频失败：$error');
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _showDeviceVideoPicker() async {
+    if (_deviceVideos.isEmpty) await _readDeviceVideos();
+    if (!mounted || _deviceVideos.isEmpty) return;
+    final available = _deviceVideos
+        .where((video) => !_draft.videoNames.contains(video.fileName))
+        .toList(growable: false);
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) => SafeArea(
+        child: ListView(
+          shrinkWrap: true,
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+          children: [
+            Text('从设备视频库添加', style: Theme.of(context).textTheme.titleLarge),
+            const SizedBox(height: 8),
+            if (available.isEmpty)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 28),
+                child: Center(child: Text('设备视频均已加入当前草案')),
+              ),
+            for (final video in available)
+              ListTile(
+                leading: const Icon(Icons.video_file_outlined),
+                title: Text(video.fileName),
+                trailing: const Icon(Icons.add_circle_outline),
+                onTap: () {
+                  _update(_draft.add(video.fileName));
+                  Navigator.pop(context);
+                },
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: const Text('设备播放列表')),
+        appBar: AppBar(
+          title: const Text('设备播放列表'),
+          actions: [
+            IconButton(
+              tooltip: '读取设备视频',
+              onPressed: _connected && !_loading ? _readDeviceVideos : null,
+              icon: _loading
+                  ? const SizedBox.square(
+                      dimension: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.sync),
+            ),
+          ],
+        ),
         body: ListView(
           padding: const EdgeInsets.all(20),
           children: [
             const _ProtocolNotice(),
+            const SizedBox(height: 12),
+            _DeviceSourceCard(
+              connected: _connected,
+              videoCount: _deviceVideos.length,
+              error: _error,
+              onRead: _connected ? _readDeviceVideos : null,
+            ),
             const SizedBox(height: 16),
             SegmentedButton<DevicePlaylistKind>(
               segments: const [
@@ -59,9 +159,8 @@ class _PlaylistManagementPageState extends State<PlaylistManagementPage> {
                 ),
               ],
               selected: {_kind},
-              onSelectionChanged: (selection) {
-                setState(() => _kind = selection.single);
-              },
+              onSelectionChanged: (value) =>
+                  setState(() => _kind = value.single),
             ),
             const SizedBox(height: 18),
             Text(
@@ -70,7 +169,6 @@ class _PlaylistManagementPageState extends State<PlaylistManagementPage> {
                   : '蓝牙音源连接后由硬件自动切换播放',
               style: Theme.of(context).textTheme.titleMedium,
             ),
-            const SizedBox(height: 12),
             SwitchListTile(
               value: _draft.enabled,
               onChanged: (value) => _update(_draft.copyWith(enabled: value)),
@@ -79,8 +177,8 @@ class _PlaylistManagementPageState extends State<PlaylistManagementPage> {
               ),
               subtitle: const Text('当前修改仅保存在交互草案中'),
             ),
-            const SizedBox(height: 8),
             DropdownButtonFormField<PlaylistLoopMode>(
+              key: ValueKey(_kind),
               initialValue: _draft.loopMode,
               decoration: const InputDecoration(
                 labelText: '循环方式',
@@ -101,20 +199,29 @@ class _PlaylistManagementPageState extends State<PlaylistManagementPage> {
                 ),
               ],
               onChanged: (value) {
-                if (value != null) {
-                  _update(_draft.copyWith(loopMode: value));
-                }
+                if (value != null) _update(_draft.copyWith(loopMode: value));
               },
             ),
             const SizedBox(height: 22),
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('播放顺序', style: Theme.of(context).textTheme.titleLarge),
+                Expanded(
+                  child: Text('播放顺序',
+                      style: Theme.of(context).textTheme.titleLarge),
+                ),
                 Text('${_draft.videoNames.length} 个视频'),
+                IconButton(
+                  tooltip: '从设备添加',
+                  onPressed: _connected ? _showDeviceVideoPicker : null,
+                  icon: const Icon(Icons.playlist_add),
+                ),
               ],
             ),
-            const SizedBox(height: 8),
+            if (_draft.videoNames.isEmpty)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 32),
+                child: Center(child: Text('当前播放列表为空')),
+              ),
             for (var index = 0; index < _draft.videoNames.length; index++)
               Card(
                 child: ListTile(
@@ -137,6 +244,12 @@ class _PlaylistManagementPageState extends State<PlaylistManagementPage> {
                             : () => _update(_draft.move(index, index + 1)),
                         icon: const Icon(Icons.keyboard_arrow_down),
                       ),
+                      IconButton(
+                        tooltip: '移出草案',
+                        onPressed: () =>
+                            _update(_draft.remove(_draft.videoNames[index])),
+                        icon: const Icon(Icons.remove_circle_outline),
+                      ),
                     ],
                   ),
                 ),
@@ -147,17 +260,54 @@ class _PlaylistManagementPageState extends State<PlaylistManagementPage> {
               icon: const Icon(Icons.sync_disabled),
               label: const Text('保存到设备 · 等待新版协议'),
             ),
-            if (_kind == DevicePlaylistKind.bluetooth) ...[
-              const SizedBox(height: 12),
+            if (_kind == DevicePlaylistKind.bluetooth)
               const Card(
                 child: ListTile(
                   leading: Icon(Icons.settings_backup_restore),
                   title: Text('蓝牙断开后的恢复策略'),
-                  subtitle: Text('建议：恢复蓝牙连接前正在播放的普通视频；等待协议确认'),
+                  subtitle: Text('建议恢复连接前播放的普通视频；等待协议确认'),
                 ),
               ),
-            ],
           ],
+        ),
+      );
+
+  @override
+  void dispose() {
+    _subscription?.cancel();
+    super.dispose();
+  }
+}
+
+class _DeviceSourceCard extends StatelessWidget {
+  const _DeviceSourceCard({
+    required this.connected,
+    required this.videoCount,
+    required this.error,
+    required this.onRead,
+  });
+
+  final bool connected;
+  final int videoCount;
+  final String? error;
+  final VoidCallback? onRead;
+
+  @override
+  Widget build(BuildContext context) => Card(
+        child: ListTile(
+          leading: Icon(connected ? Icons.router : Icons.wifi_off),
+          title: Text(connected ? '设备视频素材已连接' : '设备未连接'),
+          subtitle: Text(
+            error ??
+                (connected
+                    ? videoCount == 0
+                        ? '可读取统一视频列表，作为两套列表的素材来源'
+                        : '已读取 $videoCount 个设备视频'
+                    : '请先连接 P20/P11 局域网'),
+          ),
+          trailing: connected
+              ? TextButton(onPressed: onRead, child: const Text('读取'))
+              : null,
         ),
       );
 }
@@ -177,7 +327,7 @@ class _ProtocolNotice extends StatelessWidget {
               SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  '两套播放列表的交互已经规划。当前协议只能读取设备统一视频列表，以下调整不会写入硬件。',
+                  '旧协议可以读取设备统一视频列表。两套列表的归属和设置仍是草案，不会写入硬件。',
                 ),
               ),
             ],

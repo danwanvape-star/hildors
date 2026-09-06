@@ -54,7 +54,10 @@ class ProfilePage extends StatelessWidget {
               icon: Icons.playlist_play,
               title: '设备播放列表',
               subtitle: '开机播放与蓝牙播放的内容和顺序',
-              onTap: () => _open(context, const PlaylistManagementPage()),
+              onTap: () => _open(
+                context,
+                PlaylistManagementPage(client: client, session: session),
+              ),
             ),
             _Entry(
               icon: Icons.video_library_outlined,

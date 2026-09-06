@@ -27,6 +27,20 @@ class DevicePlaylistDraft {
         videoNames: videoNames ?? this.videoNames,
       );
 
+  DevicePlaylistDraft add(String fileName) {
+    if (videoNames.contains(fileName)) return this;
+    return copyWith(videoNames: List.unmodifiable([...videoNames, fileName]));
+  }
+
+  DevicePlaylistDraft remove(String fileName) {
+    if (!videoNames.contains(fileName)) return this;
+    return copyWith(
+      videoNames: List.unmodifiable(
+        videoNames.where((name) => name != fileName),
+      ),
+    );
+  }
+
   DevicePlaylistDraft move(int oldIndex, int newIndex) {
     if (oldIndex < 0 ||
         oldIndex >= videoNames.length ||
