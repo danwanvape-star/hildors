@@ -1,25 +1,32 @@
 import 'package:flutter/material.dart';
 
 import 'community_content.dart';
+import 'content_download_service.dart';
 
 class CommunityDetailPage extends StatefulWidget {
   const CommunityDetailPage({
     required this.content,
     this.initiallyDownloaded = false,
+    this.downloadService,
     super.key,
   });
 
   final CommunityContent content;
   final bool initiallyDownloaded;
+  final ContentDownloadService? downloadService;
 
   @override
   State<CommunityDetailPage> createState() => _CommunityDetailPageState();
 }
 
 class _CommunityDetailPageState extends State<CommunityDetailPage> {
+  late final ContentDownloadService _downloadService =
+      widget.downloadService ?? const PreviewContentDownloadService();
   late var _status = widget.initiallyDownloaded
       ? ContentDownloadStatus.downloaded
       : ContentDownloadStatus.notDownloaded;
+  var _downloadProgress = 0.0;
+  String? _downloadError;
 
   CommunityContent get content => widget.content;
 
@@ -75,14 +82,18 @@ class _CommunityDetailPageState extends State<CommunityDetailPage> {
                     : '蓝牙播放列表',
               ),
               _InfoRow(
-                  label: '适配设备', value: content.supportedModels.join(' / ')),
+                label: '适配设备',
+                value: content.supportedModels.join(' / '),
+              ),
               _InfoRow(label: '视频时长', value: '${content.durationSeconds} 秒'),
               _InfoRow(label: '文件大小', value: '${content.fileSizeMb} MB'),
               const SizedBox(height: 20),
               if (_status == ContentDownloadStatus.downloading) ...[
-                const LinearProgressIndicator(),
+                LinearProgressIndicator(value: _downloadProgress),
                 const SizedBox(height: 10),
-                const Center(child: Text('正在下载到手机…')),
+                Center(
+                  child: Text('正在下载到手机 ${(_downloadProgress * 100).round()}%'),
+                ),
               ] else
                 FilledButton.icon(
                   onPressed: content.canDownload ? _handlePrimaryAction : null,
@@ -94,12 +105,22 @@ class _CommunityDetailPageState extends State<CommunityDetailPage> {
                   label: Text(
                     _status == ContentDownloadStatus.downloaded
                         ? '发送到设备'
-                        : '下载到手机',
+                        : _status == ContentDownloadStatus.failed
+                            ? '重新下载'
+                            : '下载到手机',
                   ),
                 ),
               if (_status == ContentDownloadStatus.downloaded) ...[
                 const SizedBox(height: 8),
                 const Center(child: Text('已保存到“我的下载”，断网后仍可发送。')),
+              ],
+              if (_downloadError != null) ...[
+                const SizedBox(height: 8),
+                Text(
+                  _downloadError!,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+                ),
               ],
               const SizedBox(height: 8),
               TextButton.icon(
@@ -121,9 +142,31 @@ class _CommunityDetailPageState extends State<CommunityDetailPage> {
       );
       return;
     }
-    setState(() => _status = ContentDownloadStatus.downloading);
-    await Future<void>.delayed(const Duration(milliseconds: 650));
-    if (mounted) setState(() => _status = ContentDownloadStatus.downloaded);
+
+    setState(() {
+      _status = ContentDownloadStatus.downloading;
+      _downloadProgress = 0;
+      _downloadError = null;
+    });
+    try {
+      await _downloadService.download(
+        content,
+        onProgress: (progress) {
+          if (!mounted) return;
+          setState(() {
+            _status = progress.status;
+            _downloadProgress = progress.fraction;
+            _downloadError = progress.errorMessage;
+          });
+        },
+      );
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _status = ContentDownloadStatus.failed;
+        _downloadError = '下载失败，请检查网络后重试';
+      });
+    }
   }
 
   String _licenseLabel(CommunityLicense license) => switch (license) {
