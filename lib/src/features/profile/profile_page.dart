@@ -6,6 +6,7 @@ import '../customization/customization_page.dart';
 import '../settings/lan_connection_guide.dart';
 import '../settings/playback_mode_guide.dart';
 import '../settings/settings_page.dart';
+import '../video/playlist_management_page.dart';
 import '../video/video_page.dart';
 
 class ProfilePage extends StatelessWidget {
@@ -48,6 +49,12 @@ class ProfilePage extends StatelessWidget {
               subtitle: '设备参数、播放模式与版本',
               onTap: () => _open(
                   context, SettingsPage(client: client, session: session)),
+            ),
+            _Entry(
+              icon: Icons.playlist_play,
+              title: '设备播放列表',
+              subtitle: '开机播放与蓝牙播放的内容和顺序',
+              onTap: () => _open(context, const PlaylistManagementPage()),
             ),
             _Entry(
               icon: Icons.video_library_outlined,
