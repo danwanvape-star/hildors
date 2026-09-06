@@ -2,16 +2,25 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../../device/p20_command_session.dart';
 import '../../device/p20_device_client.dart';
 import '../../experience/projection_service.dart';
 import '../control/control_page.dart';
 import '../customization/customization_page.dart';
 import '../interaction/interaction_page.dart';
+import '../video/device_playlist_draft.dart';
+import '../video/playlist_management_page.dart';
 
 class HomePage extends StatefulWidget {
-  const HomePage({required this.client, required this.projection, super.key});
+  const HomePage({
+    required this.client,
+    required this.session,
+    required this.projection,
+    super.key,
+  });
 
   final P20DeviceClient client;
+  final P20CommandSession session;
   final ProjectionService projection;
 
   @override
@@ -48,6 +57,16 @@ class _HomePageState extends State<HomePage> {
   void _openControl() => Navigator.of(context).push(
         MaterialPageRoute<void>(
           builder: (_) => ControlPage(client: widget.client),
+        ),
+      );
+
+  void _openPlaylist(DevicePlaylistKind kind) => Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) => PlaylistManagementPage(
+            client: widget.client,
+            session: widget.session,
+            initialKind: kind,
+          ),
         ),
       );
 
@@ -91,6 +110,13 @@ class _HomePageState extends State<HomePage> {
         body: ListView(
           padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
           children: [
+            _NowPlayingCard(
+              connected: _connection == DeviceConnectionState.connected,
+              onOpenStartup: () => _openPlaylist(DevicePlaylistKind.startup),
+              onOpenBluetooth: () =>
+                  _openPlaylist(DevicePlaylistKind.bluetooth),
+            ),
+            const SizedBox(height: 16),
             _HeroCard(onTap: _openCustomization),
             const SizedBox(height: 16),
             _DeviceCard(
@@ -147,6 +173,113 @@ class _HomePageState extends State<HomePage> {
     _subscription?.cancel();
     super.dispose();
   }
+}
+
+class _NowPlayingCard extends StatelessWidget {
+  const _NowPlayingCard({
+    required this.connected,
+    required this.onOpenStartup,
+    required this.onOpenBluetooth,
+  });
+
+  final bool connected;
+  final VoidCallback onOpenStartup;
+  final VoidCallback onOpenBluetooth;
+
+  @override
+  Widget build(BuildContext context) => Card(
+        clipBehavior: Clip.antiAlias,
+        child: Padding(
+          padding: const EdgeInsets.all(18),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const CircleAvatar(child: Icon(Icons.play_arrow_rounded)),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('当前播放',
+                            style: Theme.of(context).textTheme.titleLarge),
+                        Text(connected ? '设备已连接 · 等待读取播放状态' : '连接设备后查看当前内容'),
+                      ],
+                    ),
+                  ),
+                  Chip(label: Text(connected ? '局域网在线' : '未连接')),
+                ],
+              ),
+              const SizedBox(height: 18),
+              Text('播放列表', style: Theme.of(context).textTheme.titleMedium),
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  Expanded(
+                    child: _PlaylistShortcut(
+                      icon: Icons.power_settings_new,
+                      title: '开机播放列表',
+                      subtitle: '未连接蓝牙时播放',
+                      onTap: onOpenStartup,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: _PlaylistShortcut(
+                      icon: Icons.bluetooth_audio,
+                      title: '蓝牙播放列表',
+                      subtitle: '连接蓝牙后播放',
+                      onTap: onOpenBluetooth,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      );
+}
+
+class _PlaylistShortcut extends StatelessWidget {
+  const _PlaylistShortcut({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => Material(
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(16),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(icon, color: Theme.of(context).colorScheme.primary),
+                const SizedBox(height: 12),
+                Text(title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontWeight: FontWeight.w700)),
+                const SizedBox(height: 4),
+                Text(subtitle,
+                    maxLines: 2, style: Theme.of(context).textTheme.bodySmall),
+              ],
+            ),
+          ),
+        ),
+      );
 }
 
 class _HeroCard extends StatelessWidget {

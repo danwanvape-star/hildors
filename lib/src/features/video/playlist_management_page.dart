@@ -9,11 +9,13 @@ class PlaylistManagementPage extends StatefulWidget {
   const PlaylistManagementPage({
     required this.client,
     required this.session,
+    this.initialKind = DevicePlaylistKind.startup,
     super.key,
   });
 
   final P20DeviceClient client;
   final P20CommandSession session;
+  final DevicePlaylistKind initialKind;
 
   @override
   State<PlaylistManagementPage> createState() => _PlaylistManagementPageState();
@@ -22,7 +24,7 @@ class PlaylistManagementPage extends StatefulWidget {
 class _PlaylistManagementPageState extends State<PlaylistManagementPage> {
   StreamSubscription<DeviceConnectionState>? _subscription;
   late DeviceConnectionState _connection;
-  var _kind = DevicePlaylistKind.startup;
+  late DevicePlaylistKind _kind;
   var _loading = false;
   List<P20VideoEntry> _deviceVideos = const [];
   String? _error;
@@ -47,6 +49,7 @@ class _PlaylistManagementPageState extends State<PlaylistManagementPage> {
   @override
   void initState() {
     super.initState();
+    _kind = widget.initialKind;
     _connection = widget.client.connectionState;
     _subscription = widget.client.connectionStates.listen((value) {
       if (mounted) setState(() => _connection = value);
