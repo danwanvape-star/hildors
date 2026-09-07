@@ -10,10 +10,12 @@ Future<VideoPlayerController> createBundledVideoController(
   String assetPath,
 ) async {
   final assetController = VideoPlayerController.asset(assetPath);
+  Object? assetError;
   try {
     await assetController.initialize();
     return assetController;
   } catch (error, stackTrace) {
+    assetError = error;
     debugPrint('Asset video open failed for $assetPath: $error');
     debugPrintStack(stackTrace: stackTrace);
     await assetController.dispose();
@@ -31,12 +33,18 @@ Future<VideoPlayerController> createBundledVideoController(
     await file.writeAsBytes(bytes, flush: true);
   }
 
+  if (await file.length() != data.lengthInBytes) {
+    throw StateError(
+      'Cached video size mismatch: ${await file.length()}/${data.lengthInBytes}',
+    );
+  }
+
   final fileController = VideoPlayerController.file(file);
   try {
     await fileController.initialize();
     return fileController;
-  } catch (_) {
+  } catch (fileError) {
     await fileController.dispose();
-    rethrow;
+    throw StateError('asset=$assetError; file=$fileError');
   }
 }

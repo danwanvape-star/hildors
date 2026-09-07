@@ -15,6 +15,7 @@ class ContentPreviewPlayer extends StatefulWidget {
 class _ContentPreviewPlayerState extends State<ContentPreviewPlayer> {
   VideoPlayerController? _controller;
   String? _error;
+  String? _technicalError;
 
   @override
   void initState() {
@@ -25,7 +26,12 @@ class _ContentPreviewPlayerState extends State<ContentPreviewPlayer> {
   Future<void> _initialize() async {
     final assetPath = widget.assetPath;
     if (assetPath == null) return;
-    if (mounted) setState(() => _error = null);
+    if (mounted) {
+      setState(() {
+        _error = null;
+        _technicalError = null;
+      });
+    }
     try {
       final controller = await createBundledVideoController(assetPath);
       await controller.setLooping(true);
@@ -37,7 +43,12 @@ class _ContentPreviewPlayerState extends State<ContentPreviewPlayer> {
     } catch (error, stackTrace) {
       debugPrint('Preview video failed: ' + error.toString());
       debugPrintStack(stackTrace: stackTrace);
-      if (mounted) setState(() => _error = '预览加载失败，请稍后重试');
+      if (mounted) {
+        setState(() {
+          _error = '预览加载失败，请稍后重试';
+          _technicalError = error.toString();
+        });
+      }
     }
   }
 
@@ -81,6 +92,19 @@ class _ContentPreviewPlayerState extends State<ContentPreviewPlayer> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(_error!, textAlign: TextAlign.center),
+                        if (_technicalError != null) ...[
+                          const SizedBox(height: 6),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            child: Text(
+                              _technicalError!,
+                              maxLines: 3,
+                              overflow: TextOverflow.ellipsis,
+                              textAlign: TextAlign.center,
+                              style: Theme.of(context).textTheme.bodySmall,
+                            ),
+                          ),
+                        ],
                         const SizedBox(height: 8),
                         TextButton.icon(
                           onPressed: _initialize,
