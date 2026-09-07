@@ -3,12 +3,13 @@ import 'package:hildors_cockpit/src/features/community/community_content.dart';
 import 'package:hildors_cockpit/src/features/community/content_catalog_repository.dart';
 
 void main() {
-  test('preview catalog exposes the four approved demo videos', () async {
+  test('preview catalog exposes playable videos and concept thumbnails',
+      () async {
     const repository = PreviewContentCatalogRepository(delay: Duration.zero);
 
     final items = await repository.fetchApprovedContent();
 
-    expect(items, hasLength(4));
+    expect(items, hasLength(12));
     expect(
       items.every(
         (item) => item.rightsStatus == CommunityRightsStatus.verified,
@@ -38,12 +39,14 @@ void main() {
       downloadedOnly: false,
     );
 
-    expect(items.length, communityPreviewItems.length);
+    expect(items.length, 4);
   });
 
   test('preview catalog provides four phone-playable video assets', () {
     expect(
-      communityPreviewItems.map((item) => item.previewAsset),
+      communityPreviewItems
+          .map((item) => item.previewAsset)
+          .whereType<String>(),
       [
         'assets/videos/showcase/showcase_01.mp4',
         'assets/videos/showcase/showcase_02.mp4',
