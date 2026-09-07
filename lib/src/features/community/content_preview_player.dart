@@ -42,7 +42,7 @@ class _ContentPreviewPlayerState extends State<ContentPreviewPlayer> {
       }
       setState(() => _controller = controller);
     } catch (error, stackTrace) {
-      debugPrint('Preview video failed: ' + error.toString());
+      debugPrint('Preview video failed: $error');
       debugPrintStack(stackTrace: stackTrace);
       if (mounted) {
         setState(() {
@@ -62,12 +62,16 @@ class _ContentPreviewPlayerState extends State<ContentPreviewPlayer> {
     if (mounted) setState(() {});
   }
 
+  void _resetView() {
+    _transformationController.value = Matrix4.identity();
+  }
+
   @override
   Widget build(BuildContext context) {
     final controller = _controller;
     final ready = controller?.value.isInitialized ?? false;
     return Container(
-      height: 240,
+      height: 280,
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         color: Colors.black,
@@ -77,15 +81,18 @@ class _ContentPreviewPlayerState extends State<ContentPreviewPlayer> {
         fit: StackFit.expand,
         children: [
           if (ready)
-            InteractiveViewer(
-              transformationController: _transformationController,
-              minScale: 0.5,
-              maxScale: 4,
-              boundaryMargin: const EdgeInsets.all(160),
-              child: Center(
-                child: AspectRatio(
-                  aspectRatio: controller!.value.aspectRatio,
-                  child: VideoPlayer(controller),
+            GestureDetector(
+              onDoubleTap: _resetView,
+              child: InteractiveViewer(
+                transformationController: _transformationController,
+                minScale: 1,
+                maxScale: 3,
+                boundaryMargin: const EdgeInsets.all(80),
+                child: Center(
+                  child: AspectRatio(
+                    aspectRatio: controller!.value.aspectRatio,
+                    child: VideoPlayer(controller),
+                  ),
                 ),
               ),
             )
@@ -119,55 +126,29 @@ class _ContentPreviewPlayerState extends State<ContentPreviewPlayer> {
                       ],
                     ),
             ),
-          const DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [Colors.transparent, Color(0x99000000)],
-              ),
-            ),
-          ),
-          Center(
-            child: IconButton.filled(
-              tooltip: ready && controller!.value.isPlaying ? '暂停预览' : '播放预览',
-              iconSize: 36,
-              onPressed: ready ? _toggle : null,
-              icon: Icon(
-                ready && controller!.value.isPlaying
-                    ? Icons.pause_rounded
-                    : Icons.play_arrow_rounded,
-              ),
-            ),
-          ),
-          const Positioned(
-            left: 14,
-            bottom: 12,
-            child: Chip(label: Text('双指缩放 · 拖动查看')),
-          ),
           if (ready)
             Positioned(
-              top: 10,
-              right: 10,
-              child: _PreviewZoomControls(
-                onZoomOut: () => _zoomBy(0.8),
-                onReset: _resetView,
-                onZoomIn: () => _zoomBy(1.25),
+              right: 12,
+              bottom: 12,
+              child: IconButton.filledTonal(
+                tooltip: controller!.value.isPlaying ? '暂停预览' : '播放预览',
+                onPressed: _toggle,
+                icon: Icon(
+                  controller.value.isPlaying
+                      ? Icons.pause_rounded
+                      : Icons.play_arrow_rounded,
+                ),
               ),
+            ),
+          if (ready)
+            const Positioned(
+              left: 12,
+              bottom: 12,
+              child: Chip(label: Text('双指缩放 · 双击复位')),
             ),
         ],
       ),
     );
-  }
-
-  void _zoomBy(double factor) {
-    final current = _transformationController.value.getMaxScaleOnAxis();
-    final next = (current * factor).clamp(0.5, 4.0);
-    _transformationController.value = Matrix4.diagonal3Values(next, next, 1);
-  }
-
-  void _resetView() {
-    _transformationController.value = Matrix4.identity();
   }
 
   @override
@@ -176,40 +157,4 @@ class _ContentPreviewPlayerState extends State<ContentPreviewPlayer> {
     _controller?.dispose();
     super.dispose();
   }
-}
-
-class _PreviewZoomControls extends StatelessWidget {
-  const _PreviewZoomControls({
-    required this.onZoomOut,
-    required this.onReset,
-    required this.onZoomIn,
-  });
-
-  final VoidCallback onZoomOut;
-  final VoidCallback onReset;
-  final VoidCallback onZoomIn;
-
-  @override
-  Widget build(BuildContext context) => DecoratedBox(
-        decoration: BoxDecoration(
-          color: Colors.black.withValues(alpha: 0.68),
-          borderRadius: BorderRadius.circular(22),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            IconButton(
-              tooltip: '缩小',
-              onPressed: onZoomOut,
-              icon: const Icon(Icons.remove),
-            ),
-            TextButton(onPressed: onReset, child: const Text('1:1')),
-            IconButton(
-              tooltip: '放大',
-              onPressed: onZoomIn,
-              icon: const Icon(Icons.add),
-            ),
-          ],
-        ),
-      );
 }

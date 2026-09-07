@@ -347,7 +347,7 @@ class _ShowcaseVideoPreviewState extends State<_ShowcaseVideoPreview> {
     final controller = _controller;
     final ready = controller?.value.isInitialized ?? false;
     return Container(
-      height: 220,
+      height: 270,
       width: double.infinity,
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
@@ -355,66 +355,73 @@ class _ShowcaseVideoPreviewState extends State<_ShowcaseVideoPreview> {
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
       ),
-      child: Stack(fit: StackFit.expand, children: [
-        Image.asset('assets/images/p20_product_showcase.jpg',
-            fit: BoxFit.cover),
-        if (ready)
-          FittedBox(
-            fit: BoxFit.cover,
-            child: SizedBox(
-              width: controller!.value.size.width,
-              height: controller.value.size.height,
-              child: VideoPlayer(controller),
-            ),
-          ),
-        const DecoratedBox(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [Colors.transparent, Color(0xCC000000)],
-            ),
-          ),
-        ),
-        if (_loading) const Center(child: CircularProgressIndicator()),
-        Positioned(
-          left: 10,
-          right: 10,
-          bottom: 8,
-          child: Row(children: [
-            IconButton.filledTonal(
-              tooltip: '上一个展示视频',
-              onPressed: () => _move(-1),
-              icon: const Icon(Icons.skip_previous),
-            ),
-            IconButton.filled(
-              tooltip: ready && controller!.value.isPlaying ? '暂停预览' : '播放预览',
-              onPressed: ready ? _toggle : null,
-              icon: Icon(ready && controller!.value.isPlaying
-                  ? Icons.pause
-                  : Icons.play_arrow),
-            ),
-            IconButton.filledTonal(
-              tooltip: '下一个展示视频',
-              onPressed: () => _move(1),
-              icon: const Icon(Icons.skip_next),
-            ),
-            const Spacer(),
-            for (var i = 0; i < _assets.length; i++)
-              Container(
-                width: i == _index ? 16 : 6,
-                height: 6,
-                margin: const EdgeInsets.only(left: 5),
-                decoration: BoxDecoration(
-                  color: i == _index
-                      ? Theme.of(context).colorScheme.primary
-                      : Colors.white38,
-                  borderRadius: BorderRadius.circular(99),
+      child: Column(
+        children: [
+          Expanded(
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                Image.asset(
+                  'assets/images/p20_product_showcase.jpg',
+                  fit: BoxFit.cover,
                 ),
-              ),
-          ]),
-        ),
-      ]),
+                if (ready)
+                  FittedBox(
+                    fit: BoxFit.contain,
+                    child: SizedBox(
+                      width: controller!.value.size.width,
+                      height: controller.value.size.height,
+                      child: VideoPlayer(controller),
+                    ),
+                  ),
+                if (_loading) const Center(child: CircularProgressIndicator()),
+              ],
+            ),
+          ),
+          Container(
+            height: 58,
+            padding: const EdgeInsets.symmetric(horizontal: 10),
+            color: Theme.of(context).colorScheme.surfaceContainerHighest,
+            child: Row(
+              children: [
+                IconButton(
+                  tooltip: '上一个展示视频',
+                  onPressed: () => _move(-1),
+                  icon: const Icon(Icons.skip_previous),
+                ),
+                IconButton.filled(
+                  tooltip:
+                      ready && controller!.value.isPlaying ? '暂停预览' : '播放预览',
+                  onPressed: ready ? _toggle : null,
+                  icon: Icon(
+                    ready && controller!.value.isPlaying
+                        ? Icons.pause
+                        : Icons.play_arrow,
+                  ),
+                ),
+                IconButton(
+                  tooltip: '下一个展示视频',
+                  onPressed: () => _move(1),
+                  icon: const Icon(Icons.skip_next),
+                ),
+                const Spacer(),
+                for (var i = 0; i < _assets.length; i++)
+                  Container(
+                    width: i == _index ? 16 : 6,
+                    height: 6,
+                    margin: const EdgeInsets.only(left: 5),
+                    decoration: BoxDecoration(
+                      color: i == _index
+                          ? Theme.of(context).colorScheme.primary
+                          : Colors.white38,
+                      borderRadius: BorderRadius.circular(99),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
