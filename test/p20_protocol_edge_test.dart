@@ -32,7 +32,7 @@ void main() {
       2,
       0x04,
       60,
-      0x20,
+      0x02,
       0x5A,
     ]);
     expect(frames, hasLength(1));

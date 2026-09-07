@@ -16,11 +16,14 @@ void main() {
     expect(experienceCatalog, hasLength(3));
   });
 
-  test('focused exploration experiences are currently planned', () {
+  test('HoloPet is available while social experiences remain planned', () {
+    final holoPet =
+        experienceCatalog.singleWhere((item) => item.id == 'holo_pet');
+    expect(holoPet.availability, ExperienceAvailability.available);
     expect(
-      experienceCatalog.every(
-        (item) => item.availability == ExperienceAvailability.planned,
-      ),
+      experienceCatalog
+          .where((item) => item.id != 'holo_pet')
+          .every((item) => item.availability == ExperienceAvailability.planned),
       isTrue,
     );
   });

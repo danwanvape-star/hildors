@@ -23,6 +23,7 @@ flutter:
     - assets/images/hildors_logo.jpg
     - assets/images/p20_product_showcase.jpg
     - assets/videos/showcase/
+    - assets/holopet/
   fonts:
     - family: Poppins
       fonts:

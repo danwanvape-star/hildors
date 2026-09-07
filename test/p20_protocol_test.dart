@@ -5,7 +5,7 @@ void main() {
   test('encodes power-on request', () {
     expect(
       P20Protocol.encode(P20Command.power, [0x01]),
-      [0xAA, 0, 0, 0, 2, 0x01, 0x01, 0x20, 0xA5],
+      [0xAA, 0, 0, 0, 2, 0x01, 0x01, 0x02, 0xA5],
     );
   });
 
@@ -16,7 +16,7 @@ void main() {
         const [0x00],
         P20Protocol.legacyCrc,
       ),
-      [0xAA, 0, 0, 0, 2, 0x73, 0x00, 0x02, 0xA5],
+      [0xAA, 0, 0, 0, 2, 0x73, 0x00, 0x20, 0xA5],
     );
   });
   test('decodes fragmented response', () {

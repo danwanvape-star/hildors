@@ -7,7 +7,6 @@ import '../../device/p20_command_session.dart';
 import '../../device/p20_device_client.dart';
 import '../../experience/projection_service.dart';
 import '../control/control_page.dart';
-import '../customization/customization_page.dart';
 import '../video/device_playlist_draft.dart';
 import '../video/playlist_management_page.dart';
 
@@ -70,10 +69,6 @@ class _HomePageState extends State<HomePage> {
         ),
       );
 
-  void _openCustomization() => Navigator.of(context).push(
-        MaterialPageRoute<void>(builder: (_) => const CustomizationPage()),
-      );
-
   @override
   Widget build(BuildContext context) => Scaffold(
         appBar: AppBar(
@@ -118,8 +113,6 @@ class _HomePageState extends State<HomePage> {
               onOpenBluetooth: () =>
                   _openPlaylist(DevicePlaylistKind.bluetooth),
             ),
-            const SizedBox(height: 16),
-            _HeroCard(onTap: _openCustomization),
           ],
         ),
       );
@@ -413,50 +406,6 @@ class _PlaylistShortcut extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: Theme.of(context).textTheme.bodySmall),
             ]),
-          ),
-        ),
-      );
-}
-
-class _HeroCard extends StatelessWidget {
-  const _HeroCard({required this.onTap});
-
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) => Card(
-        clipBehavior: Clip.antiAlias,
-        child: InkWell(
-          onTap: onTap,
-          child: Padding(
-            padding: EdgeInsets.all(22),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('定制你的专属全息角色',
-                          style: TextStyle(
-                              fontSize: 22, fontWeight: FontWeight.w700)),
-                      SizedBox(height: 8),
-                      Text('上传照片与需求，打造持续更新的专属内容'),
-                      SizedBox(height: 12),
-                      Chip(label: Text('未来订阅服务')),
-                    ],
-                  ),
-                ),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(14),
-                  child: Image.asset(
-                    'assets/images/hildors_logo.jpg',
-                    width: 78,
-                    height: 104,
-                    fit: BoxFit.cover,
-                  ),
-                ),
-              ],
-            ),
           ),
         ),
       );

@@ -21,10 +21,10 @@ class ExperienceCatalogItem {
 const experienceCatalog = <ExperienceCatalogItem>[
   ExperienceCatalogItem(
     id: 'holo_pet',
-    title: 'HoloPet',
-    subtitle: '会回应、会成长的每日全息伙伴',
+    title: 'HOLOPET',
+    subtitle: '领养官方角色，或定制你自己的真实宠物',
     pillar: ExperiencePillar.petCompanion,
-    availability: ExperienceAvailability.planned,
+    availability: ExperienceAvailability.available,
   ),
   ExperienceCatalogItem(
     id: 'holo_mystery',

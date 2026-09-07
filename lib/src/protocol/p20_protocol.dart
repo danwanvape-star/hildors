@@ -53,8 +53,10 @@ class P20Protocol {
   static const requestEnd = 0xA5;
   static const responseHead = 0x55;
   static const responseEnd = 0x5A;
-  static const crc = 0x20;
-  static const legacyCrc = 0x02;
+  // P11/P20 vendor protocol specifies a fixed trailing byte of 0x02.
+  // Responses still accept 0x20 for compatibility with early app builds.
+  static const crc = 0x02;
+  static const legacyCrc = 0x20;
 
   static Uint8List encode(
     P20Command command, [
