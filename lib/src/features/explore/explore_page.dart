@@ -14,10 +14,6 @@ class ExplorePage extends StatelessWidget {
         appBar: AppBar(title: const Text('发现')),
         body: ListView(padding: const EdgeInsets.all(20), children: [
           const CustomizationDiscoveryCard(),
-          const SizedBox(height: 28),
-          Text('个性化体验', style: Theme.of(context).textTheme.headlineSmall),
-          const SizedBox(height: 6),
-          const Text('让设备既能长期陪伴，也能在家庭和朋友聚会中自然参与。'),
           const SizedBox(height: 24),
           _ExperienceSection(
               title: '养成系宠物',
@@ -76,9 +72,7 @@ class _ExperienceCard extends StatelessWidget {
         leading: CircleAvatar(
             child: Icon(item.id == 'holo_pet'
                 ? Icons.pets
-                : item.id == 'holo_host'
-                    ? Icons.mic_external_on_outlined
-                    : Icons.celebration_outlined)),
+                : Icons.celebration_outlined)),
         title: Text(item.title),
         subtitle: Text(item.subtitle),
         trailing: item.id == 'holo_pet'

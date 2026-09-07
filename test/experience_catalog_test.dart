@@ -11,9 +11,9 @@ void main() {
   test('MVP catalog focuses on pet and social families', () {
     expect(
       experienceCatalog.map((item) => item.id),
-      containsAll(['holo_pet', 'holo_mystery', 'holo_host']),
+      containsAll(['holo_pet', 'holo_mystery']),
     );
-    expect(experienceCatalog, hasLength(3));
+    expect(experienceCatalog, hasLength(2));
   });
 
   test('HoloPet is available while social experiences remain planned', () {

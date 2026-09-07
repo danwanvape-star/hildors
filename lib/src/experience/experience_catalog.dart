@@ -33,13 +33,6 @@ const experienceCatalog = <ExperienceCatalogItem>[
     pillar: ExperiencePillar.socialAndFamily,
     availability: ExperienceAvailability.planned,
   ),
-  ExperienceCatalogItem(
-    id: 'holo_host',
-    title: 'Holo Host',
-    subtitle: '负责暖场、互动和流程提示的全息主持人',
-    pillar: ExperiencePillar.socialAndFamily,
-    availability: ExperienceAvailability.planned,
-  ),
 ];
 
 List<ExperienceCatalogItem> experiencesFor(ExperiencePillar pillar) =>
