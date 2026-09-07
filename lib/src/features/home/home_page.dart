@@ -1,13 +1,10 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:video_player/video_player.dart';
-
 import '../../device/device_error_message.dart';
 import '../../device/p20_command_session.dart';
 import '../../device/p20_device_client.dart';
 import '../../experience/projection_service.dart';
-import '../../media/bundled_video_controller.dart';
 import '../control/control_page.dart';
 import '../video/device_playlist_draft.dart';
 import '../video/playlist_management_page.dart';
@@ -17,14 +14,12 @@ class HomePage extends StatefulWidget {
     required this.client,
     required this.session,
     required this.projection,
-    this.isActive = true,
     super.key,
   });
 
   final P20DeviceClient client;
   final P20CommandSession session;
   final ProjectionService projection;
-  final bool isActive;
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -34,7 +29,6 @@ class _HomePageState extends State<HomePage> {
   late DeviceConnectionState _connection;
   StreamSubscription<DeviceConnectionState>? _subscription;
   String? _error;
-  var _devicePlaying = true;
 
   @override
   void initState() {
@@ -59,17 +53,6 @@ class _HomePageState extends State<HomePage> {
       if (mounted) {
         setState(() => _error = friendlyDeviceConnectionError(error));
       }
-    }
-  }
-
-  void _sendDeviceCommand(VoidCallback command, {bool? playing}) {
-    if (_connection != DeviceConnectionState.connected) return;
-    try {
-      command();
-      if (playing != null) setState(() => _devicePlaying = playing);
-    } catch (error) {
-      debugPrint('Device playback command failed: $error');
-      setState(() => _error = '设备暂时没有响应，请确认连接后重试。');
     }
   }
 
@@ -129,17 +112,9 @@ class _HomePageState extends State<HomePage> {
             const SizedBox(height: 16),
             _NowPlayingCard(
               connected: _connection == DeviceConnectionState.connected,
-              devicePlaying: _devicePlaying,
-              onPrevious: () => _sendDeviceCommand(widget.client.previousTrack),
-              onTogglePlayback: () => _sendDeviceCommand(
-                () => widget.client.setPlaying(!_devicePlaying),
-                playing: !_devicePlaying,
-              ),
-              onNext: () => _sendDeviceCommand(widget.client.nextTrack),
               onOpenStartup: () => _openPlaylist(DevicePlaylistKind.startup),
               onOpenBluetooth: () =>
                   _openPlaylist(DevicePlaylistKind.bluetooth),
-              videoPreviewEnabled: widget.isActive,
             ),
           ],
         ),
@@ -155,280 +130,105 @@ class _HomePageState extends State<HomePage> {
 class _NowPlayingCard extends StatelessWidget {
   const _NowPlayingCard({
     required this.connected,
-    required this.devicePlaying,
-    required this.onPrevious,
-    required this.onTogglePlayback,
-    required this.onNext,
     required this.onOpenStartup,
     required this.onOpenBluetooth,
-    required this.videoPreviewEnabled,
   });
 
   final bool connected;
-  final bool devicePlaying;
-  final VoidCallback onPrevious;
-  final VoidCallback onTogglePlayback;
-  final VoidCallback onNext;
   final VoidCallback onOpenStartup;
   final VoidCallback onOpenBluetooth;
-  final bool videoPreviewEnabled;
 
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     return Container(
-      padding: const EdgeInsets.all(18),
+      height: 470,
+      clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: colors.secondary.withValues(alpha: 0.34)),
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFF062F35), Color(0xFF111527), Color(0xFF23132F)],
-        ),
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(color: colors.secondary.withValues(alpha: 0.35)),
         boxShadow: [
           BoxShadow(
             color: colors.secondary.withValues(alpha: 0.12),
             blurRadius: 28,
             offset: const Offset(0, 12),
-          )
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(children: [
-            Expanded(
-                child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('当前角色', style: Theme.of(context).textTheme.labelLarge),
-                const SizedBox(height: 3),
-                Text('HILDORS Collection',
-                    style: Theme.of(context).textTheme.titleLarge),
-              ],
-            )),
-            _StatusPill(connected: connected),
-          ]),
-          const SizedBox(height: 14),
-          _ShowcaseVideoPreview(enabled: videoPreviewEnabled),
-          const SizedBox(height: 14),
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  '全息设备播放控制',
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-              ),
-              IconButton.filledTonal(
-                tooltip: '设备上一条',
-                onPressed: connected ? onPrevious : null,
-                icon: const Icon(Icons.skip_previous),
-              ),
-              IconButton.filled(
-                tooltip: devicePlaying ? '暂停设备播放' : '继续设备播放',
-                onPressed: connected ? onTogglePlayback : null,
-                icon: Icon(devicePlaying ? Icons.pause : Icons.play_arrow),
-              ),
-              IconButton.filledTonal(
-                tooltip: '设备下一条',
-                onPressed: connected ? onNext : null,
-                icon: const Icon(Icons.skip_next),
-              ),
-            ],
           ),
-          const SizedBox(height: 12),
-          Row(children: [
-            Expanded(
-                child: _PlaylistShortcut(
-              icon: Icons.wb_sunny_outlined,
-              title: '日常展示',
-              subtitle: '开机自动播放',
-              onTap: onOpenStartup,
-            )),
-            const SizedBox(width: 10),
-            Expanded(
-                child: _PlaylistShortcut(
-              icon: Icons.graphic_eq,
-              title: '音乐联动',
-              subtitle: '连接蓝牙后播放',
-              onTap: onOpenBluetooth,
-            )),
-          ]),
         ],
       ),
-    );
-  }
-}
-
-class _ShowcaseVideoPreview extends StatefulWidget {
-  const _ShowcaseVideoPreview({required this.enabled});
-
-  final bool enabled;
-
-  @override
-  State<_ShowcaseVideoPreview> createState() => _ShowcaseVideoPreviewState();
-}
-
-class _ShowcaseVideoPreviewState extends State<_ShowcaseVideoPreview> {
-  static const _assets = [
-    'assets/videos/showcase/showcase_01.mp4',
-    'assets/videos/showcase/showcase_02.mp4',
-    'assets/videos/showcase/showcase_03.mp4',
-    'assets/videos/showcase/showcase_04.mp4',
-  ];
-
-  VideoPlayerController? _controller;
-  var _index = 0;
-  var _loading = true;
-
-  @override
-  void initState() {
-    super.initState();
-    if (widget.enabled) _load(0);
-  }
-
-  @override
-  void didUpdateWidget(covariant _ShowcaseVideoPreview oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.enabled == widget.enabled) return;
-    if (widget.enabled) {
-      _load(_index);
-    } else {
-      final controller = _controller;
-      _controller = null;
-      setState(() => _loading = false);
-      controller?.dispose();
-    }
-  }
-
-  Future<void> _load(int index) async {
-    setState(() => _loading = true);
-    final previous = _controller;
-    try {
-      final next = await createBundledVideoController(_assets[index]);
-      await next.setLooping(true);
-      await next.setVolume(0);
-      await next.play();
-      if (!mounted) {
-        await next.dispose();
-        return;
-      }
-      setState(() {
-        _controller = next;
-        _index = index;
-        _loading = false;
-      });
-      await previous?.dispose();
-    } catch (error, stackTrace) {
-      debugPrint('Home demo video failed: ' + error.toString());
-      debugPrintStack(stackTrace: stackTrace);
-      if (mounted) setState(() => _loading = false);
-    }
-  }
-
-  void _move(int offset) {
-    final next = (_index + offset + _assets.length) % _assets.length;
-    _load(next);
-  }
-
-  Future<void> _toggle() async {
-    final controller = _controller;
-    if (controller == null) return;
-    controller.value.isPlaying
-        ? await controller.pause()
-        : await controller.play();
-    if (mounted) setState(() {});
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final controller = _controller;
-    final ready = controller?.value.isInitialized ?? false;
-    return Container(
-      height: 270,
-      width: double.infinity,
-      clipBehavior: Clip.antiAlias,
-      decoration: BoxDecoration(
-        color: Colors.black,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
-      ),
-      child: Column(
+      child: Stack(
+        fit: StackFit.expand,
         children: [
-          Expanded(
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                Image.asset(
-                  'assets/images/p20_product_showcase.jpg',
-                  fit: BoxFit.cover,
-                ),
-                if (ready)
-                  FittedBox(
-                    fit: BoxFit.contain,
-                    child: SizedBox(
-                      width: controller!.value.size.width,
-                      height: controller.value.size.height,
-                      child: VideoPlayer(controller),
-                    ),
-                  ),
-                if (_loading) const Center(child: CircularProgressIndicator()),
-              ],
+          Image.asset(
+            'assets/images/p20_product_showcase.jpg',
+            fit: BoxFit.cover,
+            alignment: Alignment.topCenter,
+          ),
+          const DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Color(0x33000000),
+                  Color(0x22000000),
+                  Color(0xF20A1015),
+                ],
+                stops: [0, 0.48, 0.78],
+              ),
             ),
           ),
-          Container(
-            height: 58,
-            padding: const EdgeInsets.symmetric(horizontal: 10),
-            color: Theme.of(context).colorScheme.surfaceContainerHighest,
+          Positioned(
+            left: 20,
+            right: 20,
+            top: 18,
             child: Row(
               children: [
-                IconButton(
-                  tooltip: '上一个展示视频',
-                  onPressed: () => _move(-1),
-                  icon: const Icon(Icons.skip_previous),
-                ),
-                IconButton.filled(
-                  tooltip:
-                      ready && controller!.value.isPlaying ? '暂停预览' : '播放预览',
-                  onPressed: ready ? _toggle : null,
-                  icon: Icon(
-                    ready && controller!.value.isPlaying
-                        ? Icons.pause
-                        : Icons.play_arrow,
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '设备播放列表',
+                        style: Theme.of(context).textTheme.headlineSmall,
+                      ),
+                      const SizedBox(height: 3),
+                      const Text('选择设备当前使用的播放场景'),
+                    ],
                   ),
                 ),
-                IconButton(
-                  tooltip: '下一个展示视频',
-                  onPressed: () => _move(1),
-                  icon: const Icon(Icons.skip_next),
-                ),
-                const Spacer(),
-                for (var i = 0; i < _assets.length; i++)
-                  Container(
-                    width: i == _index ? 16 : 6,
-                    height: 6,
-                    margin: const EdgeInsets.only(left: 5),
-                    decoration: BoxDecoration(
-                      color: i == _index
-                          ? Theme.of(context).colorScheme.primary
-                          : Colors.white38,
-                      borderRadius: BorderRadius.circular(99),
-                    ),
+                _StatusPill(connected: connected),
+              ],
+            ),
+          ),
+          Positioned(
+            left: 16,
+            right: 16,
+            bottom: 16,
+            child: Row(
+              children: [
+                Expanded(
+                  child: _PlaylistShortcut(
+                    icon: Icons.wb_sunny_outlined,
+                    title: '日常展示',
+                    subtitle: '开机自动播放',
+                    onTap: onOpenStartup,
                   ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _PlaylistShortcut(
+                    icon: Icons.graphic_eq,
+                    title: '音乐联动',
+                    subtitle: '连接蓝牙后播放',
+                    onTap: onOpenBluetooth,
+                  ),
+                ),
               ],
             ),
           ),
         ],
       ),
     );
-  }
-
-  @override
-  void dispose() {
-    _controller?.dispose();
-    super.dispose();
   }
 }
 

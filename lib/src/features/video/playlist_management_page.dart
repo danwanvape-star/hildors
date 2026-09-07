@@ -272,7 +272,10 @@ class _PlaylistManagementPageState extends State<PlaylistManagementPage> {
             for (var index = 0; index < _draft.videoNames.length; index++)
               Card(
                 child: ListTile(
-                  leading: CircleAvatar(child: Text('${index + 1}')),
+                  leading: _VideoThumbnail(
+                    fileName: _draft.videoNames[index],
+                    index: index,
+                  ),
                   title: Text(_draft.videoNames[index]),
                   subtitle: index == 0 ? const Text('默认首条') : null,
                   trailing: Wrap(
@@ -381,4 +384,61 @@ class _ProtocolNotice extends StatelessWidget {
           ),
         ),
       );
+}
+
+String? _demoThumbnailFor(String fileName) {
+  final normalized = fileName.trim().toLowerCase();
+  return switch (normalized) {
+    'showcase_01.mp4' => 'assets/images/video_thumbnails/showcase_01.jpg',
+    'showcase_02.mp4' => 'assets/images/video_thumbnails/showcase_02.jpg',
+    'showcase_03.mp4' => 'assets/images/video_thumbnails/showcase_03.jpg',
+    'showcase_04.mp4' => 'assets/images/video_thumbnails/showcase_04.jpg',
+    _ => null,
+  };
+}
+
+class _VideoThumbnail extends StatelessWidget {
+  const _VideoThumbnail({required this.fileName, required this.index});
+
+  final String fileName;
+  final int index;
+
+  @override
+  Widget build(BuildContext context) {
+    final asset = _demoThumbnailFor(fileName);
+    return SizedBox(
+      width: 58,
+      height: 58,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(10),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            if (asset != null)
+              Image.asset(asset, fit: BoxFit.cover)
+            else
+              ColoredBox(
+                color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                child: const Icon(Icons.movie_outlined),
+              ),
+            Positioned(
+              left: 4,
+              top: 4,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.72),
+                  borderRadius: BorderRadius.circular(99),
+                ),
+                child: Text(
+                  '${index + 1}',
+                  style: Theme.of(context).textTheme.labelSmall,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }

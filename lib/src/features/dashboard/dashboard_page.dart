@@ -36,7 +36,6 @@ class _DashboardPageState extends State<DashboardPage> {
         client: _client,
         session: _session,
         projection: _projection,
-        isActive: _index == 0,
       ),
       const CommunityPage(),
       ExplorePage(projection: _projection),
