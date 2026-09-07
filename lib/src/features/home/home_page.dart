@@ -16,12 +16,14 @@ class HomePage extends StatefulWidget {
     required this.client,
     required this.session,
     required this.projection,
+    this.isActive = true,
     super.key,
   });
 
   final P20DeviceClient client;
   final P20CommandSession session;
   final ProjectionService projection;
+  final bool isActive;
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -131,6 +133,7 @@ class _HomePageState extends State<HomePage> {
               onOpenStartup: () => _openPlaylist(DevicePlaylistKind.startup),
               onOpenBluetooth: () =>
                   _openPlaylist(DevicePlaylistKind.bluetooth),
+              videoPreviewEnabled: widget.isActive,
             ),
           ],
         ),
@@ -152,6 +155,7 @@ class _NowPlayingCard extends StatelessWidget {
     required this.onNext,
     required this.onOpenStartup,
     required this.onOpenBluetooth,
+    required this.videoPreviewEnabled,
   });
 
   final bool connected;
@@ -161,6 +165,7 @@ class _NowPlayingCard extends StatelessWidget {
   final VoidCallback onNext;
   final VoidCallback onOpenStartup;
   final VoidCallback onOpenBluetooth;
+  final bool videoPreviewEnabled;
 
   @override
   Widget build(BuildContext context) {
@@ -200,7 +205,7 @@ class _NowPlayingCard extends StatelessWidget {
             _StatusPill(connected: connected),
           ]),
           const SizedBox(height: 14),
-          const _ShowcaseVideoPreview(),
+          _ShowcaseVideoPreview(enabled: videoPreviewEnabled),
           const SizedBox(height: 14),
           Row(
             children: [
@@ -252,7 +257,9 @@ class _NowPlayingCard extends StatelessWidget {
 }
 
 class _ShowcaseVideoPreview extends StatefulWidget {
-  const _ShowcaseVideoPreview();
+  const _ShowcaseVideoPreview({required this.enabled});
+
+  final bool enabled;
 
   @override
   State<_ShowcaseVideoPreview> createState() => _ShowcaseVideoPreviewState();
@@ -273,7 +280,21 @@ class _ShowcaseVideoPreviewState extends State<_ShowcaseVideoPreview> {
   @override
   void initState() {
     super.initState();
-    _load(0);
+    if (widget.enabled) _load(0);
+  }
+
+  @override
+  void didUpdateWidget(covariant _ShowcaseVideoPreview oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.enabled == widget.enabled) return;
+    if (widget.enabled) {
+      _load(_index);
+    } else {
+      final controller = _controller;
+      _controller = null;
+      setState(() => _loading = false);
+      controller?.dispose();
+    }
   }
 
   Future<void> _load(int index) async {

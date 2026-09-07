@@ -32,7 +32,12 @@ class _DashboardPageState extends State<DashboardPage> {
   @override
   Widget build(BuildContext context) {
     final pages = [
-      HomePage(client: _client, session: _session, projection: _projection),
+      HomePage(
+        client: _client,
+        session: _session,
+        projection: _projection,
+        isActive: _index == 0,
+      ),
       const CommunityPage(),
       ExplorePage(projection: _projection),
       ProfilePage(client: _client, session: _session),
