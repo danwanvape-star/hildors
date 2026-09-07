@@ -162,7 +162,7 @@ class _NowPlayingCard extends StatelessWidget {
           ColoredBox(
             color: const Color(0xFF090E13),
             child: ImageFiltered(
-              imageFilter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+              imageFilter: ImageFilter.blur(sigmaX: 1.8, sigmaY: 1.8),
               child: Image.asset(
                 'assets/images/p20_product_showcase.jpg',
                 fit: BoxFit.contain,
@@ -176,9 +176,9 @@ class _NowPlayingCard extends StatelessWidget {
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
                 colors: [
-                  Color(0x33000000),
-                  Color(0x22000000),
-                  Color(0xF20A1015),
+                  Color(0x80080D12),
+                  Color(0x4D080D12),
+                  Color(0x730A1015),
                 ],
                 stops: [0, 0.48, 0.78],
               ),

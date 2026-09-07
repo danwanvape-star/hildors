@@ -139,7 +139,7 @@ class _CommunityPageState extends State<CommunityPage> {
                     crossAxisCount: columns,
                     crossAxisSpacing: 10,
                     mainAxisSpacing: 12,
-                    childAspectRatio: 0.66,
+                    childAspectRatio: 0.57,
                   ),
                   itemBuilder: (context, index) {
                     final item = items[index];
@@ -227,6 +227,11 @@ class _DownloadNotice extends StatelessWidget {
       );
 }
 
+String _compactTitle(String title) {
+  const prefix = 'HILDORS ';
+  return title.startsWith(prefix) ? title.substring(prefix.length) : title;
+}
+
 class _ContentTile extends StatelessWidget {
   const _ContentTile({
     required this.item,
@@ -307,10 +312,14 @@ class _ContentTile extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      item.title,
+                      _compactTitle(item.title),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontWeight: FontWeight.w600),
+                      style: const TextStyle(
+                        fontSize: 14,
+                        height: 1.25,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                     const Spacer(),
                     Text(
