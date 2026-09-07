@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../../device/device_error_message.dart';
 import '../../device/device_runtime_state.dart';
 import '../../device/p20_command_session.dart';
 import '../../device/p20_device_client.dart';
@@ -70,8 +71,12 @@ class _ControlPageState extends State<ControlPage> with WidgetsBindingObserver {
         await _client.connect(host: _hostController.text.trim());
         _client.queryStatus();
       }
-    } catch (error) {
-      if (mounted) setState(() => _error = '连接失败：$error');
+    } catch (error, stackTrace) {
+      debugPrint('Control connection failed: $error');
+      debugPrintStack(stackTrace: stackTrace);
+      if (mounted) {
+        setState(() => _error = friendlyDeviceConnectionError(error));
+      }
     }
   }
 
@@ -80,7 +85,8 @@ class _ControlPageState extends State<ControlPage> with WidgetsBindingObserver {
     try {
       action();
     } catch (error) {
-      setState(() => _error = '$error');
+      debugPrint('Device command failed: $error');
+      setState(() => _error = '设备暂时没有响应，请确认连接后重试。');
     }
   }
 

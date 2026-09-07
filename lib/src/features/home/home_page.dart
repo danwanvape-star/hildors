@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 
+import '../../device/device_error_message.dart';
 import '../../device/p20_command_session.dart';
 import '../../device/p20_device_client.dart';
 import '../../experience/projection_service.dart';
@@ -52,8 +53,12 @@ class _HomePageState extends State<HomePage> {
     setState(() => _error = null);
     try {
       await widget.client.connect();
-    } catch (error) {
-      if (mounted) setState(() => _error = '连接失败：$error');
+    } catch (error, stackTrace) {
+      debugPrint('Device connection failed: $error');
+      debugPrintStack(stackTrace: stackTrace);
+      if (mounted) {
+        setState(() => _error = friendlyDeviceConnectionError(error));
+      }
     }
   }
 
@@ -63,7 +68,8 @@ class _HomePageState extends State<HomePage> {
       command();
       if (playing != null) setState(() => _devicePlaying = playing);
     } catch (error) {
-      setState(() => _error = '播放控制失败：$error');
+      debugPrint('Device playback command failed: $error');
+      setState(() => _error = '设备暂时没有响应，请确认连接后重试。');
     }
   }
 
