@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 
+import '../../device/device_error_message.dart';
 import '../../device/p20_command_session.dart';
 import '../../device/p20_device_client.dart';
 import 'device_playlist_draft.dart';
@@ -28,6 +29,7 @@ class _PlaylistManagementPageState extends State<PlaylistManagementPage> {
   var _loading = false;
   List<P20VideoEntry> _deviceVideos = const [];
   String? _error;
+  String? _playingFileName;
 
   late var _startup = const DevicePlaylistDraft(
     kind: DevicePlaylistKind.startup,
@@ -76,7 +78,9 @@ class _PlaylistManagementPageState extends State<PlaylistManagementPage> {
       final videos = await widget.session.queryVideos();
       if (mounted) setState(() => _deviceVideos = videos);
     } catch (error) {
-      if (mounted) setState(() => _error = '读取设备视频失败：$error');
+      if (mounted) {
+        setState(() => _error = friendlyDeviceConnectionError(error));
+      }
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -117,6 +121,33 @@ class _PlaylistManagementPageState extends State<PlaylistManagementPage> {
         ),
       ),
     );
+  }
+
+  Future<void> _playOnDevice(String fileName) async {
+    if (!_connected) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(const SnackBar(content: Text('请先连接设备后再播放')));
+      return;
+    }
+    if (_playingFileName != null) return;
+    setState(() => _playingFileName = fileName);
+    try {
+      await widget.session.playVideo(fileName);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(content: Text('已发送到设备播放：$fileName')));
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(content: Text(friendlyDeviceConnectionError(error))),
+        );
+    } finally {
+      if (mounted) setState(() => _playingFileName = null);
+    }
   }
 
   Future<void> _removeFromPlaylist(String fileName) async {
@@ -181,17 +212,8 @@ class _PlaylistManagementPageState extends State<PlaylistManagementPage> {
           ],
         ),
         body: ListView(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
           children: [
-            const _ProtocolNotice(),
-            const SizedBox(height: 12),
-            _DeviceSourceCard(
-              connected: _connected,
-              videoCount: _deviceVideos.length,
-              error: _error,
-              onRead: _connected ? _readDeviceVideos : null,
-            ),
-            const SizedBox(height: 16),
             SegmentedButton<DevicePlaylistKind>(
               segments: const [
                 ButtonSegment(
@@ -209,21 +231,21 @@ class _PlaylistManagementPageState extends State<PlaylistManagementPage> {
               onSelectionChanged: (value) =>
                   setState(() => _kind = value.single),
             ),
-            const SizedBox(height: 18),
+            const SizedBox(height: 10),
+            _DeviceStatusBar(
+              connected: _connected,
+              videoCount: _deviceVideos.length,
+              error: _error,
+              onRead: _connected ? _readDeviceVideos : null,
+            ),
+            const SizedBox(height: 12),
             Text(
               _kind == DevicePlaylistKind.startup
-                  ? '设备开机且未连接蓝牙时自动播放'
-                  : '蓝牙音源连接后由硬件自动切换播放',
-              style: Theme.of(context).textTheme.titleMedium,
+                  ? '设备开机后自动播放此列表'
+                  : '连接蓝牙后，硬件自动切换到此列表',
+              style: Theme.of(context).textTheme.bodyMedium,
             ),
-            SwitchListTile(
-              value: _draft.enabled,
-              onChanged: (value) => _update(_draft.copyWith(enabled: value)),
-              title: Text(
-                _kind == DevicePlaylistKind.startup ? '开机自动播放' : '连接蓝牙后播放画面',
-              ),
-              subtitle: const Text('当前修改仅保存在交互草案中'),
-            ),
+            const SizedBox(height: 12),
             DropdownButtonFormField<PlaylistLoopMode>(
               key: ValueKey(_kind),
               initialValue: _draft.loopMode,
@@ -275,6 +297,8 @@ class _PlaylistManagementPageState extends State<PlaylistManagementPage> {
                   leading: _VideoThumbnail(
                     fileName: _draft.videoNames[index],
                     index: index,
+                    playing: _playingFileName == _draft.videoNames[index],
+                    onPlay: () => _playOnDevice(_draft.videoNames[index]),
                   ),
                   title: Text(_draft.videoNames[index]),
                   subtitle: index == 0 ? const Text('默认首条') : null,
@@ -329,8 +353,8 @@ class _PlaylistManagementPageState extends State<PlaylistManagementPage> {
   }
 }
 
-class _DeviceSourceCard extends StatelessWidget {
-  const _DeviceSourceCard({
+class _DeviceStatusBar extends StatelessWidget {
+  const _DeviceStatusBar({
     required this.connected,
     required this.videoCount,
     required this.error,
@@ -343,45 +367,23 @@ class _DeviceSourceCard extends StatelessWidget {
   final VoidCallback? onRead;
 
   @override
-  Widget build(BuildContext context) => Card(
+  Widget build(BuildContext context) => Container(
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(14),
+        ),
         child: ListTile(
+          dense: true,
+          visualDensity: VisualDensity.compact,
           leading: Icon(connected ? Icons.router : Icons.wifi_off),
-          title: Text(connected ? '设备视频素材已连接' : '设备未连接'),
-          subtitle: Text(
-            error ??
-                (connected
-                    ? videoCount == 0
-                        ? '可读取统一视频列表，作为两套列表的素材来源'
-                        : '已读取 $videoCount 个设备视频'
-                    : '请先连接 P20/P11 局域网'),
-          ),
+          title: Text(connected
+              ? videoCount == 0
+                  ? '设备已连接'
+                  : '设备已连接 · $videoCount 个视频'
+              : error ?? '设备未连接 · 连接后可在硬件播放'),
           trailing: connected
               ? TextButton(onPressed: onRead, child: const Text('读取'))
               : null,
-        ),
-      );
-}
-
-class _ProtocolNotice extends StatelessWidget {
-  const _ProtocolNotice();
-
-  @override
-  Widget build(BuildContext context) => Card(
-        color: Theme.of(context).colorScheme.secondaryContainer,
-        child: const Padding(
-          padding: EdgeInsets.all(16),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Icon(Icons.info_outline),
-              SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  '旧协议可以读取设备统一视频列表。两套列表的归属和设置仍是草案，不会写入硬件。',
-                ),
-              ),
-            ],
-          ),
         ),
       );
 }
@@ -398,10 +400,17 @@ String? _demoThumbnailFor(String fileName) {
 }
 
 class _VideoThumbnail extends StatelessWidget {
-  const _VideoThumbnail({required this.fileName, required this.index});
+  const _VideoThumbnail({
+    required this.fileName,
+    required this.index,
+    required this.playing,
+    required this.onPlay,
+  });
 
   final String fileName;
   final int index;
+  final bool playing;
+  final VoidCallback onPlay;
 
   @override
   Widget build(BuildContext context) {
@@ -433,6 +442,25 @@ class _VideoThumbnail extends StatelessWidget {
                 child: Text(
                   '${index + 1}',
                   style: Theme.of(context).textTheme.labelSmall,
+                ),
+              ),
+            ),
+            Center(
+              child: Material(
+                color: Colors.black.withValues(alpha: 0.62),
+                shape: const CircleBorder(),
+                child: InkWell(
+                  customBorder: const CircleBorder(),
+                  onTap: onPlay,
+                  child: SizedBox.square(
+                    dimension: 38,
+                    child: playing
+                        ? const Padding(
+                            padding: EdgeInsets.all(10),
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.play_arrow_rounded, size: 28),
+                  ),
                 ),
               ),
             ),
