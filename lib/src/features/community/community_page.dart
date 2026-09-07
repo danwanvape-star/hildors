@@ -1,8 +1,12 @@
+import 'dart:io';
+
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
 import 'community_content.dart';
 import 'community_detail_page.dart';
 import 'content_catalog_repository.dart';
+import 'local_content_registry.dart';
 
 class CommunityPage extends StatefulWidget {
   const CommunityPage({this.catalogRepository, super.key});
@@ -21,15 +25,32 @@ class _CommunityPageState extends State<CommunityPage> {
   var _query = '';
   var _downloadedOnly = false;
   final _downloadedIds = <String>{};
+  List<File> _importedFiles = const [];
+  final _localContentRegistry = const LocalContentRegistry();
 
   @override
   void initState() {
     super.initState();
     _loadContent();
+    _loadDownloadedContent();
   }
 
   void _loadContent() {
     _contentFuture = _catalog.fetchApprovedContent();
+  }
+
+  Future<void> _loadDownloadedContent() async {
+    final ids = await _localContentRegistry.load();
+    if (!mounted) return;
+    setState(() {
+      _downloadedIds
+        ..clear()
+        ..addAll(ids);
+      _importedFiles = const [];
+    });
+    final files = await _localContentRegistry.importedFiles();
+    if (!mounted) return;
+    setState(() => _importedFiles = files);
   }
 
   @override
@@ -70,8 +91,8 @@ class _CommunityPageState extends State<CommunityPage> {
               const SizedBox(height: 12),
               SegmentedButton<bool>(
                 segments: const [
-                  ButtonSegment(value: false, label: Text('全部内容')),
-                  ButtonSegment(value: true, label: Text('我的下载')),
+                  ButtonSegment(value: false, label: Text('官方内容')),
+                  ButtonSegment(value: true, label: Text('本地导入')),
                 ],
                 selected: {_downloadedOnly},
                 onSelectionChanged: (selection) {
@@ -83,11 +104,11 @@ class _CommunityPageState extends State<CommunityPage> {
                 children: [
                   Expanded(
                     child: Text(
-                      'HILDORS 精选',
+                      _downloadedOnly ? '本机内容' : 'HILDORS 官方内容',
                       style: Theme.of(context).textTheme.titleLarge,
                     ),
                   ),
-                  Text('${_downloadedIds.length} 个已下载'),
+                  Text('${_downloadedIds.length} 个已下载至 App'),
                 ],
               ),
               const SizedBox(height: 10),
@@ -121,7 +142,7 @@ class _CommunityPageState extends State<CommunityPage> {
                 ),
               ),
               const SizedBox(height: 12),
-              if (items.isEmpty)
+              if (items.isEmpty && (!_downloadedOnly || _importedFiles.isEmpty))
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 48),
                   child: Center(
@@ -150,10 +171,78 @@ class _CommunityPageState extends State<CommunityPage> {
                     );
                   },
                 ),
+              if (_downloadedOnly) ...[
+                const SizedBox(height: 16),
+                FilledButton.icon(
+                  onPressed: _importLocalVideo,
+                  icon: const Icon(Icons.video_file_outlined),
+                  label: const Text('从手机导入视频'),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  '文件仅保存在 App 私有空间，并通过局域网发送到设备，不会上传至 HILDORS。',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+                if (_importedFiles.isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  ..._importedFiles.map((file) => Card(
+                        child: ListTile(
+                          leading: const Icon(Icons.video_file_outlined),
+                          title: Text(
+                              file.path.split(Platform.pathSeparator).last),
+                          subtitle: Text(
+                              '用户本地导入 · ${(file.lengthSync() / 1048576).toStringAsFixed(1)} MB'),
+                          trailing: const Icon(Icons.chevron_right),
+                        ),
+                      )),
+                ],
+              ],
             ],
           );
         },
       );
+
+  Future<void> _importLocalVideo() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('导入本地视频'),
+        content: const Text(
+          '请确认你拥有该内容的合法使用权。文件只保存在本机，不会上传到 HILDORS 内容库。',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('取消'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('确认并选择文件'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    final picked = await FilePicker.pickFile(
+      type: FileType.custom,
+      allowedExtensions: const ['mp4', 'mov', 'm4v'],
+    );
+    if (picked?.path == null || !mounted) return;
+    try {
+      await _localContentRegistry.importFile(picked!.path!, picked.name);
+      final files = await _localContentRegistry.importedFiles();
+      if (!mounted) return;
+      setState(() => _importedFiles = files);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('已导入 App 本机内容，可在连接设备后发送。')),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('导入失败，请检查文件后重试。')),
+      );
+    }
+  }
 
   Future<void> _openContent(CommunityContent item) async {
     final downloaded = await Navigator.of(context).push<bool>(
@@ -165,6 +254,8 @@ class _CommunityPageState extends State<CommunityPage> {
       ),
     );
     if (downloaded == true && mounted) {
+      await _localContentRegistry.add(item.id);
+      if (!mounted) return;
       setState(() => _downloadedIds.add(item.id));
     }
   }
@@ -216,7 +307,7 @@ class _DownloadNotice extends StatelessWidget {
             const SizedBox(width: 10),
             const Expanded(
               child: Text(
-                '先下载到手机，再连接设备发送',
+                '先下载至 App，再连接设备发送',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),

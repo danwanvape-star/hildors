@@ -84,7 +84,8 @@ class _CommunityDetailPageState extends State<CommunityDetailPage> {
                 LinearProgressIndicator(value: _downloadProgress),
                 const SizedBox(height: 10),
                 Center(
-                  child: Text('正在下载到手机 ${(_downloadProgress * 100).round()}%'),
+                  child:
+                      Text('正在下载至 App ${(_downloadProgress * 100).round()}%'),
                 ),
               ] else
                 FilledButton.icon(
@@ -99,12 +100,12 @@ class _CommunityDetailPageState extends State<CommunityDetailPage> {
                         ? '发送到设备'
                         : _status == ContentDownloadStatus.failed
                             ? '重新下载'
-                            : '下载到手机',
+                            : '下载至 App',
                   ),
                 ),
               if (_status == ContentDownloadStatus.downloaded) ...[
                 const SizedBox(height: 8),
-                const Center(child: Text('已保存到“我的下载”，断网后仍可发送。')),
+                const Center(child: Text('已保存到 App 本机内容，断网后仍可发送到设备。')),
               ],
               if (_downloadError != null) ...[
                 const SizedBox(height: 8),
