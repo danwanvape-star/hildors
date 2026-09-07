@@ -142,7 +142,7 @@ class _NowPlayingCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     return Container(
-      height: 470,
+      height: 520,
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(28),
@@ -203,25 +203,21 @@ class _NowPlayingCard extends StatelessWidget {
           Positioned(
             left: 16,
             right: 16,
-            bottom: 16,
-            child: Row(
+            top: 88,
+            child: Column(
               children: [
-                Expanded(
-                  child: _PlaylistShortcut(
-                    icon: Icons.wb_sunny_outlined,
-                    title: '日常展示',
-                    subtitle: '开机自动播放',
-                    onTap: onOpenStartup,
-                  ),
+                _PlaylistShortcut(
+                  icon: Icons.wb_sunny_outlined,
+                  title: '日常展示',
+                  subtitle: '管理开机后自动播放的内容',
+                  onTap: onOpenStartup,
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _PlaylistShortcut(
-                    icon: Icons.graphic_eq,
-                    title: '音乐联动',
-                    subtitle: '连接蓝牙后播放',
-                    onTap: onOpenBluetooth,
-                  ),
+                const SizedBox(height: 10),
+                _PlaylistShortcut(
+                  icon: Icons.graphic_eq,
+                  title: '音乐联动',
+                  subtitle: '管理连接蓝牙后播放的内容',
+                  onTap: onOpenBluetooth,
                 ),
               ],
             ),
@@ -272,27 +268,58 @@ class _PlaylistShortcut extends StatelessWidget {
         child: InkWell(
           borderRadius: BorderRadius.circular(16),
           onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.all(14),
-            child:
-                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Row(children: [
-                Icon(icon,
-                    size: 21, color: Theme.of(context).colorScheme.secondary),
-                const Spacer(),
-                const Icon(Icons.chevron_right, size: 20),
-              ]),
-              const SizedBox(height: 12),
-              Text(title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontWeight: FontWeight.w700)),
-              const SizedBox(height: 4),
-              Text(subtitle,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.bodySmall),
-            ]),
+          child: SizedBox(
+            height: 88,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 18),
+              child: Row(
+                children: [
+                  Container(
+                    width: 52,
+                    height: 52,
+                    decoration: BoxDecoration(
+                      color: Theme.of(context)
+                          .colorScheme
+                          .secondary
+                          .withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Icon(
+                      icon,
+                      size: 28,
+                      color: Theme.of(context).colorScheme.secondary,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context)
+                              .textTheme
+                              .titleMedium
+                              ?.copyWith(fontWeight: FontWeight.w700),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          subtitle,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.bodyMedium,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  const Icon(Icons.chevron_right, size: 28),
+                ],
+              ),
+            ),
           ),
         ),
       );
