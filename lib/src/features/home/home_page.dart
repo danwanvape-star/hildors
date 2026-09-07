@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import '../../device/device_error_message.dart';
@@ -158,10 +159,16 @@ class _NowPlayingCard extends StatelessWidget {
       child: Stack(
         fit: StackFit.expand,
         children: [
-          Image.asset(
-            'assets/images/p20_product_showcase.jpg',
-            fit: BoxFit.cover,
-            alignment: Alignment.topCenter,
+          ColoredBox(
+            color: const Color(0xFF090E13),
+            child: ImageFiltered(
+              imageFilter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+              child: Image.asset(
+                'assets/images/p20_product_showcase.jpg',
+                fit: BoxFit.contain,
+                alignment: Alignment.bottomCenter,
+              ),
+            ),
           ),
           const DecoratedBox(
             decoration: BoxDecoration(
@@ -263,8 +270,11 @@ class _PlaylistShortcut extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Material(
-        color: Colors.white.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(16),
+        color: const Color(0xE61A2229),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(color: Colors.white.withValues(alpha: 0.12)),
+        ),
         child: InkWell(
           borderRadius: BorderRadius.circular(16),
           onTap: onTap,
