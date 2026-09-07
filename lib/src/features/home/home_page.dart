@@ -6,6 +6,7 @@ import 'package:video_player/video_player.dart';
 import '../../device/p20_command_session.dart';
 import '../../device/p20_device_client.dart';
 import '../../experience/projection_service.dart';
+import '../../media/bundled_video_controller.dart';
 import '../control/control_page.dart';
 import '../video/device_playlist_draft.dart';
 import '../video/playlist_management_page.dart';
@@ -278,9 +279,8 @@ class _ShowcaseVideoPreviewState extends State<_ShowcaseVideoPreview> {
   Future<void> _load(int index) async {
     setState(() => _loading = true);
     final previous = _controller;
-    final next = VideoPlayerController.asset(_assets[index]);
     try {
-      await next.initialize();
+      final next = await createBundledVideoController(_assets[index]);
       await next.setLooping(true);
       await next.setVolume(0);
       await next.play();
@@ -294,8 +294,9 @@ class _ShowcaseVideoPreviewState extends State<_ShowcaseVideoPreview> {
         _loading = false;
       });
       await previous?.dispose();
-    } catch (_) {
-      await next.dispose();
+    } catch (error, stackTrace) {
+      debugPrint('Home demo video failed: ' + error.toString());
+      debugPrintStack(stackTrace: stackTrace);
       if (mounted) setState(() => _loading = false);
     }
   }

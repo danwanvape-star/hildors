@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 
+import '../../media/bundled_video_controller.dart';
+
 class ContentPreviewPlayer extends StatefulWidget {
   const ContentPreviewPlayer({required this.assetPath, super.key});
 
@@ -23,17 +25,18 @@ class _ContentPreviewPlayerState extends State<ContentPreviewPlayer> {
   Future<void> _initialize() async {
     final assetPath = widget.assetPath;
     if (assetPath == null) return;
-    final controller = VideoPlayerController.asset(assetPath);
+    if (mounted) setState(() => _error = null);
     try {
-      await controller.initialize();
+      final controller = await createBundledVideoController(assetPath);
       await controller.setLooping(true);
       if (!mounted) {
         await controller.dispose();
         return;
       }
       setState(() => _controller = controller);
-    } catch (_) {
-      await controller.dispose();
+    } catch (error, stackTrace) {
+      debugPrint('Preview video failed: ' + error.toString());
+      debugPrintStack(stackTrace: stackTrace);
       if (mounted) setState(() => _error = '预览加载失败，请稍后重试');
     }
   }
@@ -74,7 +77,18 @@ class _ContentPreviewPlayerState extends State<ContentPreviewPlayer> {
             Center(
               child: _error == null
                   ? const CircularProgressIndicator()
-                  : Text(_error!, textAlign: TextAlign.center),
+                  : Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(_error!, textAlign: TextAlign.center),
+                        const SizedBox(height: 8),
+                        TextButton.icon(
+                          onPressed: _initialize,
+                          icon: const Icon(Icons.refresh),
+                          label: const Text('重试'),
+                        ),
+                      ],
+                    ),
             ),
           const DecoratedBox(
             decoration: BoxDecoration(

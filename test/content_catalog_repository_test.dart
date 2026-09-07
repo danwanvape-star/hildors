@@ -3,12 +3,12 @@ import 'package:hildors_cockpit/src/features/community/community_content.dart';
 import 'package:hildors_cockpit/src/features/community/content_catalog_repository.dart';
 
 void main() {
-  test('preview catalog exposes only approved content', () async {
+  test('preview catalog exposes the four approved demo videos', () async {
     const repository = PreviewContentCatalogRepository(delay: Duration.zero);
 
     final items = await repository.fetchApprovedContent();
 
-    expect(items, isNotEmpty);
+    expect(items, hasLength(4));
     expect(
       items.every(
         (item) => item.rightsStatus == CommunityRightsStatus.verified,
@@ -20,32 +20,36 @@ void main() {
   test('catalog filter combines category query and downloaded state', () {
     final items = filterCatalogContent(
       communityPreviewItems,
-      category: '宠物',
-      query: '太空',
-      downloadedIds: {'preview_pet_01'},
+      category: '角色',
+      query: '展示 01',
+      downloadedIds: {'hildors_demo_01'},
       downloadedOnly: true,
     );
 
-    expect(items.map((item) => item.id), ['preview_pet_01']);
+    expect(items.map((item) => item.id), ['hildors_demo_01']);
   });
 
-  test('catalog filter matches creator and summary case-insensitively', () {
+  test('catalog filter matches creator case-insensitively', () {
     final items = filterCatalogContent(
       communityPreviewItems,
       category: '全部',
-      query: 'MYTHBUILD',
+      query: 'hildors demo',
       downloadedIds: const {},
       downloadedOnly: false,
     );
 
     expect(items.length, communityPreviewItems.length);
   });
-  test('preview catalog provides phone-playable video assets', () {
+
+  test('preview catalog provides four phone-playable video assets', () {
     expect(
-      communityPreviewItems.every(
-        (item) => item.previewAsset?.endsWith('.mp4') ?? false,
-      ),
-      isTrue,
+      communityPreviewItems.map((item) => item.previewAsset),
+      [
+        'assets/videos/showcase/showcase_01.mp4',
+        'assets/videos/showcase/showcase_02.mp4',
+        'assets/videos/showcase/showcase_03.mp4',
+        'assets/videos/showcase/showcase_04.mp4',
+      ],
     );
   });
 }

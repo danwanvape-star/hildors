@@ -92,7 +92,7 @@ class _CommunityPageState extends State<CommunityPage> {
           const SizedBox(height: 18),
           Wrap(
             spacing: 8,
-            children: ['全部', '宠物', '派对', '音乐']
+            children: ['全部', '角色', '音乐']
                 .map((category) => ChoiceChip(
                       label: Text(category),
                       selected: _category == category,

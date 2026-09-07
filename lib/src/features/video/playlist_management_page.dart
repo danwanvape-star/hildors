@@ -33,13 +33,13 @@ class _PlaylistManagementPageState extends State<PlaylistManagementPage> {
     kind: DevicePlaylistKind.startup,
     enabled: true,
     loopMode: PlaylistLoopMode.listLoop,
-    videoNames: ['PET_WELCOME.MP4', 'FAMILY_HOST.MP4', 'AMBIENT_LOOP.MP4'],
+    videoNames: ['showcase_01.mp4', 'showcase_02.mp4'],
   );
   late var _bluetooth = const DevicePlaylistDraft(
     kind: DevicePlaylistKind.bluetooth,
     enabled: true,
     loopMode: PlaylistLoopMode.listLoop,
-    videoNames: ['MUSIC_JELLYFISH.MP4', 'NEON_EARTH.MP4'],
+    videoNames: ['showcase_03.mp4', 'showcase_04.mp4'],
   );
 
   bool get _connected => _connection == DeviceConnectionState.connected;
