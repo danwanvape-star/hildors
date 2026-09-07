@@ -30,6 +30,7 @@ class _HomePageState extends State<HomePage> {
   late DeviceConnectionState _connection;
   StreamSubscription<DeviceConnectionState>? _subscription;
   String? _error;
+  var _devicePlaying = true;
 
   @override
   void initState() {
@@ -50,6 +51,16 @@ class _HomePageState extends State<HomePage> {
       await widget.client.connect();
     } catch (error) {
       if (mounted) setState(() => _error = '连接失败：$error');
+    }
+  }
+
+  void _sendDeviceCommand(VoidCallback command, {bool? playing}) {
+    if (_connection != DeviceConnectionState.connected) return;
+    try {
+      command();
+      if (playing != null) setState(() => _devicePlaying = playing);
+    } catch (error) {
+      setState(() => _error = '播放控制失败：$error');
     }
   }
 
@@ -109,6 +120,13 @@ class _HomePageState extends State<HomePage> {
             const SizedBox(height: 16),
             _NowPlayingCard(
               connected: _connection == DeviceConnectionState.connected,
+              devicePlaying: _devicePlaying,
+              onPrevious: () => _sendDeviceCommand(widget.client.previousTrack),
+              onTogglePlayback: () => _sendDeviceCommand(
+                () => widget.client.setPlaying(!_devicePlaying),
+                playing: !_devicePlaying,
+              ),
+              onNext: () => _sendDeviceCommand(widget.client.nextTrack),
               onOpenStartup: () => _openPlaylist(DevicePlaylistKind.startup),
               onOpenBluetooth: () =>
                   _openPlaylist(DevicePlaylistKind.bluetooth),
@@ -127,11 +145,19 @@ class _HomePageState extends State<HomePage> {
 class _NowPlayingCard extends StatelessWidget {
   const _NowPlayingCard({
     required this.connected,
+    required this.devicePlaying,
+    required this.onPrevious,
+    required this.onTogglePlayback,
+    required this.onNext,
     required this.onOpenStartup,
     required this.onOpenBluetooth,
   });
 
   final bool connected;
+  final bool devicePlaying;
+  final VoidCallback onPrevious;
+  final VoidCallback onTogglePlayback;
+  final VoidCallback onNext;
   final VoidCallback onOpenStartup;
   final VoidCallback onOpenBluetooth;
 
@@ -174,6 +200,32 @@ class _NowPlayingCard extends StatelessWidget {
           ]),
           const SizedBox(height: 14),
           const _ShowcaseVideoPreview(),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  '全息设备播放控制',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+              ),
+              IconButton.filledTonal(
+                tooltip: '设备上一条',
+                onPressed: connected ? onPrevious : null,
+                icon: const Icon(Icons.skip_previous),
+              ),
+              IconButton.filled(
+                tooltip: devicePlaying ? '暂停设备播放' : '继续设备播放',
+                onPressed: connected ? onTogglePlayback : null,
+                icon: Icon(devicePlaying ? Icons.pause : Icons.play_arrow),
+              ),
+              IconButton.filledTonal(
+                tooltip: '设备下一条',
+                onPressed: connected ? onNext : null,
+                icon: const Icon(Icons.skip_next),
+              ),
+            ],
+          ),
           const SizedBox(height: 12),
           Row(children: [
             Expanded(

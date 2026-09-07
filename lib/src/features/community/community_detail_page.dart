@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'community_content.dart';
+import 'content_preview_player.dart';
 import 'content_download_service.dart';
 
 class CommunityDetailPage extends StatefulWidget {
@@ -52,16 +53,7 @@ class _CommunityDetailPageState extends State<CommunityDetailPage> {
           body: ListView(
             padding: const EdgeInsets.all(20),
             children: [
-              Container(
-                height: 220,
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                  borderRadius: BorderRadius.circular(24),
-                ),
-                child: const Center(
-                  child: Icon(Icons.play_circle_outline, size: 80),
-                ),
-              ),
+              ContentPreviewPlayer(assetPath: content.previewAsset),
               const SizedBox(height: 20),
               Text(content.title,
                   style: Theme.of(context).textTheme.headlineSmall),

@@ -40,4 +40,12 @@ void main() {
 
     expect(items.length, communityPreviewItems.length);
   });
+  test('preview catalog provides phone-playable video assets', () {
+    expect(
+      communityPreviewItems.every(
+        (item) => item.previewAsset?.endsWith('.mp4') ?? false,
+      ),
+      isTrue,
+    );
+  });
 }

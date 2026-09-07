@@ -20,6 +20,7 @@ class CommunityContent {
     required this.fileSizeMb,
     required this.durationSeconds,
     required this.version,
+    this.previewAsset,
   });
 
   final String id;
@@ -34,6 +35,7 @@ class CommunityContent {
   final int fileSizeMb;
   final int durationSeconds;
   final String version;
+  final String? previewAsset;
 
   bool get canDownload => rightsStatus == CommunityRightsStatus.verified;
   bool get canInstall => canDownload;
@@ -53,6 +55,7 @@ const communityPreviewItems = <CommunityContent>[
     fileSizeMb: 86,
     durationSeconds: 18,
     version: '1.0',
+    previewAsset: 'assets/videos/showcase/showcase_02.mp4',
   ),
   CommunityContent(
     id: 'preview_host_01',
@@ -67,6 +70,7 @@ const communityPreviewItems = <CommunityContent>[
     fileSizeMb: 124,
     durationSeconds: 24,
     version: '1.0',
+    previewAsset: 'assets/videos/showcase/showcase_03.mp4',
   ),
   CommunityContent(
     id: 'preview_music_01',
@@ -81,5 +85,6 @@ const communityPreviewItems = <CommunityContent>[
     fileSizeMb: 98,
     durationSeconds: 20,
     version: '1.0',
+    previewAsset: 'assets/videos/showcase/showcase_04.mp4',
   ),
 ];

@@ -7,6 +7,7 @@ void main() {
 
     expect(find.text('HILDORS'), findsOneWidget);
     expect(find.text('当前角色'), findsOneWidget);
+    expect(find.text('全息设备播放控制'), findsOneWidget);
     expect(find.text('日常展示'), findsWidgets);
     expect(find.text('音乐联动'), findsOneWidget);
     expect(find.text('定制你的专属全息角色'), findsNothing);
