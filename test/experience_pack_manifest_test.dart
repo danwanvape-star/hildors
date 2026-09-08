@@ -25,4 +25,23 @@ void main() {
     expect(missing, isNot(contains(first)));
     expect(missing, isNot(contains(second)));
   });
+
+  test('chaos party package contains every roulette stage', () async {
+    final manifest = await ExperiencePackRepository().loadChaosParty();
+    expect(manifest.id, 'chaos_party_v1');
+    expect(manifest.files, hasLength(8));
+    expect(
+      manifest.files.map((file) => file.role),
+      containsAll([
+        'idle',
+        'roulette',
+        'thinking',
+        'point',
+        'laugh',
+        'success',
+        'fail',
+        'next',
+      ]),
+    );
+  });
 }

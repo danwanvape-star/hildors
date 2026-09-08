@@ -35,8 +35,8 @@ class CustomizationPage extends StatelessWidget {
           const _JourneyStep(
               index: 1,
               icon: Icons.add_photo_alternate_outlined,
-              title: '上传照片',
-              detail: '人物、宠物或商品正面清晰照片'),
+              title: '上传角色素材',
+              detail: '人物、手办或已获授权角色的清晰参考图'),
           const _JourneyStep(
               index: 2,
               icon: Icons.edit_note,

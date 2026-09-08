@@ -8,23 +8,19 @@ void main() {
     }
   });
 
-  test('MVP catalog focuses on pet and social families', () {
+  test('MVP catalog focuses on character companion and social play', () {
     expect(
       experienceCatalog.map((item) => item.id),
-      containsAll(['holo_pet', 'holo_mystery']),
+      containsAll(['character_companion', 'holo_roulette']),
     );
     expect(experienceCatalog, hasLength(2));
   });
 
-  test('HoloPet is available while social experiences remain planned', () {
-    final holoPet =
-        experienceCatalog.singleWhere((item) => item.id == 'holo_pet');
-    expect(holoPet.availability, ExperienceAvailability.available);
+  test('pet product is removed while its companion direction is retained', () {
     expect(
-      experienceCatalog
-          .where((item) => item.id != 'holo_pet')
-          .every((item) => item.availability == ExperienceAvailability.planned),
-      isTrue,
-    );
+        experienceCatalog.map((item) => item.id), isNot(contains('holo_pet')));
+    final companion = experienceCatalog
+        .singleWhere((item) => item.id == 'character_companion');
+    expect(companion.availability, ExperienceAvailability.planned);
   });
 }

@@ -25,11 +25,13 @@ flutter:
   uses-material-design: true
   assets:
     - assets/packs/tarot_major_v1/manifest.json
+    - assets/packs/chaos_party_v1/manifest.json
     - assets/images/hildors_logo.jpg
     - assets/images/p20_product_showcase.jpg
     - assets/images/video_thumbnails/
     - assets/images/content_thumbnails/
     - assets/videos/showcase/
+    - assets/videos/chaos_party_demo/
     - assets/holopet/
   fonts:
     - family: Poppins

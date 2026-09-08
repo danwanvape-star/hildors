@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../experience/experience_catalog.dart';
 import '../../experience/projection_service.dart';
 import '../customization/customization_discovery_card.dart';
-import '../holopet/holopet_hub_page.dart';
+import '../interaction/roulette/roulette_page.dart';
 
 class ExplorePage extends StatelessWidget {
   const ExplorePage({required this.projection, super.key});
@@ -16,15 +16,15 @@ class ExplorePage extends StatelessWidget {
           const CustomizationDiscoveryCard(),
           const SizedBox(height: 24),
           _ExperienceSection(
-              title: '养成系宠物',
-              subtitle: '喂养、互动、成长和每日陪伴',
-              icon: Icons.pets_outlined,
-              items: experiencesFor(ExperiencePillar.petCompanion),
+              title: '角色互动',
+              subtitle: '让手办与 IP 角色拥有动作、记忆和持续陪伴',
+              icon: Icons.auto_awesome_outlined,
+              items: experiencesFor(ExperiencePillar.characterCompanion),
               projection: projection),
           _ExperienceSection(
-              title: '社交与家庭派对',
-              subtitle: '暖场、主持、剧情和多人互动角色',
-              icon: Icons.groups_outlined,
+              title: '派对玩法',
+              subtitle: '快速开始轮盘、抽签和多人互动游戏',
+              icon: Icons.celebration_outlined,
               items: experiencesFor(ExperiencePillar.socialAndFamily),
               projection: projection),
         ]),
@@ -70,18 +70,18 @@ class _ExperienceCard extends StatelessWidget {
       child: ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         leading: CircleAvatar(
-            child: Icon(item.id == 'holo_pet'
-                ? Icons.pets
+            child: Icon(item.id == 'character_companion'
+                ? Icons.favorite_outline
                 : Icons.celebration_outlined)),
         title: Text(item.title),
         subtitle: Text(item.subtitle),
-        trailing: item.id == 'holo_pet'
+        trailing: item.availability == ExperienceAvailability.available
             ? const Icon(Icons.chevron_right)
             : const _PlannedLabel(),
         onTap: () {
-          if (item.id == 'holo_pet') {
+          if (item.id == 'holo_roulette') {
             Navigator.of(context).push(MaterialPageRoute<void>(
-                builder: (_) => HoloPetHubPage(projection: projection)));
+                builder: (_) => RoulettePage(projection: projection)));
           } else {
             ScaffoldMessenger.of(context)
                 .showSnackBar(const SnackBar(content: Text('该体验正在规划中，敬请期待')));

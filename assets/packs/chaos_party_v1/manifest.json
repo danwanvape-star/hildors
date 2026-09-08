@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "id": "chaos_party_v1",
+  "title": "Chaos Party Pack",
+  "version": "1.0.0",
+  "supportedModels": ["P20", "P11"],
+  "estimatedSizeMb": {"min": 80, "max": 240},
+  "files": [
+    {"role": "idle", "path": "chaos_idle.mp4"},
+    {"role": "roulette", "path": "chaos_roulette.mp4"},
+    {"role": "thinking", "path": "chaos_thinking.mp4"},
+    {"role": "point", "path": "chaos_point.mp4"},
+    {"role": "laugh", "path": "chaos_laugh.mp4"},
+    {"role": "success", "path": "chaos_success.mp4"},
+    {"role": "fail", "path": "chaos_fail.mp4"},
+    {"role": "next", "path": "chaos_next.mp4"}
+  ]
+}

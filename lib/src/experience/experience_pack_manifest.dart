@@ -74,9 +74,19 @@ class ExperiencePackManifest {
 class ExperiencePackRepository {
   static const tarotMajorManifestAsset =
       'assets/packs/tarot_major_v1/manifest.json';
+  static const chaosPartyManifestAsset =
+      'assets/packs/chaos_party_v1/manifest.json';
 
   Future<ExperiencePackManifest> loadTarotMajor() async {
-    final source = await rootBundle.loadString(tarotMajorManifestAsset);
+    return load(tarotMajorManifestAsset);
+  }
+
+  Future<ExperiencePackManifest> loadChaosParty() async {
+    return load(chaosPartyManifestAsset);
+  }
+
+  Future<ExperiencePackManifest> load(String assetPath) async {
+    final source = await rootBundle.loadString(assetPath);
     final json = jsonDecode(source) as Map<String, Object?>;
     return ExperiencePackManifest.fromJson(json);
   }

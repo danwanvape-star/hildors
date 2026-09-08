@@ -1,4 +1,4 @@
-enum ExperiencePillar { petCompanion, socialAndFamily }
+enum ExperiencePillar { characterCompanion, socialAndFamily }
 
 enum ExperienceAvailability { available, protocolPending, planned }
 
@@ -20,18 +20,18 @@ class ExperienceCatalogItem {
 
 const experienceCatalog = <ExperienceCatalogItem>[
   ExperienceCatalogItem(
-    id: 'holo_pet',
-    title: 'HOLOPET',
-    subtitle: '领养官方角色，或定制你自己的真实宠物',
-    pillar: ExperiencePillar.petCompanion,
-    availability: ExperienceAvailability.available,
+    id: 'character_companion',
+    title: '角色陪伴',
+    subtitle: '让收藏角色拥有每日问候、互动动作与陪伴记忆',
+    pillar: ExperiencePillar.characterCompanion,
+    availability: ExperienceAvailability.planned,
   ),
   ExperienceCatalogItem(
-    id: 'holo_mystery',
-    title: 'Holo Mystery',
-    subtitle: '朋友聚会和家庭派对的沉浸式角色互动',
+    id: 'holo_roulette',
+    title: 'Holo Roulette',
+    subtitle: '随机抽取一位玩家，接受轻松有趣的派对挑战',
     pillar: ExperiencePillar.socialAndFamily,
-    availability: ExperienceAvailability.planned,
+    availability: ExperienceAvailability.available,
   ),
 ];
 
