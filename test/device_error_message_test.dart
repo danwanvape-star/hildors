@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -21,5 +22,14 @@ void main() {
     );
 
     expect(friendlyDeviceConnectionError(error), contains('连接超时'));
+  });
+
+  test('command timeout distinguishes network from device response', () {
+    final message = friendlyDeviceConnectionError(
+      TimeoutException('设备未在 3 秒内应答'),
+    );
+
+    expect(message, contains('设备网络已连接'));
+    expect(message, contains('未响应读取指令'));
   });
 }

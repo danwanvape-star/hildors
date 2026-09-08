@@ -1,6 +1,10 @@
+import 'dart:async';
 import 'dart:io';
 
 String friendlyDeviceConnectionError(Object error) {
+  if (error is TimeoutException) {
+    return '设备网络已连接，但设备未响应读取指令。请确认 App 通信端口与设备固件版本后重试。';
+  }
   if (error is SocketException) {
     final code = error.osError?.errorCode;
     final message =

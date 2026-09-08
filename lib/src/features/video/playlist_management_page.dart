@@ -375,14 +375,32 @@ class _DeviceStatusBar extends StatelessWidget {
         child: ListTile(
           dense: true,
           visualDensity: VisualDensity.compact,
-          leading: Icon(connected ? Icons.router : Icons.wifi_off),
-          title: Text(connected
-              ? videoCount == 0
-                  ? '设备已连接'
-                  : '设备已连接 · $videoCount 个视频'
-              : error ?? '设备未连接 · 连接后可在硬件播放'),
+          leading: Icon(
+            !connected
+                ? Icons.wifi_off
+                : error != null
+                    ? Icons.sync_problem_outlined
+                    : Icons.router,
+          ),
+          title: Text(
+            !connected
+                ? '设备未连接'
+                : error != null
+                    ? '设备网络已连接 · 读取失败'
+                    : videoCount == 0
+                        ? '设备网络已连接 · 点击读取'
+                        : '设备响应正常 · $videoCount 个视频',
+          ),
+          subtitle: Text(
+            error ?? (connected ? '读取设备内容后即可确认控制通道' : '连接设备 Wi-Fi 后再读取播放列表'),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
           trailing: connected
-              ? TextButton(onPressed: onRead, child: const Text('读取'))
+              ? TextButton(
+                  onPressed: onRead,
+                  child: Text(error == null ? '读取' : '重试'),
+                )
               : null,
         ),
       );
