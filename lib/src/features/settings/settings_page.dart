@@ -31,8 +31,17 @@ class _SettingsPageState extends State<SettingsPage> {
   @override
   void initState() {
     super.initState();
+    _connection = widget.client.connectionState;
     _connectionSubscription = widget.client.connectionStates.listen((value) {
-      if (mounted) setState(() => _connection = value);
+      if (mounted) {
+        setState(() {
+          _connection = value;
+          if (value != DeviceConnectionState.connected) {
+            _playMode = null;
+            _version = null;
+          }
+        });
+      }
     });
   }
 
@@ -256,7 +265,14 @@ class _ConnectionPanel extends StatelessWidget {
                 ),
               ),
               _StatusPill(
-                  label: _connected ? 'ONLINE' : 'OFFLINE', active: _connected),
+                label: switch (state) {
+                  DeviceConnectionState.connected => 'ONLINE',
+                  DeviceConnectionState.connecting => 'CONNECTING',
+                  DeviceConnectionState.reconnecting => 'RECONNECTING',
+                  DeviceConnectionState.disconnected => 'OFFLINE',
+                },
+                active: _connected,
+              ),
             ],
           ),
           if (busy) ...[
