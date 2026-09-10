@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
+import '../../theme/hildors_theme.dart';
 import 'community_content.dart';
 import 'community_detail_page.dart';
 import 'content_catalog_repository.dart';
@@ -55,25 +56,54 @@ class _CommunityPageState extends State<CommunityPage> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: const Text('内容库')),
-        body: FutureBuilder<List<CommunityContent>>(
-          future: _contentFuture,
-          builder: (context, snapshot) {
-            if (snapshot.connectionState != ConnectionState.done) {
-              return const Center(child: CircularProgressIndicator());
-            }
-            if (snapshot.hasError) {
-              return _CatalogError(onRetry: () => setState(_loadContent));
-            }
-            final items = filterCatalogContent(
-              snapshot.data ?? const <CommunityContent>[],
-              category: _category,
-              query: _query,
-              downloadedIds: _downloadedIds,
-              downloadedOnly: _downloadedOnly,
-            );
-            return _buildCatalog(context, items);
-          },
+        appBar: AppBar(
+          title: const Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('藏品'),
+              Text(
+                'COLLECTION ARCHIVE',
+                style: TextStyle(
+                  color: HildorsColors.textSecondary,
+                  fontSize: 8,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 1.6,
+                ),
+              ),
+            ],
+          ),
+        ),
+        body: DecoratedBox(
+          decoration: const BoxDecoration(
+            gradient: RadialGradient(
+              center: Alignment(-0.85, -0.9),
+              radius: 1.15,
+              colors: [
+                Color(0x242C547A),
+                Color(0x100C3435),
+                Colors.transparent
+              ],
+            ),
+          ),
+          child: FutureBuilder<List<CommunityContent>>(
+            future: _contentFuture,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState != ConnectionState.done) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              if (snapshot.hasError) {
+                return _CatalogError(onRetry: () => setState(_loadContent));
+              }
+              final items = filterCatalogContent(
+                snapshot.data ?? const <CommunityContent>[],
+                category: _category,
+                query: _query,
+                downloadedIds: _downloadedIds,
+                downloadedOnly: _downloadedOnly,
+              );
+              return _buildCatalog(context, items);
+            },
+          ),
         ),
       );
 
@@ -89,6 +119,11 @@ class _CommunityPageState extends State<CommunityPage> {
             children: [
               const _DownloadNotice(),
               const SizedBox(height: 12),
+              _CollectionHero(
+                localMode: _downloadedOnly,
+                downloadedCount: _downloadedIds.length,
+              ),
+              const SizedBox(height: 14),
               SegmentedButton<bool>(
                 segments: const [
                   ButtonSegment(value: false, label: Text('官方内容')),
@@ -99,19 +134,7 @@ class _CommunityPageState extends State<CommunityPage> {
                   setState(() => _downloadedOnly = selection.single);
                 },
               ),
-              const SizedBox(height: 18),
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      _downloadedOnly ? '本机内容' : 'HILDORS 官方内容',
-                      style: Theme.of(context).textTheme.titleLarge,
-                    ),
-                  ),
-                  Text('${_downloadedIds.length} 个已下载至 App'),
-                ],
-              ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 14),
               TextField(
                 onChanged: (value) => setState(() => _query = value),
                 decoration: InputDecoration(
@@ -142,6 +165,25 @@ class _CommunityPageState extends State<CommunityPage> {
                 ),
               ),
               const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      _downloadedOnly ? '本机内容' : '精选角色',
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
+                  ),
+                  Text(
+                    '${items.length.toString().padLeft(2, '0')} ITEMS',
+                    style: const TextStyle(
+                      color: HildorsColors.textSecondary,
+                      fontSize: 10,
+                      letterSpacing: 1.2,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
               if (items.isEmpty && (!_downloadedOnly || _importedFiles.isEmpty))
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 48),
@@ -287,6 +329,79 @@ class _CatalogError extends StatelessWidget {
       );
 }
 
+class _CollectionHero extends StatelessWidget {
+  const _CollectionHero({
+    required this.localMode,
+    required this.downloadedCount,
+  });
+
+  final bool localMode;
+  final int downloadedCount;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        height: 132,
+        clipBehavior: Clip.antiAlias,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(color: const Color(0x4D65B8FF)),
+        ),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            Image.asset(
+              'assets/images/content_thumbnails/celestial_mage.jpg',
+              fit: BoxFit.cover,
+              alignment: const Alignment(0.2, -0.25),
+            ),
+            const DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
+                  colors: [
+                    Color(0xF2070D15),
+                    Color(0xC20A1220),
+                    Color(0x33101725),
+                  ],
+                  stops: [0, 0.58, 1],
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(18),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'HILDORS / ARCHIVE 01',
+                    style: TextStyle(
+                      color: HildorsColors.teal,
+                      fontSize: 9,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 1.5,
+                    ),
+                  ),
+                  const Spacer(),
+                  Text(
+                    localMode ? '我的本机藏品' : '角色收藏库',
+                    style: Theme.of(context).textTheme.headlineSmall,
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    localMode
+                        ? '$downloadedCount 个内容已保存，可发送到全息设备'
+                        : '发现官方角色、动作与音乐联动内容',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+}
+
 class _DownloadNotice extends StatelessWidget {
   const _DownloadNotice();
 
@@ -341,6 +456,14 @@ class _ContentTile extends StatelessWidget {
     return Card(
       margin: EdgeInsets.zero,
       clipBehavior: Clip.antiAlias,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(
+          color: downloaded
+              ? HildorsColors.teal.withValues(alpha: 0.55)
+              : HildorsColors.hairline,
+        ),
+      ),
       child: InkWell(
         onTap: onTap,
         child: Column(
@@ -359,6 +482,42 @@ class _ContentTile extends StatelessWidget {
                           Theme.of(context).colorScheme.surfaceContainerHighest,
                       child: const Icon(Icons.view_in_ar, size: 34),
                     ),
+                  const DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [Colors.transparent, Color(0x99000000)],
+                        stops: [0.55, 1],
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    left: 6,
+                    top: 6,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 3,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xCC0B111A),
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(color: const Color(0x4D34E7D4)),
+                      ),
+                      child: Text(
+                        item.id.startsWith('hildors_demo')
+                            ? 'DEMO'
+                            : 'ORIGINAL',
+                        style: const TextStyle(
+                          color: HildorsColors.teal,
+                          fontSize: 7,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.7,
+                        ),
+                      ),
+                    ),
+                  ),
                   Positioned(
                     right: 6,
                     bottom: 6,
@@ -388,10 +547,22 @@ class _ContentTile extends StatelessWidget {
                     ),
                   ),
                   if (downloaded)
-                    const Positioned(
-                      left: 6,
+                    Positioned(
+                      right: 6,
                       top: 6,
-                      child: Icon(Icons.download_done, size: 20),
+                      child: Container(
+                        width: 24,
+                        height: 24,
+                        decoration: const BoxDecoration(
+                          color: HildorsColors.teal,
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.download_done,
+                          color: HildorsColors.background,
+                          size: 16,
+                        ),
+                      ),
                     ),
                 ],
               ),
@@ -418,6 +589,16 @@ class _ContentTile extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: Theme.of(context).textTheme.labelSmall,
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      item.creatorName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: HildorsColors.textSecondary,
+                        fontSize: 8,
+                      ),
                     ),
                   ],
                 ),
