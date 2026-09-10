@@ -7,6 +7,7 @@ import '../../device/p20_command_session.dart';
 import '../../device/p20_device_client.dart';
 import '../../experience/projection_service.dart';
 import '../control/control_page.dart';
+import '../customization/customization_page.dart';
 import '../video/device_playlist_draft.dart';
 import '../video/playlist_management_page.dart';
 
@@ -117,6 +118,8 @@ class _HomePageState extends State<HomePage> {
               onOpenBluetooth: () =>
                   _openPlaylist(DevicePlaylistKind.bluetooth),
             ),
+            const SizedBox(height: 16),
+            const _CustomizationShortcut(),
           ],
         ),
       );
@@ -125,6 +128,68 @@ class _HomePageState extends State<HomePage> {
   void dispose() {
     _subscription?.cancel();
     super.dispose();
+  }
+}
+
+class _CustomizationShortcut extends StatelessWidget {
+  const _CustomizationShortcut();
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Material(
+      color: const Color(0xFF161B20),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(22),
+        side: BorderSide(color: colors.secondary.withValues(alpha: 0.28)),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: () => Navigator.of(context).push(
+          MaterialPageRoute<void>(builder: (_) => const CustomizationPage()),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(18, 16, 14, 16),
+          child: Row(
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: colors.secondary.withValues(alpha: 0.14),
+                  borderRadius: BorderRadius.circular(15),
+                ),
+                child: Icon(Icons.auto_awesome, color: colors.secondary),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '定制你的专属全息角色',
+                      style: Theme.of(context)
+                          .textTheme
+                          .titleMedium
+                          ?.copyWith(fontWeight: FontWeight.w700),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '上传角色素材，获得可在设备播放的专属内容',
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              const Icon(Icons.chevron_right),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
 

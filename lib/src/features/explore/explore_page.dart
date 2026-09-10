@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import '../../experience/experience_catalog.dart';
 import '../../experience/projection_service.dart';
 import '../customization/customization_discovery_card.dart';
-import '../interaction/roulette/roulette_page.dart';
 
 class ExplorePage extends StatelessWidget {
   const ExplorePage({required this.projection, super.key});
@@ -20,12 +19,6 @@ class ExplorePage extends StatelessWidget {
               subtitle: '让手办与 IP 角色拥有动作、记忆和持续陪伴',
               icon: Icons.auto_awesome_outlined,
               items: experiencesFor(ExperiencePillar.characterCompanion),
-              projection: projection),
-          _ExperienceSection(
-              title: '派对玩法',
-              subtitle: '快速开始轮盘、抽签和多人互动游戏',
-              icon: Icons.celebration_outlined,
-              items: experiencesFor(ExperiencePillar.socialAndFamily),
               projection: projection),
         ]),
       );
@@ -78,15 +71,9 @@ class _ExperienceCard extends StatelessWidget {
         trailing: item.availability == ExperienceAvailability.available
             ? const Icon(Icons.chevron_right)
             : const _PlannedLabel(),
-        onTap: () {
-          if (item.id == 'holo_roulette') {
-            Navigator.of(context).push(MaterialPageRoute<void>(
-                builder: (_) => RoulettePage(projection: projection)));
-          } else {
-            ScaffoldMessenger.of(context)
-                .showSnackBar(const SnackBar(content: Text('该体验正在规划中，敬请期待')));
-          }
-        },
+        onTap: () => ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('该体验正在规划中，敬请期待')),
+        ),
       ));
 }
 

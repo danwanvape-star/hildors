@@ -35,7 +35,7 @@ void main() {
     expect(find.text('养成系宠物'), findsNothing);
     expect(find.text('角色陪伴'), findsOneWidget);
     expect(find.text('角色互动'), findsOneWidget);
-    expect(find.text('派对玩法'), findsOneWidget);
-    expect(find.text('Holo Roulette'), findsOneWidget);
+    expect(find.text('派对玩法'), findsNothing);
+    expect(find.text('Holo Roulette'), findsNothing);
   });
 }

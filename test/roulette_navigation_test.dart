@@ -3,7 +3,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hildors_cockpit/src/experience/experience_pack_manifest.dart';
 import 'package:hildors_cockpit/src/experience/projection_service.dart';
 import 'package:hildors_cockpit/src/features/explore/explore_page.dart';
-import 'package:hildors_cockpit/src/features/interaction/roulette/roulette_demo_player.dart';
 
 class _OfflineProjection implements ProjectionService {
   @override
@@ -26,23 +25,13 @@ class _OfflineProjection implements ProjectionService {
 }
 
 void main() {
-  testWidgets('opens Holo Roulette from the social party section',
-      (tester) async {
+  testWidgets('hides Holo Roulette from the first release', (tester) async {
     await tester.pumpWidget(MaterialApp(
       home: ExplorePage(projection: _OfflineProjection()),
     ));
     await tester.pump();
 
-    await tester.scrollUntilVisible(
-      find.text('Holo Roulette'),
-      200,
-      scrollable: find.byType(Scrollable).first,
-    );
-    await tester.tap(find.text('Holo Roulette'));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 50));
-
-    expect(find.text('派对挑战轮盘'), findsOneWidget);
-    expect(find.byType(RouletteDemoPlayer), findsOneWidget);
+    expect(find.text('Holo Roulette'), findsNothing);
+    expect(find.text('派对玩法'), findsNothing);
   });
 }
