@@ -22,6 +22,7 @@ void main() {
       scrollable: find.byType(Scrollable).first,
     );
     expect(find.text('定制你的专属全息角色'), findsOneWidget);
+    expect(find.text('CHARACTER PORTAL'), findsOneWidget);
 
     await tester.tap(find.text('发现'));
     await tester.pump();

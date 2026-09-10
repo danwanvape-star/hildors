@@ -10,6 +10,7 @@ import '../control/control_page.dart';
 import '../customization/customization_page.dart';
 import '../video/device_playlist_draft.dart';
 import '../video/playlist_management_page.dart';
+import '../../theme/hildors_theme.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({
@@ -90,7 +91,21 @@ class _HomePageState extends State<HomePage> {
                 ),
               ),
               const SizedBox(width: 10),
-              const Text('HILDORS'),
+              const Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('HILDORS'),
+                  Text(
+                    'HOLOGRAPHIC COCKPIT',
+                    style: TextStyle(
+                      color: HildorsColors.textSecondary,
+                      fontSize: 8,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 1.6,
+                    ),
+                  ),
+                ],
+              ),
             ],
           ),
           actions: [
@@ -101,26 +116,39 @@ class _HomePageState extends State<HomePage> {
             ),
           ],
         ),
-        body: ListView(
-          padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
-          children: [
-            _DeviceCard(
-              connection: _connection,
-              busy: _busy,
-              error: _error,
-              onConnect: _connect,
-              onControl: _openControl,
+        body: DecoratedBox(
+          decoration: const BoxDecoration(
+            gradient: RadialGradient(
+              center: Alignment(0.9, -0.85),
+              radius: 1.15,
+              colors: [
+                Color(0x3328688C),
+                Color(0x110A3438),
+                Colors.transparent
+              ],
             ),
-            const SizedBox(height: 16),
-            _NowPlayingCard(
-              connected: _connection == DeviceConnectionState.connected,
-              onOpenStartup: () => _openPlaylist(DevicePlaylistKind.startup),
-              onOpenBluetooth: () =>
-                  _openPlaylist(DevicePlaylistKind.bluetooth),
-            ),
-            const SizedBox(height: 16),
-            const _CustomizationShortcut(),
-          ],
+          ),
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
+            children: [
+              _DeviceCard(
+                connection: _connection,
+                busy: _busy,
+                error: _error,
+                onConnect: _connect,
+                onControl: _openControl,
+              ),
+              const SizedBox(height: 16),
+              _NowPlayingCard(
+                connected: _connection == DeviceConnectionState.connected,
+                onOpenStartup: () => _openPlaylist(DevicePlaylistKind.startup),
+                onOpenBluetooth: () =>
+                    _openPlaylist(DevicePlaylistKind.bluetooth),
+              ),
+              const SizedBox(height: 16),
+              const _CustomizationShortcut(),
+            ],
+          ),
         ),
       );
 
@@ -137,55 +165,79 @@ class _CustomizationShortcut extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    return Material(
-      color: const Color(0xFF161B20),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(22),
-        side: BorderSide(color: colors.secondary.withValues(alpha: 0.28)),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: () => Navigator.of(context).push(
-          MaterialPageRoute<void>(builder: (_) => const CustomizationPage()),
+    return Container(
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF123C3D), Color(0xFF111B2C), Color(0xFF241A35)],
         ),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(18, 16, 14, 16),
-          child: Row(
-            children: [
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: colors.secondary.withValues(alpha: 0.14),
-                  borderRadius: BorderRadius.circular(15),
+        borderRadius: BorderRadius.circular(22),
+        boxShadow: const [
+          BoxShadow(
+              color: Color(0x3327E7D4), blurRadius: 26, offset: Offset(0, 10)),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(22),
+          side: BorderSide(color: colors.secondary.withValues(alpha: 0.28)),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute<void>(builder: (_) => const CustomizationPage()),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(18, 16, 14, 16),
+            child: Row(
+              children: [
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: colors.secondary.withValues(alpha: 0.14),
+                    borderRadius: BorderRadius.circular(15),
+                  ),
+                  child: Icon(Icons.auto_awesome, color: colors.secondary),
                 ),
-                child: Icon(Icons.auto_awesome, color: colors.secondary),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '定制你的专属全息角色',
-                      style: Theme.of(context)
-                          .textTheme
-                          .titleMedium
-                          ?.copyWith(fontWeight: FontWeight.w700),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '上传角色素材，获得可在设备播放的专属内容',
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
-                  ],
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'CHARACTER PORTAL',
+                        style: TextStyle(
+                          color: HildorsColors.teal,
+                          fontSize: 9,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 1.8,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '定制你的专属全息角色',
+                        style: Theme.of(context)
+                            .textTheme
+                            .titleMedium
+                            ?.copyWith(fontWeight: FontWeight.w700),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '上传角色素材，获得可在设备播放的专属内容',
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              const SizedBox(width: 8),
-              const Icon(Icons.chevron_right),
-            ],
+                const SizedBox(width: 8),
+                const Icon(Icons.chevron_right),
+              ],
+            ),
           ),
         ),
       ),
