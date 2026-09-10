@@ -4,6 +4,8 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
 import '../../theme/hildors_theme.dart';
+import '../video/device_playlist_draft.dart';
+import '../video/playlist_store.dart';
 import 'community_content.dart';
 import 'community_detail_page.dart';
 import 'content_catalog_repository.dart';
@@ -234,7 +236,12 @@ class _CommunityPageState extends State<CommunityPage> {
                               file.path.split(Platform.pathSeparator).last),
                           subtitle: Text(
                               '用户本地导入 · ${(file.lengthSync() / 1048576).toStringAsFixed(1)} MB'),
-                          trailing: const Icon(Icons.chevron_right),
+                          trailing: TextButton.icon(
+                            label: const Text('加入列表'),
+                            icon: const Icon(Icons.playlist_add),
+                            onPressed: () => _addToPlaylist(file),
+                          ),
+                          onTap: () => _addToPlaylist(file),
                         ),
                       )),
                 ],
@@ -283,6 +290,47 @@ class _CommunityPageState extends State<CommunityPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('导入失败，请检查文件后重试。')),
       );
+    }
+  }
+
+  Future<void> _addToPlaylist(File file) async {
+    final kind = await showModalBottomSheet<DevicePlaylistKind>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) => SafeArea(
+          child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Text('加入播放列表'),
+          const Padding(
+              padding: EdgeInsets.all(16),
+              child: Text(
+                '保存到本机列表。视频仍需发送到设备；设备列表同步暂未开放。',
+              )),
+          ListTile(
+              title: const Text('日常展示'),
+              leading: const Icon(Icons.wb_sunny_outlined),
+              onTap: () => Navigator.pop(context, DevicePlaylistKind.startup)),
+          ListTile(
+              title: const Text('音乐联动'),
+              leading: const Icon(Icons.graphic_eq),
+              onTap: () =>
+                  Navigator.pop(context, DevicePlaylistKind.bluetooth)),
+        ],
+      )),
+    );
+    if (kind == null) return;
+    try {
+      await PlaylistStore.add(
+          kind, file.path.split(Platform.pathSeparator).last);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('已加入本机播放列表，可从首页进入查看'),
+      ));
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('保存失败，请重试')));
     }
   }
 

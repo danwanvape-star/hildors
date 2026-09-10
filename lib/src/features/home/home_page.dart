@@ -96,7 +96,7 @@ class _HomePageState extends State<HomePage> {
                 children: [
                   Text('HILDORS'),
                   Text(
-                    'HOLOGRAPHIC COCKPIT',
+                    'Character Portal',
                     style: TextStyle(
                       color: HildorsColors.textSecondary,
                       fontSize: 8,
@@ -128,27 +128,37 @@ class _HomePageState extends State<HomePage> {
               ],
             ),
           ),
-          child: ListView(
-            padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
-            children: [
-              _DeviceCard(
-                connection: _connection,
-                busy: _busy,
-                error: _error,
-                onConnect: _connect,
-                onControl: _openControl,
-              ),
-              const SizedBox(height: 16),
-              _NowPlayingCard(
-                connected: _connection == DeviceConnectionState.connected,
-                onOpenStartup: () => _openPlaylist(DevicePlaylistKind.startup),
-                onOpenBluetooth: () =>
-                    _openPlaylist(DevicePlaylistKind.bluetooth),
-              ),
-              const SizedBox(height: 16),
-              const _CustomizationShortcut(),
-            ],
-          ),
+          child: LayoutBuilder(
+              builder: (context, constraints) => SingleChildScrollView(
+                  child: ConstrainedBox(
+                      constraints:
+                          BoxConstraints(minHeight: constraints.maxHeight),
+                      child: Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+                          child: Column(
+                            children: [
+                              _DeviceCard(
+                                connection: _connection,
+                                busy: _busy,
+                                error: _error,
+                                onConnect: _connect,
+                                onControl: _openControl,
+                              ),
+                              const SizedBox(height: 10),
+                              _NowPlayingCard(
+                                height: (constraints.maxHeight - 258)
+                                    .clamp(286.0, 600.0),
+                                connected: _connection ==
+                                    DeviceConnectionState.connected,
+                                onOpenStartup: () =>
+                                    _openPlaylist(DevicePlaylistKind.startup),
+                                onOpenBluetooth: () =>
+                                    _openPlaylist(DevicePlaylistKind.bluetooth),
+                              ),
+                              const SizedBox(height: 10),
+                              const _CustomizationShortcut(),
+                            ],
+                          ))))),
         ),
       );
 
@@ -190,7 +200,7 @@ class _CustomizationShortcut extends StatelessWidget {
             MaterialPageRoute<void>(builder: (_) => const CustomizationPage()),
           ),
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(18, 16, 14, 16),
+            padding: const EdgeInsets.fromLTRB(14, 10, 12, 10),
             child: Row(
               children: [
                 Container(
@@ -224,13 +234,6 @@ class _CustomizationShortcut extends StatelessWidget {
                             .titleMedium
                             ?.copyWith(fontWeight: FontWeight.w700),
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        '上传角色素材，获得可在设备播放的专属内容',
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.bodySmall,
-                      ),
                     ],
                   ),
                 ),
@@ -247,12 +250,14 @@ class _CustomizationShortcut extends StatelessWidget {
 
 class _NowPlayingCard extends StatelessWidget {
   const _NowPlayingCard({
+    required this.height,
     required this.connected,
     required this.onOpenStartup,
     required this.onOpenBluetooth,
   });
 
   final bool connected;
+  final double height;
   final VoidCallback onOpenStartup;
   final VoidCallback onOpenBluetooth;
 
@@ -260,7 +265,7 @@ class _NowPlayingCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     return Container(
-      height: 520,
+      height: height,
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(28),
@@ -316,7 +321,7 @@ class _NowPlayingCard extends StatelessWidget {
                         style: Theme.of(context).textTheme.headlineSmall,
                       ),
                       const SizedBox(height: 3),
-                      const Text('选择设备当前使用的播放场景'),
+                      const Text('日常展示与音乐联动', style: TextStyle(fontSize: 12)),
                     ],
                   ),
                 ),

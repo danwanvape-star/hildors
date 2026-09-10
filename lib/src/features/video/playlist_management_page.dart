@@ -5,6 +5,7 @@ import '../../device/device_error_message.dart';
 import '../../device/p20_command_session.dart';
 import '../../device/p20_device_client.dart';
 import 'device_playlist_draft.dart';
+import 'playlist_store.dart';
 
 class PlaylistManagementPage extends StatefulWidget {
   const PlaylistManagementPage({
@@ -53,6 +54,7 @@ class _PlaylistManagementPageState extends State<PlaylistManagementPage> {
     super.initState();
     _kind = widget.initialKind;
     _connection = widget.client.connectionState;
+    _restoreLists();
     _subscription = widget.client.connectionStates.listen((value) {
       if (mounted) setState(() => _connection = value);
     });
@@ -66,6 +68,30 @@ class _PlaylistManagementPageState extends State<PlaylistManagementPage> {
         _bluetooth = value;
       }
     });
+    _saveList(value);
+  }
+
+  Future<void> _restoreLists() async {
+    try {
+      final startup = await PlaylistStore.load(_startup);
+      final bluetooth = await PlaylistStore.load(_bluetooth);
+      if (mounted) {
+        setState(() {
+          _startup = startup;
+          _bluetooth = bluetooth;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _error = '本机列表读取失败，请重试');
+    }
+  }
+
+  Future<void> _saveList(DevicePlaylistDraft draft) async {
+    try {
+      await PlaylistStore.save(draft);
+    } catch (_) {
+      if (mounted) setState(() => _error = '本机列表保存失败，请重试');
+    }
   }
 
   Future<void> _readDeviceVideos() async {
@@ -188,6 +214,7 @@ class _PlaylistManagementPageState extends State<PlaylistManagementPage> {
                   _bluetooth = previous;
                 }
               });
+              _saveList(previous);
             },
           ),
         ),
