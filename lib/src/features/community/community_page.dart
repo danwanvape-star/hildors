@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import '../../theme/hildors_theme.dart';
 import '../video/device_playlist_draft.dart';
 import '../video/playlist_store.dart';
+import '../video/fan_framing_page.dart';
 import 'community_content.dart';
 import 'community_detail_page.dart';
 import 'content_catalog_repository.dart';
@@ -235,13 +236,16 @@ class _CommunityPageState extends State<CommunityPage> {
                           title: Text(
                               file.path.split(Platform.pathSeparator).last),
                           subtitle: Text(
-                              '用户本地导入 · ${(file.lengthSync() / 1048576).toStringAsFixed(1)} MB'),
+                              '点击调整圆形取景 · ${(file.lengthSync() / 1048576).toStringAsFixed(1)} MB'),
                           trailing: TextButton.icon(
                             label: const Text('加入列表'),
                             icon: const Icon(Icons.playlist_add),
                             onPressed: () => _addToPlaylist(file),
                           ),
-                          onTap: () => _addToPlaylist(file),
+                          onTap: () => Navigator.of(context)
+                              .push(MaterialPageRoute<void>(
+                            builder: (_) => FanFramingPage(source: file.path),
+                          )),
                         ),
                       )),
                 ],
