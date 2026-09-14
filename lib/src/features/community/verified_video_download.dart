@@ -121,6 +121,20 @@ class VerifiedVideoDownload {
       cancellation?.check();
       final result = await temporary.rename('${staging.path}/video.mp4');
       cancellation?.check();
+      final record = File('${staging.path}/record.part');
+      await record.writeAsString(
+          jsonEncode({
+            'schema': 1,
+            'origin': baseUri.origin,
+            'packageId': packageId,
+            'clipId': clipId,
+            'bytes': expectedBytes,
+            'sha256': manifest['sha256'],
+          }),
+          flush: true);
+      cancellation?.check();
+      await record.rename('${staging.path}/record.json');
+      cancellation?.check();
       staging = null;
       return result;
     } catch (_) {

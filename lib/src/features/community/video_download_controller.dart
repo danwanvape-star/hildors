@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'verified_video_download.dart';
+import 'verified_video_cache.dart';
 
 enum VideoDownloadStatus {
   idle,
@@ -24,6 +25,7 @@ class VideoDownloadController extends ChangeNotifier {
   String? errorMessage;
   DownloadCancellation? _cancellation;
   bool _disposed = false;
+  int _attempt = 0;
   void _changed() {
     if (!_disposed) notifyListeners();
   }
@@ -35,6 +37,7 @@ class VideoDownloadController extends ChangeNotifier {
       return;
     }
     final cancellation = DownloadCancellation();
+    _attempt++;
     _cancellation = cancellation;
     status = VideoDownloadStatus.downloading;
     received = 0;
@@ -67,6 +70,23 @@ class VideoDownloadController extends ChangeNotifier {
       _cancellation = null;
       _changed();
     }
+  }
+
+  Future<void> restore() async {
+    if (_disposed || _cancellation != null) return;
+    final attempt = _attempt;
+    final cached =
+        await VerifiedVideoCache(service.cacheDirectory, service.baseUri.origin)
+            .find(packageId, clipId);
+    if (_disposed || _cancellation != null || attempt != _attempt) return;
+    file = cached;
+    if (cached != null) {
+      status = VideoDownloadStatus.complete;
+      errorMessage = null;
+    } else if (status == VideoDownloadStatus.complete) {
+      status = VideoDownloadStatus.idle;
+    }
+    _changed();
   }
 
   void cancel() {

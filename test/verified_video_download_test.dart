@@ -4,6 +4,7 @@ import 'package:crypto/crypto.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hildors_cockpit/src/features/community/verified_video_download.dart';
 import 'package:hildors_cockpit/src/features/community/video_download_controller.dart';
+import 'package:hildors_cockpit/src/features/community/verified_video_cache.dart';
 
 void main() {
   test('verified download commits only complete bytes and cleans failures',
@@ -42,6 +43,20 @@ void main() {
           service.download(packageId: 'p', clipId: 'c', sessionToken: token);
       final file = await run();
       expect(await file.readAsBytes(), bytes);
+      final restored =
+          VideoDownloadController(service, packageId: 'p', clipId: 'c');
+      await restored.restore();
+      expect(restored.status, VideoDownloadStatus.complete);
+      expect(restored.file!.path, file.path);
+      restored.dispose();
+      expect(
+          await VerifiedVideoCache(directory, 'https://different.test')
+              .find('p', 'c'),
+          isNull);
+      expect(
+          await VerifiedVideoCache(directory, service.baseUri.origin)
+              .find('p', 'other'),
+          isNull);
       unauthorized = false;
       foreignPath = false;
       corrupt = false;
@@ -85,6 +100,16 @@ void main() {
       await expectLater(run(), throwsA(isA<HttpException>()));
       expect(await directory.list().length, 2);
       expect(await file.readAsBytes(), bytes);
+      await file.writeAsBytes(List.filled(bytes.length, 0));
+      await saved!.writeAsBytes(List.filled(bytes.length, 0));
+      final missing =
+          VideoDownloadController(service, packageId: 'p', clipId: 'c');
+      await missing.restore();
+      expect(missing.file, isNull);
+      expect(missing.status, VideoDownloadStatus.idle);
+      missing.dispose();
+      expect(await directory.list().length,
+          2); // Bad files are ignored, not deleted.
       expect(
           () =>
               VerifiedVideoDownload(Uri.parse('http://example.com'), directory),

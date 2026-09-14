@@ -31,9 +31,18 @@ class _RemoteDownloadActionsState extends State<RemoteDownloadActions> {
     _access = _check();
   }
 
-  Future<DownloadAccess> _check() async =>
-      DownloadAccessRepository(widget.service.baseUri).check(
-          widget.packageId, widget.clipId, await widget.getSessionToken());
+  Future<DownloadAccess> _check() async {
+    final controller = _controller;
+    final access = await DownloadAccessRepository(widget.service.baseUri)
+        .check(widget.packageId, widget.clipId, await widget.getSessionToken());
+    if (access == DownloadAccess.allowed &&
+        mounted &&
+        controller == _controller) {
+      await controller.restore();
+    }
+    return access;
+  }
+
   @override
   void didUpdateWidget(covariant RemoteDownloadActions oldWidget) {
     super.didUpdateWidget(oldWidget);
