@@ -2,8 +2,12 @@ import 'package:flutter/material.dart';
 import 'remote_catalog_repository.dart';
 
 class RemoteCatalogPage extends StatefulWidget {
-  const RemoteCatalogPage({super.key, required this.load});
+  const RemoteCatalogPage({super.key, required this.load, this.clipActions});
   final Future<List<RemoteCatalogPackage>> Function() load;
+
+  /// Supplied only by a configured authenticated download integration.
+  final Widget Function(RemoteCatalogPackage package, RemoteCatalogClip clip)?
+      clipActions;
   @override
   State<RemoteCatalogPage> createState() => _RemoteCatalogPageState();
 }
@@ -57,7 +61,11 @@ class _RemoteCatalogPageState extends State<RemoteCatalogPage> {
                   onPressed: () => setState(_reload),
                   icon: const Icon(Icons.refresh))
             ]),
-            const Text('内容同步预览 · 下载与设备交付尚未开放', style: TextStyle(fontSize: 12)),
+            Text(
+                widget.clipActions == null
+                    ? '内容同步预览 · 下载与设备交付尚未开放'
+                    : '包内视频可分别管理 · 设备交付尚未开放',
+                style: const TextStyle(fontSize: 12)),
             const SizedBox(height: 12),
             TextField(
                 onChanged: (value) => setState(() => query = value),
@@ -142,14 +150,22 @@ class _RemoteCatalogPageState extends State<RemoteCatalogPage> {
                     padding: EdgeInsets.symmetric(vertical: 16),
                     child: Text('包内视频')),
                 for (final clip in item.clips)
-                  ListTile(
-                      leading: const Icon(Icons.movie_outlined),
-                      title: Text(clip.title),
-                      subtitle: Text(clip.durationSeconds == null
-                          ? '时长待确认'
-                          : '${clip.durationSeconds!.toStringAsFixed(1)} 秒')),
+                  Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        ListTile(
+                            leading: const Icon(Icons.movie_outlined),
+                            title: Text(clip.title),
+                            subtitle: Text(clip.durationSeconds == null
+                                ? '时长待确认'
+                                : '${clip.durationSeconds!.toStringAsFixed(1)} 秒')),
+                        if (widget.clipActions != null)
+                          widget.clipActions!(item, clip),
+                      ]),
                 const SizedBox(height: 16),
-                const Text('当前仅支持浏览视频清单。下载与设备交付开放后，可选择包内视频加入播放列表。'),
+                Text(widget.clipActions == null
+                    ? '当前仅支持浏览视频清单。下载与设备交付开放后，可选择包内视频加入播放列表。'
+                    : '下载仅保存到App本地，不代表已发送到硬件。'),
               ]),
             )));
   }
