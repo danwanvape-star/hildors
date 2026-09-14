@@ -2,6 +2,23 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:crypto/crypto.dart';
 
+class DownloadCancelled implements Exception {}
+
+class DownloadCancellation {
+  bool _cancelled = false;
+  final Set<void Function()> _listeners = {};
+  void cancel() {
+    _cancelled = true;
+    for (final listener in _listeners.toList()) {
+      listener();
+    }
+  }
+
+  void check() {
+    if (_cancelled) throw DownloadCancelled();
+  }
+}
+
 /// IO-only download primitive. Not wired to production login or playlist UI yet.
 class VerifiedVideoDownload {
   VerifiedVideoDownload(this.baseUri, this.cacheDirectory) {
@@ -22,6 +39,8 @@ class VerifiedVideoDownload {
       {required String packageId,
       required String clipId,
       required String sessionToken,
+      DownloadCancellation? cancellation,
+      void Function()? onVerifying,
       void Function(int received, int total)? onProgress}) async {
     if (!RegExp(r'^[A-Za-z0-9_-]{43}$').hasMatch(sessionToken)) {
       throw ArgumentError('会话无效');
@@ -29,7 +48,10 @@ class VerifiedVideoDownload {
     final client = HttpClient()
       ..connectionTimeout = const Duration(seconds: 10);
     Directory? staging;
+    void abort() => client.close(force: true);
+    cancellation?._listeners.add(abort);
     try {
+      cancellation?.check();
       final prefix =
           '/v1/me/packages/${Uri.encodeComponent(packageId)}/clips/${Uri.encodeComponent(clipId)}';
       Future<HttpClientResponse> get(String path) async {
@@ -69,6 +91,7 @@ class VerifiedVideoDownload {
       }
       final expectedBytes = manifest['bytes'] as int;
       await cacheDirectory.create(recursive: true);
+      cancellation?.check();
       // Unique directory avoids overwriting another download or an existing valid cache.
       staging = await cacheDirectory.createTemp('download-');
       final temporary = File('${staging.path}/video.part');
@@ -78,6 +101,7 @@ class VerifiedVideoDownload {
       var received = 0;
       try {
         await for (final chunk in media.timeout(const Duration(seconds: 30))) {
+          cancellation?.check();
           received += chunk.length;
           if (received > expectedBytes) throw const FormatException('视频大小不符');
           sink.add(chunk);
@@ -87,15 +111,23 @@ class VerifiedVideoDownload {
       } finally {
         await sink.close();
       }
+      cancellation?.check();
+      onVerifying?.call();
       if (received != expectedBytes ||
           (await sha256.bind(temporary.openRead()).first).toString() !=
               manifest['sha256']) {
         throw const FormatException('视频完整性校验失败');
       }
+      cancellation?.check();
       final result = await temporary.rename('${staging.path}/video.mp4');
+      cancellation?.check();
       staging = null;
       return result;
+    } catch (_) {
+      cancellation?.check();
+      rethrow;
     } finally {
+      cancellation?._listeners.remove(abort);
       client.close(force: true);
       if (staging != null && await staging.exists()) {
         await staging.delete(recursive: true);

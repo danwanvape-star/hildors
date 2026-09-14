@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:crypto/crypto.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hildors_cockpit/src/features/community/verified_video_download.dart';
+import 'package:hildors_cockpit/src/features/community/video_download_controller.dart';
 
 void main() {
   test('verified download commits only complete bytes and cleans failures',
@@ -41,13 +42,48 @@ void main() {
           service.download(packageId: 'p', clipId: 'c', sessionToken: token);
       final file = await run();
       expect(await file.readAsBytes(), bytes);
+      unauthorized = false;
+      foreignPath = false;
+      corrupt = false;
+      final controller =
+          VideoDownloadController(service, packageId: 'p', clipId: 'c');
+      var cancelOnce = true;
+      controller.addListener(() {
+        if (cancelOnce && controller.status == VideoDownloadStatus.verifying) {
+          cancelOnce = false;
+          controller.cancel();
+        }
+      });
+      await controller.start(token);
+      expect(controller.status, VideoDownloadStatus.cancelled);
+      expect(controller.file, isNull);
+      expect(await directory.list().length, 1);
+      corrupt = true;
+      await controller.start(token);
+      expect(controller.status, VideoDownloadStatus.failed);
+      corrupt = false;
+      await controller.start(token);
+      expect(controller.status, VideoDownloadStatus.complete);
+      expect(await controller.file!.readAsBytes(), bytes);
+      final saved = controller.file;
+      await controller.start(token);
+      expect(controller.file, saved);
+      controller.dispose();
+      final cancelled = DownloadCancellation()..cancel();
+      await expectLater(
+          service.download(
+              packageId: 'p',
+              clipId: 'c',
+              sessionToken: token,
+              cancellation: cancelled),
+          throwsA(isA<DownloadCancelled>()));
       corrupt = true;
       await expectLater(run(), throwsFormatException);
       foreignPath = true;
       await expectLater(run(), throwsFormatException);
       unauthorized = true;
       await expectLater(run(), throwsA(isA<HttpException>()));
-      expect(await directory.list().length, 1);
+      expect(await directory.list().length, 2);
       expect(await file.readAsBytes(), bytes);
       expect(
           () =>
