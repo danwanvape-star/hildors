@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/material.dart';
 
 import '../../device/device_error_message.dart';
@@ -6,6 +7,11 @@ import '../../device/p20_command_session.dart';
 import '../../device/p20_device_client.dart';
 import 'device_playlist_draft.dart';
 import 'playlist_store.dart';
+import 'package:file_picker/file_picker.dart';
+import 'character_video_package.dart';
+import 'character_package_picker.dart';
+import 'fan_framing_page.dart';
+import 'pending_playlist_store.dart';
 
 class PlaylistManagementPage extends StatefulWidget {
   const PlaylistManagementPage({
@@ -31,6 +37,166 @@ class _PlaylistManagementPageState extends State<PlaylistManagementPage> {
   List<P20VideoEntry> _deviceVideos = const [];
   String? _error;
   String? _playingFileName;
+  bool _pendingReady = false;
+  bool _pendingLoadFailed = false;
+  final _pending = <DevicePlaylistKind, Map<String, PendingVideo>>{
+    DevicePlaylistKind.startup: {},
+    DevicePlaylistKind.bluetooth: {},
+  };
+
+  Future<void> _addVideo() async {
+    if (!_pendingReady) return;
+    final target = _kind;
+    final choice = await showModalBottomSheet<int>(
+        context: context,
+        showDragHandle: true,
+        builder: (context) => SafeArea(
+                child: Column(mainAxisSize: MainAxisSize.min, children: [
+              ListTile(
+                  title: const Text('从我的角色选择'),
+                  subtitle: const Text('选择已收藏角色中的视频'),
+                  onTap: () => Navigator.pop(context, 0)),
+              ListTile(
+                  title: const Text('从手机导入视频'),
+                  onTap: () => Navigator.pop(context, 1)),
+              ListTile(
+                  title: const Text('从设备已有视频添加'),
+                  enabled: _connected,
+                  onTap: _connected ? () => Navigator.pop(context, 2) : null),
+            ])));
+    if (!mounted || choice == null) return;
+    if (choice == 2) {
+      await _showDeviceVideoPicker();
+      return;
+    }
+    try {
+      if (choice == 0) {
+        final videos = await Navigator.of(context).push<
+                List<PackageVideoSelection>>(
+            MaterialPageRoute(builder: (_) => const CharacterPackagePicker()));
+        if (!mounted || videos == null) return;
+        setState(() {
+          for (final entry in videos) {
+            _pending[target]![entry.key] = (
+              title: '${entry.package.title} · ${entry.video.title}',
+              source: entry.video.source,
+              asset: true
+            );
+          }
+        });
+        await _savePending(target);
+      } else {
+        final picked = await FilePicker.pickFile(
+            type: FileType.custom,
+            allowedExtensions: const ['mp4', 'mov', 'm4v']);
+        if (!mounted || picked?.path == null) return;
+        setState(() => _pending[target]![picked!.path!] =
+            (title: picked.name, source: picked.path!, asset: false));
+        await _savePending(target);
+        if (!mounted) return;
+        await Navigator.of(context).push(MaterialPageRoute<void>(
+            builder: (_) => FanFramingPage(source: picked!.path!)));
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('视频选择失败，请重试')));
+      }
+    }
+  }
+
+  Future<void> _restorePending() async {
+    try {
+      final startup =
+          await PendingPlaylistStore.load(DevicePlaylistKind.startup);
+      final bluetooth =
+          await PendingPlaylistStore.load(DevicePlaylistKind.bluetooth);
+      if (!mounted) return;
+      setState(() {
+        _pending[DevicePlaylistKind.startup] = startup;
+        _pending[DevicePlaylistKind.bluetooth] = bluetooth;
+        _pendingReady = true;
+        _pendingLoadFailed = false;
+      });
+    } catch (_) {
+      if (mounted) setState(() => _pendingLoadFailed = true);
+    }
+  }
+
+  Future<void> _savePending(DevicePlaylistKind kind) async {
+    try {
+      await PendingPlaylistStore.save(kind, _pending[kind]!);
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: const Text('待处理列表保存失败，退出后可能丢失，请重试'),
+          action:
+              SnackBarAction(label: '重试', onPressed: () => _savePending(kind)),
+        ));
+      }
+    }
+  }
+
+  Future<void> _openPending(
+      DevicePlaylistKind kind, String key, PendingVideo video) async {
+    try {
+      if (!video.asset && !await File(video.source).exists()) {
+        if (!mounted) return;
+        final reselect = await showDialog<bool>(
+            context: context,
+            builder: (context) => AlertDialog(
+                  title: const Text('需要重新选择源视频'),
+                  content: const Text('原文件已移动或系统缓存已清理。列表记录仍保留，请选择对应视频并重新确认取景。'),
+                  actions: [
+                    TextButton(
+                        onPressed: () => Navigator.pop(context, false),
+                        child: const Text('取消')),
+                    FilledButton(
+                        onPressed: () => Navigator.pop(context, true),
+                        child: const Text('重新选择'))
+                  ],
+                ));
+        if (reselect != true || !mounted) return;
+        final picked = await FilePicker.pickFile(
+            type: FileType.custom,
+            allowedExtensions: const ['mp4', 'mov', 'm4v']);
+        if (!mounted || picked?.path == null) return;
+        video = (title: picked!.name, source: picked.path!, asset: false);
+        final replacement = video;
+        setState(() => _pending[kind]![key] = replacement);
+        await _savePending(kind);
+      }
+      if (!mounted) return;
+      await Navigator.of(context).push(MaterialPageRoute<void>(
+          builder: (_) =>
+              FanFramingPage(source: video.source, asset: video.asset)));
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('无法读取视频，请稍后重试')));
+      }
+    }
+  }
+
+  Future<void> _removePending(DevicePlaylistKind kind, String key) async {
+    final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+              title: const Text('移除待处理视频？'),
+              content: const Text('只移除本列表记录，不删除手机源文件或设备视频。'),
+              actions: [
+                TextButton(
+                    onPressed: () => Navigator.pop(context, false),
+                    child: const Text('取消')),
+                FilledButton(
+                    onPressed: () => Navigator.pop(context, true),
+                    child: const Text('移除'))
+              ],
+            ));
+    if (!mounted || confirmed != true) return;
+    setState(() => _pending[kind]!.remove(key));
+    await _savePending(kind);
+  }
 
   late var _startup = const DevicePlaylistDraft(
     kind: DevicePlaylistKind.startup,
@@ -55,6 +221,7 @@ class _PlaylistManagementPageState extends State<PlaylistManagementPage> {
     _kind = widget.initialKind;
     _connection = widget.client.connectionState;
     _restoreLists();
+    _restorePending();
     _subscription = widget.client.connectionStates.listen((value) {
       if (mounted) setState(() => _connection = value);
     });
@@ -159,6 +326,14 @@ class _PlaylistManagementPageState extends State<PlaylistManagementPage> {
     if (_playingFileName != null) return;
     setState(() => _playingFileName = fileName);
     try {
+      final available = await widget.session.queryVideos();
+      if (!available.any((video) => video.fileName == fileName)) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('设备中没有此视频，请完成转码和上传后再播放')));
+        }
+        return;
+      }
       await widget.session.playVideo(fileName);
       if (!mounted) return;
       ScaffoldMessenger.of(context)
@@ -307,12 +482,32 @@ class _PlaylistManagementPageState extends State<PlaylistManagementPage> {
                 ),
                 Text('${_draft.videoNames.length} 个视频'),
                 IconButton(
-                  tooltip: '从设备添加',
-                  onPressed: _connected ? _showDeviceVideoPicker : null,
+                  tooltip: '添加视频',
+                  onPressed: _pendingReady ? _addVideo : null,
                   icon: const Icon(Icons.playlist_add),
                 ),
               ],
             ),
+            if (_pendingLoadFailed)
+              TextButton(
+                  onPressed: _restorePending,
+                  child: const Text('待处理列表读取失败，点击重试')),
+            if (_pending[_kind]!.isNotEmpty) ...[
+              const Text('待处理视频 · 尚未上传设备'),
+              const Text('保留待处理记录，不复制源视频。完成取景后等待转码接入；请勿移动或删除源文件。'),
+              for (final entry in _pending[_kind]!.entries)
+                Card(
+                    child: ListTile(
+                  leading: const Icon(Icons.hourglass_empty),
+                  title: Text(entry.value.title),
+                  subtitle: const Text('待转码 · 点击调整展示范围'),
+                  trailing: IconButton(
+                      tooltip: '移除待处理视频',
+                      icon: const Icon(Icons.close),
+                      onPressed: () => _removePending(_kind, entry.key)),
+                  onTap: () => _openPending(_kind, entry.key, entry.value),
+                )),
+            ],
             if (_draft.videoNames.isEmpty)
               const Padding(
                 padding: EdgeInsets.symmetric(vertical: 32),

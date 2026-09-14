@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 
-import '../../experience/experience_catalog.dart';
 import '../../experience/projection_service.dart';
+import '../customization/character_gate_prototype_pages.dart';
+import '../customization/character_gate_ui.dart';
 import '../customization/customization_discovery_card.dart';
 
 class ExplorePage extends StatelessWidget {
@@ -9,81 +10,70 @@ class ExplorePage extends StatelessWidget {
   final ProjectionService projection;
 
   @override
-  Widget build(BuildContext context) => Scaffold(
+  Widget build(BuildContext context) => GateScaffold(
+        wide: true,
         appBar: AppBar(title: const Text('发现')),
-        body: ListView(padding: const EdgeInsets.all(20), children: [
-          const CustomizationDiscoveryCard(),
-          const SizedBox(height: 24),
-          _ExperienceSection(
-              title: '角色互动',
-              subtitle: '让手办与 IP 角色拥有动作、记忆和持续陪伴',
-              icon: Icons.auto_awesome_outlined,
-              items: experiencesFor(ExperiencePillar.characterCompanion),
-              projection: projection),
-        ]),
+        body: ListView(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+            children: [
+              Text('角色之门', style: GateDesign.theme().textTheme.titleLarge),
+              const SizedBox(height: 4),
+              const Text('定制专属角色，提交心愿，参与创作。'),
+              const SizedBox(height: 12),
+              const CustomizationDiscoveryCard(),
+              const SizedBox(height: 10),
+              _DiscoveryEntry(
+                title: '角色许愿',
+                description: '提交心愿，关注授权进展',
+                icon: Icons.star_outline,
+                page: IpWishPage(),
+              ),
+              const _DiscoveryEntry(
+                title: '创作者中心',
+                description: '入驻、任务与收益',
+                icon: Icons.handyman_outlined,
+                page: CreatorHubPage(),
+              ),
+            ]),
       );
 }
 
-class _ExperienceSection extends StatelessWidget {
-  const _ExperienceSection(
+class _DiscoveryEntry extends StatelessWidget {
+  const _DiscoveryEntry(
       {required this.title,
-      required this.subtitle,
+      required this.description,
       required this.icon,
-      required this.items,
-      required this.projection});
+      required this.page});
   final String title;
-  final String subtitle;
+  final String description;
   final IconData icon;
-  final List<ExperienceCatalogItem> items;
-  final ProjectionService projection;
-  @override
-  Widget build(BuildContext context) => Padding(
-      padding: const EdgeInsets.only(bottom: 24),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(children: [
-          Icon(icon),
-          const SizedBox(width: 8),
-          Text(title, style: Theme.of(context).textTheme.titleLarge)
-        ]),
-        const SizedBox(height: 4),
-        Text(subtitle, style: Theme.of(context).textTheme.bodySmall),
-        const SizedBox(height: 10),
-        for (final item in items)
-          _ExperienceCard(item: item, projection: projection),
-      ]));
-}
+  final Widget page;
 
-class _ExperienceCard extends StatelessWidget {
-  const _ExperienceCard({required this.item, required this.projection});
-  final ExperienceCatalogItem item;
-  final ProjectionService projection;
   @override
   Widget build(BuildContext context) => Card(
-      clipBehavior: Clip.antiAlias,
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        leading: CircleAvatar(
-            child: Icon(item.id == 'character_companion'
-                ? Icons.favorite_outline
-                : Icons.celebration_outlined)),
-        title: Text(item.title),
-        subtitle: Text(item.subtitle),
-        trailing: item.availability == ExperienceAvailability.available
-            ? const Icon(Icons.chevron_right)
-            : const _PlannedLabel(),
-        onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('该体验正在规划中，敬请期待')),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: () => Navigator.of(context)
+              .push(MaterialPageRoute<void>(builder: (_) => page)),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Row(children: [
+              Icon(icon, color: GateDesign.accent, size: 24),
+              const SizedBox(width: 14),
+              Expanded(
+                  child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                    Text(title,
+                        style: GateDesign.theme().textTheme.titleMedium),
+                    const SizedBox(height: 2),
+                    Text(description,
+                        style: GateDesign.theme().textTheme.bodySmall),
+                  ])),
+              const SizedBox(width: 8),
+              const Icon(Icons.chevron_right, size: 20, semanticLabel: '进入'),
+            ]),
+          ),
         ),
-      ));
-}
-
-class _PlannedLabel extends StatelessWidget {
-  const _PlannedLabel();
-  @override
-  Widget build(BuildContext context) => Container(
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
-      decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(999)),
-      child: Text('规划中', style: Theme.of(context).textTheme.labelSmall));
+      );
 }

@@ -13,3 +13,6 @@ android/.gradle/
 android/local.properties
 ios/Pods/
 ios/.symlinks/
+android/.kotlin/
+releases/
+web-preview*.log

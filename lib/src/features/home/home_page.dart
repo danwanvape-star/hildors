@@ -7,7 +7,7 @@ import '../../device/p20_command_session.dart';
 import '../../device/p20_device_client.dart';
 import '../../experience/projection_service.dart';
 import '../control/control_page.dart';
-import '../customization/customization_page.dart';
+import '../customization/character_gate_prototype_pages.dart';
 import '../video/device_playlist_draft.dart';
 import '../video/playlist_management_page.dart';
 import '../../theme/hildors_theme.dart';
@@ -197,7 +197,8 @@ class _CustomizationShortcut extends StatelessWidget {
         clipBehavior: Clip.antiAlias,
         child: InkWell(
           onTap: () => Navigator.of(context).push(
-            MaterialPageRoute<void>(builder: (_) => const CustomizationPage()),
+            MaterialPageRoute<void>(
+                builder: (_) => const CharacterSourcePage()),
           ),
           child: Padding(
             padding: const EdgeInsets.fromLTRB(14, 10, 12, 10),

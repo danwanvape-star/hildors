@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hildors_cockpit/src/features/holopet/holopet_behavior_scheduler.dart';
 import 'package:hildors_cockpit/src/features/holopet/holopet_state.dart';
 
 void main() {
@@ -26,5 +27,59 @@ void main() {
     expect(pet.happiness, 0);
     expect(pet.energy, 0);
     expect(videoForPetAction(HoloPetAction.greet), 'holopet_greet.mp4');
+  });
+
+  test('behavior is discovered through repeated interaction', () {
+    var pet = const HoloPetState();
+    for (var i = 0; i < 3; i++) {
+      pet = pet.perform(HoloPetAction.play);
+    }
+    expect(pet.discoveredTraits, contains('喜欢玩耍'));
+    expect(pet.observation, contains('玩具'));
+  });
+
+  test('first interaction creates one memory only', () {
+    final pet = const HoloPetState()
+        .perform(HoloPetAction.greet)
+        .perform(HoloPetAction.feed);
+    expect(pet.memories, hasLength(1));
+    expect(pet.memories.single.id, 'first_interaction');
+  });
+
+  test('companion mode preserves state and encourages calm behavior', () {
+    final pet = const HoloPetState().setCompanionMode(true);
+    expect(pet.companionMode, isTrue);
+    expect(pet.calmness, 1);
+    expect(pet.name, '小光');
+  });
+
+  test('pet state survives a JSON round trip', () {
+    final original = const HoloPetState(name: '豆豆')
+        .perform(HoloPetAction.play)
+        .setCompanionMode(true);
+    final restored = HoloPetState.fromJson(original.toJson());
+    expect(restored.name, '豆豆');
+    expect(restored.happiness, original.happiness);
+    expect(restored.playfulness, original.playfulness);
+    expect(restored.companionMode, isTrue);
+    expect(restored.memories.single.id, 'first_interaction');
+  });
+
+  test('autonomous behavior respects sleep, hunger, and personality', () {
+    const scheduler = HoloPetBehaviorScheduler();
+    expect(
+      scheduler.select(const HoloPetState(), DateTime(2026, 9, 8, 1)),
+      HoloPetAutonomousBehavior.sleep,
+    );
+    expect(
+      scheduler.select(
+          const HoloPetState(hunger: 10), DateTime(2026, 9, 8, 12)),
+      HoloPetAutonomousBehavior.approach,
+    );
+    expect(
+      scheduler.select(
+          const HoloPetState(playfulness: 4), DateTime(2026, 9, 8, 12, 1)),
+      HoloPetAutonomousBehavior.play,
+    );
   });
 }

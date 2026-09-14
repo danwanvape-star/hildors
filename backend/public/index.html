@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="zh-CN">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>HILDORS · 内容管理</title><link rel="stylesheet" href="/console/style.css"></head>
+<body>
+<link rel="stylesheet" href="/console/media.css">
+<aside><div class="brand">HILDORS<span>CHARACTER PORTAL</span></div><div class="nav active">内容管理</div><p>本地开发工作台</p><p>账号、云端上传与支付尚未接入。</p></aside>
+<main><header><div><small>CONTENT STUDIO</small><h1>内容管理</h1><p>建立角色包，管理每一条视频。</p></div><span class="badge">本地原型</span></header>
+<section class="login"><form id="login"><label for="token">管理令牌</label><div class="row"><input id="token" type="password" autocomplete="off" required placeholder="输入启动服务时配置的管理令牌"><button>连接后台</button><button type="button" id="logout" class="secondary">退出</button></div></form><p>令牌只在本页内存中使用，刷新后需要重新输入。</p></section>
+<p id="notice" role="status" aria-live="polite">输入令牌后查看内容。管理接口未配置令牌时保持关闭。</p>
+<div id="workspace" hidden>
+<section class="summary"><div><strong id="total">0</strong><span>全部内容</span></div><div><strong id="published">0</strong><span>已发布</span></div><div><strong id="drafts">0</strong><span>待处理草稿</span></div></section>
+<div class="toolbar"><input id="search" aria-label="搜索内容" placeholder="搜索名称或标签"><select id="status" aria-label="筛选状态"><option value="">全部状态</option><option value="published">已发布</option><option value="draft">草稿</option><option value="withdrawn">已下架</option></select><button id="refresh" class="secondary">刷新</button><button id="new">＋ 创建内容</button></div>
+<div id="cards" class="grid"></div>
+</div>
+<dialog id="editor"><form id="create"><div class="dialog-title"><h2>创建内容草稿</h2><button type="button" id="close" class="secondary">关闭</button></div><p>先填写视频清单。真实素材完成处理和审核后才能发布。</p>
+<label>内容名称<input name="title" maxlength="120" required placeholder="例如：星轨法师 · 基础角色包"></label>
+<div class="row"><label>内容出处<select name="source"><option value="hildors">HILDORS出品</option><option value="creator">创作者作品</option></select></label><label>内容形式<select name="format" id="format"><option value="single">独立视频</option><option value="package">角色视频包</option></select></label></div>
+<label>题材标签<input name="tags" placeholder="神话，游戏，二次元，未来时空" maxlength="250"></label>
+<label>视频名称<textarea name="clips" rows="4" required placeholder="每行一个视频名称，例如：待机"></textarea></label>
+<p id="form-error" role="alert"></p><button id="save">保存草稿</button></form></dialog>
+<dialog id="review-dialog"><form id="review-form"><div class="dialog-title"><h2>内容审核</h2><button type="button" id="review-close" class="secondary">关闭</button></div>
+<p id="review-title"></p><p>审核通过后可发布目录。硬件转码与下载仍未开放。</p>
+<label>审核结果<select name="decision" id="review-decision"><option value="approved">通过</option><option value="rejected">退回修改</option></select></label>
+<label>审核说明<textarea name="note" required maxlength="1000" rows="3" placeholder="记录画面、内容与授权检查结果"></textarea></label>
+<label>授权材料编号或记录位置<input name="rightsReference" maxlength="300" placeholder="通过审核时必填"></label>
+<label><input name="rightsConfirmed" type="checkbox">已人工核对本内容的使用授权</label>
+<p id="review-error" role="alert"></p><button id="review-save">保存审核结果</button></form></dialog>
+</main><script src="/console/app.js"></script></body></html>

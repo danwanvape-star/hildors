@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../device/p20_command_session.dart';
 import '../../device/p20_device_client.dart';
 import '../../theme/hildors_theme.dart';
-import '../customization/customization_page.dart';
+import '../customization/character_gate_prototype_pages.dart';
 import '../settings/lan_connection_guide.dart';
 import '../settings/playback_mode_guide.dart';
 import '../settings/settings_page.dart';
@@ -95,17 +95,18 @@ class ProfilePage extends StatelessWidget {
               _Entry(
                 icon: Icons.auto_awesome_rounded,
                 eyebrow: 'CORE SERVICE',
-                title: 'Character Portal',
-                subtitle: '创建专属角色，跟踪制作与交付进度',
+                title: '定制订单',
+                subtitle: '跟踪制作与交付；已领取角色请到藏品查看',
                 accent: HildorsColors.purpleBright,
-                onTap: () => _open(context, const CustomizationPage()),
+                onTap: () =>
+                    _open(context, const MyCharactersPage(ordersOnly: true)),
               ),
-              const _Entry(
-                icon: Icons.bookmark_border_rounded,
-                eyebrow: 'COLLECTION',
-                title: '我的收藏',
-                subtitle: '管理已收藏的角色与官方内容包',
-                trailingLabel: '即将开放',
+              _Entry(
+                icon: Icons.handyman_outlined,
+                eyebrow: 'CREATOR',
+                title: '创作者中心',
+                subtitle: '入驻申请、任务制作与收益管理',
+                onTap: () => _open(context, const CreatorHubPage()),
               ),
               const SizedBox(height: 24),
               const _SectionLabel(index: '03', title: '系统支持'),
@@ -346,7 +347,6 @@ class _Entry extends StatelessWidget {
     required this.subtitle,
     this.eyebrow,
     this.accent = HildorsColors.blue,
-    this.trailingLabel,
     this.onTap,
   });
 
@@ -355,7 +355,6 @@ class _Entry extends StatelessWidget {
   final String subtitle;
   final String? eyebrow;
   final Color accent;
-  final String? trailingLabel;
   final VoidCallback? onTap;
 
   @override
@@ -418,21 +417,7 @@ class _Entry extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 8),
-                  if (trailingLabel != null)
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 5),
-                      decoration: BoxDecoration(
-                        color: HildorsColors.surfaceHighlight,
-                        borderRadius: BorderRadius.circular(99),
-                      ),
-                      child: Text(trailingLabel!,
-                          style: const TextStyle(
-                            color: HildorsColors.textSecondary,
-                            fontSize: 10,
-                          )),
-                    )
-                  else if (onTap != null)
+                  if (onTap != null)
                     const Icon(Icons.arrow_forward_ios_rounded,
                         size: 15, color: HildorsColors.textSecondary),
                 ],

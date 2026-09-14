@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../device/p20_command_session.dart';
 import '../../device/p20_device_client.dart';
 import '../../experience/projection_service.dart';
-import '../community/community_page.dart';
+import '../community/collection_hub_page.dart';
 import '../explore/explore_page.dart';
 import '../home/home_page.dart';
 import '../profile/profile_page.dart';
@@ -37,7 +37,7 @@ class _DashboardPageState extends State<DashboardPage> {
         session: _session,
         projection: _projection,
       ),
-      const CommunityPage(),
+      const CollectionHubPage(),
       ExplorePage(projection: _projection),
       ProfilePage(client: _client, session: _session),
     ];

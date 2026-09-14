@@ -1,5 +1,7 @@
 # Hildors 个性化定制服务储备方案
 
+> 2026-09-11 统一交接：本方案为历史储备资料，“用户定制板块”已并入“UI升级”任务。文中下载手机、成品下载期限等旧设想不适用于当前角色之门；当前禁止用户下载定制视频，仅允许受控传入绑定设备。统一范围、成果和待办见 [统一开发交接](./character_gate_unified_handoff.md)。
+
 > 战略调整说明：第一阶段已转向“下一代互动全息收藏品平台”，照片定制不再作为首发主业务，仅保留为第二阶段高客单服务。第一阶段策略见 [phase1_holographic_collectibles_strategy.md](./phase1_holographic_collectibles_strategy.md)。
 
 > 市场范围更新：产品和合规设计以美国、欧盟/EEA及英国用户为主。中国规范仅在相关用户、运营或数据处理链路触发时补充适用；地区规则详见 `us_eu_ai_customization_compliance.md`。

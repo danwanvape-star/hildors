@@ -31,12 +31,12 @@ void main() {
     expect(tester.takeException(), isNull);
 
     await tester.scrollUntilVisible(
-      find.text('Character Portal'),
+      find.text('定制订单'),
       240,
       scrollable: find.byType(Scrollable).first,
     );
 
-    expect(find.text('Character Portal'), findsOneWidget);
+    expect(find.text('定制订单'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }

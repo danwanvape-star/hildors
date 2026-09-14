@@ -13,7 +13,9 @@ import 'content_catalog_repository.dart';
 import 'local_content_registry.dart';
 
 class CommunityPage extends StatefulWidget {
-  const CommunityPage({this.catalogRepository, super.key});
+  const CommunityPage(
+      {this.catalogRepository, this.localOnly = false, super.key});
+  final bool localOnly;
 
   final ContentCatalogRepository? catalogRepository;
 
@@ -35,6 +37,7 @@ class _CommunityPageState extends State<CommunityPage> {
   @override
   void initState() {
     super.initState();
+    _downloadedOnly = widget.localOnly;
     _loadContent();
     _loadDownloadedContent();
   }
@@ -59,23 +62,25 @@ class _CommunityPageState extends State<CommunityPage> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(
-          title: const Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('藏品'),
-              Text(
-                'COLLECTION ARCHIVE',
-                style: TextStyle(
-                  color: HildorsColors.textSecondary,
-                  fontSize: 8,
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: 1.6,
+        appBar: widget.localOnly
+            ? null
+            : AppBar(
+                title: const Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('藏品'),
+                    Text(
+                      'COLLECTION ARCHIVE',
+                      style: TextStyle(
+                        color: HildorsColors.textSecondary,
+                        fontSize: 8,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 1.6,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ],
-          ),
-        ),
         body: DecoratedBox(
           decoration: const BoxDecoration(
             gradient: RadialGradient(
@@ -122,21 +127,23 @@ class _CommunityPageState extends State<CommunityPage> {
             children: [
               const _DownloadNotice(),
               const SizedBox(height: 12),
-              _CollectionHero(
-                localMode: _downloadedOnly,
-                downloadedCount: _downloadedIds.length,
-              ),
+              if (!widget.localOnly)
+                _CollectionHero(
+                  localMode: _downloadedOnly,
+                  downloadedCount: _downloadedIds.length,
+                ),
               const SizedBox(height: 14),
-              SegmentedButton<bool>(
-                segments: const [
-                  ButtonSegment(value: false, label: Text('官方内容')),
-                  ButtonSegment(value: true, label: Text('本地导入')),
-                ],
-                selected: {_downloadedOnly},
-                onSelectionChanged: (selection) {
-                  setState(() => _downloadedOnly = selection.single);
-                },
-              ),
+              if (!widget.localOnly)
+                SegmentedButton<bool>(
+                  segments: const [
+                    ButtonSegment(value: false, label: Text('官方内容')),
+                    ButtonSegment(value: true, label: Text('本地导入')),
+                  ],
+                  selected: {_downloadedOnly},
+                  onSelectionChanged: (selection) {
+                    setState(() => _downloadedOnly = selection.single);
+                  },
+                ),
               const SizedBox(height: 14),
               TextField(
                 onChanged: (value) => setState(() => _query = value),

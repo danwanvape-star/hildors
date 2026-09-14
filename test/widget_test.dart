@@ -26,7 +26,7 @@ void main() {
 
     await tester.tap(find.text('发现'));
     await tester.pump();
-    expect(find.text('定制你的专属全息角色'), findsOneWidget);
+    expect(find.text('专属定制'), findsOneWidget);
     expect(find.text('Holo Roulette'), findsNothing);
   });
 }
