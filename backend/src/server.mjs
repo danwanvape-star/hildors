@@ -65,8 +65,15 @@ export function app(store, { adminToken = '', mediaDirectory = fileURLToPath(new
         if (req.method === 'DELETE' && path === '/v1/me/session') {
           store.revokeSession(token); return send(200, { signedOut: true });
         }
-        const download = /^\/v1\/me\/packages\/([^/]+)\/clips\/([^/]+)\/(download|manifest)$/.exec(path);
+        const download = /^\/v1\/me\/packages\/([^/]+)\/clips\/([^/]+)\/(download|manifest|access)$/.exec(path);
         if (req.method === 'GET' && download) {
+          if (download[3] === 'access') {
+            const allowed = enableDownloads && authorizedClip(store, userId,
+              decodeURIComponent(download[1]), decodeURIComponent(download[2]));
+            return send(200, { canDownload: Boolean(allowed),
+              reason: !enableDownloads ? 'DOWNLOAD_NOT_ENABLED' : allowed ? 'ALLOWED' : 'CONTENT_UNAVAILABLE',
+              hardwareReady: false });
+          }
           if (!enableDownloads) return fail(503, 'DOWNLOAD_NOT_ENABLED');
           const packageId = decodeURIComponent(download[1]), clipId = decodeURIComponent(download[2]);
           const allowed = authorizedClip(store, userId, packageId, clipId);
@@ -96,7 +103,7 @@ export function app(store, { adminToken = '', mediaDirectory = fileURLToPath(new
         return fail(404, 'NOT_FOUND');
       }
       if (req.method === 'GET' && path === '/v1/bootstrap') return send(200, {
-        mode: 'local-prototype', capabilities: { cloudDownload: false, hardwareTranscoding: false, payments: false } });
+        mode: 'local-prototype', capabilities: { cloudDownload: enableDownloads, hardwareTranscoding: false, payments: false } });
       if (req.method === 'GET' && path === '/v1/catalog') {
         const limit = Number(url.searchParams.get('limit') ?? 24);
         if (!Number.isInteger(limit) || limit < 1 || limit > 100) return fail(400, 'INVALID_LIMIT');

@@ -29,6 +29,9 @@ test('delivery is opt-in, authenticated, entitlement-gated and range-capable', a
     headers: { ...(bearer ? { Authorization: `Bearer ${bearer}` } : {}), ...headers },
   });
   try {
+    assert.equal((await (await request('access')).json()).canDownload, true);
+    assert.equal((await (await request('access', other)).json()).canDownload, false);
+    assert.equal((await (await request('access', token, {}, disabled)).json()).reason, 'DOWNLOAD_NOT_ENABLED');
     assert.equal((await request('manifest', token, {}, disabled)).status, 503);
     assert.equal((await request('download', null)).status, 401);
     assert.equal((await request('download', other)).status, 404);
@@ -40,6 +43,7 @@ test('delivery is opt-in, authenticated, entitlement-gated and range-capable', a
     assert.equal(partial.status, 206); assert.deepEqual(Buffer.from(await partial.arrayBuffer()), bytes.subarray(2, 6));
     assert.equal((await request('download', token, { Range: 'bytes=999-' })).status, 416);
     store.setEntitlement(owner, item.id, 'revoked', 'test revoke');
+    assert.equal((await (await request('access')).json()).canDownload, false);
     assert.equal((await request('download')).status, 404);
     store.setEntitlement(owner, item.id, 'active', 'test restore');
     await writeFile(join(directory, `${id}.mp4`), 'short');
