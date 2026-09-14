@@ -32,7 +32,7 @@ function publicPackage(item) {
       ...(item.demo ? { bundledAsset: c.bundledAsset, thumbnail: c.thumbnail } : {}) })) };
 }
 
-export function app(store, { adminToken = '', mediaDirectory = fileURLToPath(new URL('../data/media/', import.meta.url)), uploadLimit, inspector = inspectVideo, enableDownloads = false } = {}) {
+export function app(store, { adminToken = '', mediaDirectory = fileURLToPath(new URL('../data/media/', import.meta.url)), uploadLimit, inspector = inspectVideo, enableDownloads = false, mode = 'local' } = {}) {
   let processing = false;
   return createServer(async (req, res) => {
     const requestId = randomUUID();
@@ -57,7 +57,7 @@ export function app(store, { adminToken = '', mediaDirectory = fileURLToPath(new
         const expected = Buffer.from(`Bearer ${adminToken}`);
         if (!adminToken || supplied.length !== expected.length || !timingSafeEqual(supplied, expected)) return fail(401, 'UNAUTHORIZED');
       }
-      if (req.method === 'GET' && path === '/health') return send(200, { status: 'ok', mode: 'local-prototype' });
+      if (req.method === 'GET' && path === '/health') return send(200, { status: 'ok', mode });
       if (req.method === 'GET' && path === '/ready') {
         try {
           return store.ready() ? send(200, { status: 'ready' }) : fail(503, 'NOT_READY');
@@ -109,7 +109,7 @@ export function app(store, { adminToken = '', mediaDirectory = fileURLToPath(new
         return fail(404, 'NOT_FOUND');
       }
       if (req.method === 'GET' && path === '/v1/bootstrap') return send(200, {
-        mode: 'local-prototype', capabilities: { cloudDownload: enableDownloads, hardwareTranscoding: false, payments: false } });
+        mode, capabilities: { cloudDownload: enableDownloads, hardwareTranscoding: false, payments: false } });
       if (req.method === 'GET' && path === '/v1/catalog') {
         const limit = Number(url.searchParams.get('limit') ?? 24);
         if (!Number.isInteger(limit) || limit < 1 || limit > 100) return fail(400, 'INVALID_LIMIT');
@@ -220,7 +220,7 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   mkdirSync(directory, { recursive: true });
   const store = createStore(resolve(directory, 'catalog.sqlite'));
   if (config.seedDemos) seedDemos(store);
-  const server = app(store, { adminToken: config.adminToken, mediaDirectory: resolve(directory, 'media') });
+  const server = app(store, { adminToken: config.adminToken, mediaDirectory: resolve(directory, 'media'), mode: config.mode });
   server.listen(config.port, config.host, () => console.log(`HILDORS ${config.mode}: http://${config.host}:${config.port}/health`));
   const stop = () => server.close(() => { store.close(); process.exit(0); });
   process.on('SIGINT', stop); process.on('SIGTERM', stop);
