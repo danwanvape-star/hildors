@@ -2,6 +2,8 @@
 
 这是后台建设的首个可运行增量：Node 24内置HTTP和SQLite，无第三方依赖。正式部署仍按`docs/backend_mvp_blueprint.md`迁移到业务框架和PostgreSQL；当前不是生产服务。
 
+团队封闭测试的启动配置与Linux服务模板见`docs/team_staging_deployment.md`。该模式仍只监听本机，经SSH隧道访问，不是公开上线方案。
+
 ## 启动和测试
 
 在项目根目录运行：

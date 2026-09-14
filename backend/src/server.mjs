@@ -9,6 +9,7 @@ import { unlink } from 'node:fs/promises';
 import { inspectVideo } from './processor.mjs';
 import { authorizedClip } from './delivery.mjs';
 import { stat } from 'node:fs/promises';
+import { runtimeConfig } from './runtime-config.mjs';
 
 function validDocument(value) {
   return value && typeof value.title === 'string' && value.title.trim().length > 0 && value.title.length <= 120
@@ -57,6 +58,11 @@ export function app(store, { adminToken = '', mediaDirectory = fileURLToPath(new
         if (!adminToken || supplied.length !== expected.length || !timingSafeEqual(supplied, expected)) return fail(401, 'UNAUTHORIZED');
       }
       if (req.method === 'GET' && path === '/health') return send(200, { status: 'ok', mode: 'local-prototype' });
+      if (req.method === 'GET' && path === '/ready') {
+        try {
+          return store.ready() ? send(200, { status: 'ready' }) : fail(503, 'NOT_READY');
+        } catch { return fail(503, 'NOT_READY'); }
+      }
       if (path.startsWith('/v1/me')) {
         const token = /^Bearer ([A-Za-z0-9_-]{43})$/.exec(req.headers.authorization || '')?.[1];
         const userId = store.authenticate(token);
@@ -209,12 +215,13 @@ export function app(store, { adminToken = '', mediaDirectory = fileURLToPath(new
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  const directory = fileURLToPath(new URL('../data/', import.meta.url));
+  const config = runtimeConfig(process.env, fileURLToPath(new URL('../data/', import.meta.url)));
+  const directory = config.directory;
   mkdirSync(directory, { recursive: true });
   const store = createStore(resolve(directory, 'catalog.sqlite'));
-  seedDemos(store);
-  const server = app(store, { adminToken: process.env.HILDORS_ADMIN_TOKEN });
-  server.listen(Number(process.env.HILDORS_PORT || 8787), '127.0.0.1', () => console.log('HILDORS local API: http://127.0.0.1:8787/health'));
+  if (config.seedDemos) seedDemos(store);
+  const server = app(store, { adminToken: config.adminToken, mediaDirectory: resolve(directory, 'media') });
+  server.listen(config.port, config.host, () => console.log(`HILDORS ${config.mode}: http://${config.host}:${config.port}/health`));
   const stop = () => server.close(() => { store.close(); process.exit(0); });
   process.on('SIGINT', stop); process.on('SIGTERM', stop);
 }

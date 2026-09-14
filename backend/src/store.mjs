@@ -32,6 +32,7 @@ export function createStore(path = ':memory:') {
   }
   return {
     get,
+    ready: () => db.prepare('SELECT 1 AS ok').get().ok === 1,
     // Internal provisioning only: never accept a client-supplied user ID as authentication.
     createUser(id = randomUUID()) {
       db.prepare('INSERT INTO users VALUES (?)').run(id); return id;

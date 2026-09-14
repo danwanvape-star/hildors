@@ -1,0 +1,27 @@
+[Unit]
+Description=HILDORS closed team staging API (not production)
+After=network.target
+
+[Service]
+Type=simple
+User=hildors
+Group=hildors
+WorkingDirectory=/opt/hildors/backend
+EnvironmentFile=/etc/hildors/team-staging.env
+ExecStart=/usr/bin/node /opt/hildors/backend/src/server.mjs
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=150
+StateDirectory=hildors-api
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/hildors-api
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+MemoryMax=2G
+TasksMax=128
+
+[Install]
+WantedBy=multi-user.target
