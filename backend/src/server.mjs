@@ -7,6 +7,8 @@ import { createStore, seedDemos } from './store.mjs';
 import { receiveMedia, serveMedia } from './media.mjs';
 import { unlink } from 'node:fs/promises';
 import { inspectVideo } from './processor.mjs';
+import { authorizedClip } from './delivery.mjs';
+import { stat } from 'node:fs/promises';
 
 function validDocument(value) {
   return value && typeof value.title === 'string' && value.title.trim().length > 0 && value.title.length <= 120
@@ -29,7 +31,7 @@ function publicPackage(item) {
       ...(item.demo ? { bundledAsset: c.bundledAsset, thumbnail: c.thumbnail } : {}) })) };
 }
 
-export function app(store, { adminToken = '', mediaDirectory = fileURLToPath(new URL('../data/media/', import.meta.url)), uploadLimit, inspector = inspectVideo } = {}) {
+export function app(store, { adminToken = '', mediaDirectory = fileURLToPath(new URL('../data/media/', import.meta.url)), uploadLimit, inspector = inspectVideo, enableDownloads = false } = {}) {
   let processing = false;
   return createServer(async (req, res) => {
     const requestId = randomUUID();
@@ -62,6 +64,26 @@ export function app(store, { adminToken = '', mediaDirectory = fileURLToPath(new
         if (req.method === 'GET' && path === '/v1/me') return send(200, { id: userId });
         if (req.method === 'DELETE' && path === '/v1/me/session') {
           store.revokeSession(token); return send(200, { signedOut: true });
+        }
+        const download = /^\/v1\/me\/packages\/([^/]+)\/clips\/([^/]+)\/(download|manifest)$/.exec(path);
+        if (req.method === 'GET' && download) {
+          if (!enableDownloads) return fail(503, 'DOWNLOAD_NOT_ENABLED');
+          const packageId = decodeURIComponent(download[1]), clipId = decodeURIComponent(download[2]);
+          const allowed = authorizedClip(store, userId, packageId, clipId);
+          if (!allowed) return fail(404, 'CONTENT_UNAVAILABLE');
+          const { media, item } = allowed;
+          const info = await stat(resolve(mediaDirectory, `${media.id}.mp4`));
+          if (info.size !== media.bytes) return fail(409, 'MEDIA_INTEGRITY_ERROR');
+          // Stat is asynchronous: recheck revocation/session expiry before streaming.
+          if (store.authenticate(token) !== userId) return fail(401, 'USER_AUTH_REQUIRED');
+          if (!authorizedClip(store, userId, packageId, clipId)) return fail(404, 'CONTENT_UNAVAILABLE');
+          if (download[3] === 'manifest') return send(200, {
+            packageId, clipId, packageVersion: item.version, bytes: media.bytes, sha256: media.sha256,
+            contentType: 'video/mp4', hardwareReady: false,
+            downloadPath: `/v1/me/packages/${encodeURIComponent(packageId)}/clips/${encodeURIComponent(clipId)}/download`,
+            authorizationRequired: true,
+          });
+          return await serveMedia(req, res, mediaDirectory, media.id);
         }
         if (req.method === 'GET' && path === '/v1/me/entitlements') {
           return send(200, { items: store.entitlements(userId).map(entry => {
