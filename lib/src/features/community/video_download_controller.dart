@@ -31,7 +31,9 @@ class VideoDownloadController extends ChangeNotifier {
   Future<void> start(String sessionToken) async {
     if (_disposed ||
         _cancellation != null ||
-        status == VideoDownloadStatus.complete) return;
+        status == VideoDownloadStatus.complete) {
+      return;
+    }
     final cancellation = DownloadCancellation();
     _cancellation = cancellation;
     status = VideoDownloadStatus.downloading;
