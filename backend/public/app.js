@@ -1,10 +1,14 @@
 const $ = id => document.getElementById(id);
 const tokenKey = 'hildors-admin-token';
-const savedToken = () => { try { return sessionStorage.getItem(tokenKey) || ''; } catch { return ''; } };
-const rememberToken = value => { try { value ? sessionStorage.setItem(tokenKey, value) : sessionStorage.removeItem(tokenKey); } catch {} };
+const savedToken = () => { try { return localStorage.getItem(tokenKey) || ''; } catch { return ''; } };
+const rememberToken = value => { try { value ? localStorage.setItem(tokenKey, value) : localStorage.removeItem(tokenKey); } catch {} };
 let token = savedToken(), items = [], epoch = 0;
 let reviewing = null;
 const previews = new Set();
+function showConnection(connected) {
+  $('login').hidden = connected;
+  $('connected').hidden = !connected;
+}
 function clearPreviews() { for (const url of previews) URL.revokeObjectURL(url); previews.clear(); }
 const messages = { UNAUTHORIZED: '令牌无效或服务未配置管理令牌。', VERSION_OR_STATE_CONFLICT: '内容已被更新，请刷新后重试。', MEDIA_REVIEW_REQUIRED: '需要先完成素材处理和审核。', INVALID_PACKAGE: '请检查名称、视频数量和标签。' };
 async function api(path, body) {
@@ -141,10 +145,10 @@ async function refresh() {
 $('login').onsubmit = async event => {
   event.preventDefault(); epoch++; token = $('token').value.trim();
   $('workspace').hidden = true;
-  try { await refresh(); rememberToken(token); $('token').value = ''; $('notice').textContent = '后台已连接，本浏览器会话内会自动重连。'; }
-  catch (error) { token = ''; rememberToken(''); $('notice').textContent = error.message; }
+  try { await refresh(); rememberToken(token); showConnection(true); $('token').value = ''; $('notice').textContent = '后台已连接，当前电脑已记住登录。'; }
+  catch (error) { token = ''; rememberToken(''); showConnection(false); $('notice').textContent = error.message; }
 };
-$('logout').onclick = () => { epoch++; clearPreviews(); token = ''; rememberToken(''); items = []; reviewing = null; $('token').value = ''; $('workspace').hidden = true; $('cards').replaceChildren(); $('editor').close(); $('review-dialog').close(); $('notice').textContent = '已退出。'; };
+$('logout').onclick = () => { epoch++; clearPreviews(); token = ''; rememberToken(''); items = []; reviewing = null; $('token').value = ''; showConnection(false); $('workspace').hidden = true; $('cards').replaceChildren(); $('editor').close(); $('review-dialog').close(); $('notice').textContent = '已退出，本机保存的令牌已清除。'; };
 $('refresh').onclick = async () => { try { await refresh(); $('notice').textContent = '内容已刷新。'; } catch (error) { $('notice').textContent = error.message; } };
 $('search').oninput = render; $('status').onchange = render;
 $('new').onclick = () => { $('create').reset(); $('form-error').textContent = ''; $('editor').showModal(); };
@@ -179,7 +183,8 @@ $('create').onsubmit = async event => {
 };
 
 if (token) {
+  showConnection(true);
   $('notice').textContent = '正在自动连接后台…';
-  refresh().then(() => { $('notice').textContent = '后台已连接，本浏览器会话内会自动重连。'; })
-    .catch(error => { token = ''; rememberToken(''); $('workspace').hidden = true; $('notice').textContent = error.message; });
+  refresh().then(() => { $('notice').textContent = '后台已连接，当前电脑已记住登录。'; })
+    .catch(error => { token = ''; rememberToken(''); showConnection(false); $('workspace').hidden = true; $('notice').textContent = error.message; });
 }

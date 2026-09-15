@@ -1,11 +1,11 @@
 <!doctype html>
 <html lang="zh-CN">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>HILDORS · 内容管理</title><link rel="stylesheet" href="/console/style.css"></head>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>HILDORS · 内容管理</title><link rel="stylesheet" href="/console/style.css"><link rel="stylesheet" href="/console/connection.css"></head>
 <body>
 <link rel="stylesheet" href="/console/media.css">
 <aside><div class="brand">HILDORS<span>CHARACTER PORTAL</span></div><div class="nav active">内容管理</div><p>本地开发工作台</p><p>账号、云端上传与支付尚未接入。</p></aside>
 <main><header><div><small>CONTENT STUDIO</small><h1>内容管理</h1><p>建立角色包，管理每一条视频。</p></div><span class="badge">本地原型</span></header>
-<section class="login"><form id="login"><label for="token">管理令牌</label><div class="row"><input id="token" type="password" autocomplete="off" required placeholder="输入启动服务时配置的管理令牌"><button>连接后台</button><button type="button" id="logout" class="secondary">退出</button></div></form><p>令牌仅在本浏览器会话内保存；刷新可自动重连，退出或关闭浏览器后清除。</p></section>
+<section class="login"><form id="login"><label for="token">管理令牌</label><div class="row"><input id="token" type="password" autocomplete="off" required placeholder="输入启动服务时配置的管理令牌"><button>连接后台</button></div><p>令牌只保存在当前电脑的本地浏览器中，不会写入网页地址。</p></form><div id="connected" class="connected" hidden><div><strong>后台已连接</strong><p>当前电脑已记住登录，下次打开可自动连接。</p></div><button type="button" id="logout" class="secondary">退出后台</button></div></section>
 <p id="notice" role="status" aria-live="polite">输入令牌后查看内容。管理接口未配置令牌时保持关闭。</p>
 <div id="workspace" hidden>
 <section class="summary"><div><strong id="total">0</strong><span>全部内容</span></div><div><strong id="published">0</strong><span>已发布</span></div><div><strong id="drafts">0</strong><span>待处理草稿</span></div></section>

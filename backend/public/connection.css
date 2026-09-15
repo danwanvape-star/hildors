@@ -1,0 +1,23 @@
+.connected {
+  align-items: center;
+  display: flex;
+  gap: 20px;
+  justify-content: space-between;
+}
+
+.connected strong {
+  color: #72dfca;
+  display: block;
+  font-size: 17px;
+}
+
+.connected p {
+  margin: 6px 0 0;
+}
+
+@media (max-width: 700px) {
+  .connected {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}

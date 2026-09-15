@@ -17,11 +17,12 @@ test('catalog, access control, draft gating and withdrawal', async t => {
   assert.match(consolePage.headers.get('content-security-policy'), /frame-ancestors 'none'/);
   const consoleHtml = await consolePage.text();
   assert.match(consoleHtml, /内容管理/);
-  assert.match(consoleHtml, /刷新可自动重连/);
+  assert.match(consoleHtml, /当前电脑已记住登录/);
   const consoleScript = await fetch(base + '/console/app.js');
   assert.equal(consoleScript.status, 200);
-  assert.match(await consoleScript.text(), /sessionStorage\.setItem/);
+  assert.match(await consoleScript.text(), /localStorage\.setItem/);
   assert.equal((await fetch(base + '/console/style.css')).status, 200);
+  assert.equal((await fetch(base + '/console/connection.css')).status, 200);
   assert.equal((await fetch(base + '/console/secret.env')).status, 404);
   const call = async (path, body, authorized = true) => {
     const res = await fetch(base + path, { method: body === undefined ? 'GET' : 'POST',

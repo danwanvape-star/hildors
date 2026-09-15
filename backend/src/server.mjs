@@ -45,7 +45,7 @@ export function app(store, { adminToken = '', mediaDirectory = fileURLToPath(new
     try {
       const url = new URL(req.url, 'http://localhost');
       const path = url.pathname;
-      const staticFiles = { '/console': ['index.html', 'text/html'], '/console/app.js': ['app.js', 'text/javascript'], '/console/style.css': ['style.css', 'text/css'], '/console/media.css': ['media.css', 'text/css'] };
+      const staticFiles = { '/console': ['index.html', 'text/html'], '/console/app.js': ['app.js', 'text/javascript'], '/console/style.css': ['style.css', 'text/css'], '/console/media.css': ['media.css', 'text/css'], '/console/connection.css': ['connection.css', 'text/css'] };
       if (req.method === 'GET' && Object.hasOwn(staticFiles, path)) {
         const [name, type] = staticFiles[path];
         res.writeHead(200, { 'Content-Type': `${type}; charset=utf-8`, 'Cache-Control': 'no-store',
