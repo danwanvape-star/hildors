@@ -45,6 +45,9 @@
 
 后续生产部署独立建环境，不直接把测试端口放开：托管数据库、COS/受控CDN、正式身份认证、用户缓存隔离、员工权限及审计、HTTPS、限流、订单数据保护。未知参数和付费资源在批准后再落实。
 
-## 本地验证记录
+## 验证记录
 
-运行runtime-config、api、identity、delivery测试，共7项通过。Linux systemd语法、服务沙箱、云安全组、SSH隧道、北美网络和重启恢复尚未实机验收。本轮没有更新APK。
+- 本地运行 runtime-config、API、identity、delivery 测试，共7项通过。
+- 2026-09-15 已在弗吉尼亚 CVM 实机验收：`hildors-team-staging.service` 为 active/enabled，受控重启后 `/ready` 恢复为 ready；Nginx active，Certbot 定时续期 enabled。
+- 安全组已关联目标实例，公网仅通过 Nginx 提供80/443；Node 仍只监听 `127.0.0.1:8787`，管理页面通过 SSH 隧道访问。
+- 验收时系统盘使用约13%（41GB可用），服务内存峰值约21MB。以上仅代表当前轻载团队测试，不代表300用户并发容量或正式高可用能力。
