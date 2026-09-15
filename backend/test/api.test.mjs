@@ -20,7 +20,9 @@ test('catalog, access control, draft gating and withdrawal', async t => {
   assert.match(consoleHtml, /管理员登录/);
   const consoleScript = await fetch(base + '/console/app.js');
   assert.equal(consoleScript.status, 200);
-  assert.match(await consoleScript.text(), /admin\/login/);
+  const scriptText = await consoleScript.text();
+  assert.match(scriptText, /admin\/login/);
+  assert.match(scriptText, /审核并发布到 App/);
   assert.equal((await fetch(base + '/console/style.css')).status, 200);
   assert.equal((await fetch(base + '/console/connection.css')).status, 200);
   assert.equal((await fetch(base + '/console/secret.env')).status, 404);

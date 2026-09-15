@@ -99,18 +99,24 @@ function render() {
       }
       list.append(row);
     }
-    card.append(list, text('p', item.demo ? '内置演示素材 · 厂家转码待接入' : item.status === 'published' ? '目录已发布 · 云端下载与设备适配待接入' : item.review?.decision === 'approved' ? '审核已通过，可发布目录' : '完成素材检查后提交人工审核'));
+    const allMedia = item.clips.every(c => c.media);
+    const allChecked = item.clips.every(c => c.media?.inspection?.status === 'checked');
+    card.append(list, text('p', item.demo ? '内置演示素材 · 厂家转码待接入' : item.status === 'published' ? '已发布到 App 内容目录' : !allMedia ? '下一步：为每个视频上传 MP4 素材' : !allChecked ? '下一步：检查全部素材并生成缩略图' : item.review?.decision === 'approved' ? '审核已通过，可发布到 App' : '素材已就绪，可审核并发布到 App', 'workflow-hint'));
     if (item.review) card.append(text('p', `审核：${item.review.decision === 'approved' ? '已通过' : '退回修改'} · ${item.review.note}`));
-    if (item.status === 'draft' && item.clips.every(c => c.media?.inspection?.status === 'checked')) {
-      const reviewButton = text('button', '审核内容', 'secondary');
+    if (item.status === 'draft' && allChecked && item.review?.decision !== 'approved') {
+      const reviewButton = text('button', '审核并发布到 App', 'publish-action');
       reviewButton.onclick = () => {
         reviewing = item; $('review-form').reset(); $('review-error').textContent = '';
         $('review-title').textContent = item.title; $('review-dialog').showModal();
       };
       card.append(reviewButton);
     }
+    if (item.status === 'draft' && !allChecked) {
+      const unavailable = text('button', allMedia ? '完成素材检查后可发布' : '上传全部素材后可发布', 'publish-action');
+      unavailable.disabled = true; card.append(unavailable);
+    }
     if (item.status === 'draft' && item.review?.decision === 'approved') {
-      const publish = text('button', '发布到目录');
+      const publish = text('button', '发布到 App', 'publish-action');
       publish.onclick = async () => {
         if (!confirm('发布后将出现在本地目录接口中，硬件下载与转码仍未开放。确认发布？')) return;
         publish.disabled = true;
@@ -159,9 +165,13 @@ $('review-form').onsubmit = async event => {
   }
   $('review-save').disabled = true;
   try {
-    await api(`/admin/packages/${reviewing.id}/review`, { version: reviewing.version,
+    const reviewed = await api(`/admin/packages/${reviewing.id}/review`, { version: reviewing.version,
       decision: data.get('decision'), note: data.get('note'), rightsReference: data.get('rightsReference'), rightsConfirmed: data.has('rightsConfirmed') });
-    $('review-dialog').close(); await refresh(); $('notice').textContent = '审核结果已保存。';
+    if (data.get('decision') === 'approved') {
+      await api(`/admin/packages/${reviewing.id}/publish`, { version: reviewed.version });
+      $('notice').textContent = '审核通过，内容已发布到 App 目录。';
+    } else { $('notice').textContent = '内容已退回修改，未发布。'; }
+    $('review-dialog').close(); await refresh();
   } catch (error) { $('review-error').textContent = error.message; }
   finally { $('review-save').disabled = false; }
 };

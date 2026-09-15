@@ -19,10 +19,10 @@
 <label>视频名称<textarea name="clips" rows="4" required placeholder="每行一个视频名称，例如：待机"></textarea></label>
 <p id="form-error" role="alert"></p><button id="save">保存草稿</button></form></dialog>
 <dialog id="review-dialog"><form id="review-form"><div class="dialog-title"><h2>内容审核</h2><button type="button" id="review-close" class="secondary">关闭</button></div>
-<p id="review-title"></p><p>审核通过后可发布目录。硬件转码与下载仍未开放。</p>
+<p id="review-title"></p><p>选择“通过”并保存后，内容将立即发布到 App 内容目录。硬件转码与下载仍未开放。</p>
 <label>审核结果<select name="decision" id="review-decision"><option value="approved">通过</option><option value="rejected">退回修改</option></select></label>
 <label>审核说明<textarea name="note" required maxlength="1000" rows="3" placeholder="记录画面、内容与授权检查结果"></textarea></label>
 <label>授权材料编号或记录位置<input name="rightsReference" maxlength="300" placeholder="通过审核时必填"></label>
 <label><input name="rightsConfirmed" type="checkbox">已人工核对本内容的使用授权</label>
-<p id="review-error" role="alert"></p><button id="review-save">保存审核结果</button></form></dialog>
+<p id="review-error" role="alert"></p><button id="review-save">保存审核结果并发布</button></form></dialog>
 </main><script src="/console/app.js"></script></body></html>

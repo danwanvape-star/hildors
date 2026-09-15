@@ -15,6 +15,17 @@
   margin: 6px 0 0;
 }
 
+.workflow-hint {
+  border-left: 3px solid #5edcc8;
+  color: #c7d5e5;
+  padding-left: 10px;
+}
+
+.publish-action {
+  display: block;
+  width: 100%;
+}
+
 @media (max-width: 700px) {
   .connected {
     align-items: stretch;
