@@ -1,5 +1,8 @@
 const $ = id => document.getElementById(id);
-let token = '', items = [], epoch = 0;
+const tokenKey = 'hildors-admin-token';
+const savedToken = () => { try { return sessionStorage.getItem(tokenKey) || ''; } catch { return ''; } };
+const rememberToken = value => { try { value ? sessionStorage.setItem(tokenKey, value) : sessionStorage.removeItem(tokenKey); } catch {} };
+let token = savedToken(), items = [], epoch = 0;
 let reviewing = null;
 const previews = new Set();
 function clearPreviews() { for (const url of previews) URL.revokeObjectURL(url); previews.clear(); }
@@ -138,10 +141,10 @@ async function refresh() {
 $('login').onsubmit = async event => {
   event.preventDefault(); epoch++; token = $('token').value.trim();
   $('workspace').hidden = true;
-  try { await refresh(); $('token').value = ''; $('notice').textContent = '后台已连接，内容保存在本机数据库。'; }
-  catch (error) { token = ''; $('notice').textContent = error.message; }
+  try { await refresh(); rememberToken(token); $('token').value = ''; $('notice').textContent = '后台已连接，本浏览器会话内会自动重连。'; }
+  catch (error) { token = ''; rememberToken(''); $('notice').textContent = error.message; }
 };
-$('logout').onclick = () => { epoch++; clearPreviews(); token = ''; items = []; reviewing = null; $('token').value = ''; $('workspace').hidden = true; $('cards').replaceChildren(); $('editor').close(); $('review-dialog').close(); $('notice').textContent = '已退出。'; };
+$('logout').onclick = () => { epoch++; clearPreviews(); token = ''; rememberToken(''); items = []; reviewing = null; $('token').value = ''; $('workspace').hidden = true; $('cards').replaceChildren(); $('editor').close(); $('review-dialog').close(); $('notice').textContent = '已退出。'; };
 $('refresh').onclick = async () => { try { await refresh(); $('notice').textContent = '内容已刷新。'; } catch (error) { $('notice').textContent = error.message; } };
 $('search').oninput = render; $('status').onchange = render;
 $('new').onclick = () => { $('create').reset(); $('form-error').textContent = ''; $('editor').showModal(); };
@@ -174,3 +177,9 @@ $('create').onsubmit = async event => {
   } catch (error) { $('form-error').textContent = error.message; }
   finally { $('save').disabled = false; }
 };
+
+if (token) {
+  $('notice').textContent = '正在自动连接后台…';
+  refresh().then(() => { $('notice').textContent = '后台已连接，本浏览器会话内会自动重连。'; })
+    .catch(error => { token = ''; rememberToken(''); $('workspace').hidden = true; $('notice').textContent = error.message; });
+}

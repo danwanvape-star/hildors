@@ -15,8 +15,12 @@ test('catalog, access control, draft gating and withdrawal', async t => {
   const consolePage = await fetch(base + '/console');
   assert.equal(consolePage.status, 200);
   assert.match(consolePage.headers.get('content-security-policy'), /frame-ancestors 'none'/);
-  assert.match(await consolePage.text(), /内容管理/);
-  assert.equal((await fetch(base + '/console/app.js')).status, 200);
+  const consoleHtml = await consolePage.text();
+  assert.match(consoleHtml, /内容管理/);
+  assert.match(consoleHtml, /刷新可自动重连/);
+  const consoleScript = await fetch(base + '/console/app.js');
+  assert.equal(consoleScript.status, 200);
+  assert.match(await consoleScript.text(), /sessionStorage\.setItem/);
   assert.equal((await fetch(base + '/console/style.css')).status, 200);
   assert.equal((await fetch(base + '/console/secret.env')).status, 404);
   const call = async (path, body, authorized = true) => {
