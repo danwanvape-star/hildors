@@ -22,12 +22,12 @@
 1. 安装并核验Node24、FFmpeg/ffprobe。模板默认/usr/bin路径，实际安装路径不同时先修改；不要用未核验的一键远程脚本。
 2. 建立无登录权限的hildors服务用户与同名组。将仅backend/src、backend/public和必要配置部署到/opt/hildors/backend，代码由管理员拥有、服务用户不可写。不部署fixtures、test、私有素材或整个开发缓存。
 3. 将示例配置复制到/etc/hildors/team-staging.env。设置HILDORS_MODE=team-staging、HILDORS_DATA_DIR=/var/lib/hildors-api。
-4. 生成独立随机管理员凭证（建议32随机字节的安全编码，不用人工短密码），仅保存于/etc/hildors/admin-token；目录root:hildors权限0750，文件root:hildors权限0640，服务用户可读但不可写。不要把凭证粘贴进文档、Git、URL或聊天。32字符长度检查不等同熵保证。
+4. 生成独立随机管理令牌与强密码，分别仅保存于`/etc/hildors/admin-token`和`/etc/hildors/admin-password`；配置`HILDORS_ADMIN_USERNAME`。目录root:hildors权限0750，凭证文件root:hildors权限0640，服务用户可读但不可写。不要把凭证粘贴进文档、Git或URL。管理页登录后只获得8小时 HttpOnly 会话，不向页面暴露内部令牌。
 5. 审阅systemd模板。StateDirectory创建持久数据目录；设置非root运行、0077文件掩码、只读系统、独立临时目录及失败重启。MemoryMax=2G是保护上限，遇到内存压力先查日志/调整并发，不能直接视为实测容量。
 6. 安装模板后运行systemd语法校验，确认路径和权限，再启动服务。使用/health验证进程、/ready验证数据库连接。ready不验证磁盘剩余空间、FFmpeg或备份，需另行检查。
 7. 通过本地SSH端口转发访问管理页面。例如在操作电脑执行 `ssh -N -L 18787:127.0.0.1:8787 <运维用户>@<服务器地址>`，随后打开http://127.0.0.1:18787/console。此HTTP只存在于本机/隧道端点，不允许另开公网HTTP反代绕过隔离。
 
-测试模式不自动seedDemo；需上传团队获准测试的视频并审核。当前管理员仍是单一测试令牌，不具备生产员工权限体系。端口、路径、令牌文件修改后须重启；云下载仍没有CLI开关。
+测试模式不自动seedDemo；需上传团队获准测试的视频并审核。当前管理员仍是单一团队账号，不具备生产员工角色权限体系。服务重启会撤销已有登录会话。端口、路径或凭证文件修改后须重启；云下载仍没有CLI开关。
 
 ## 首次验收
 

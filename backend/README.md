@@ -14,8 +14,8 @@ node backend/src/server.mjs
 ```
 
 默认地址`http://127.0.0.1:8787`。可设置`HILDORS_PORT`。
-运营管理页面：`http://127.0.0.1:8787/console`。支持令牌连接、统计、搜索、状态筛选、内容草稿创建和二次确认下架。页面令牌只保存在内存中，刷新或退出后清除。使用管理功能前先配置下面的环境变量。
-管理接口需要设置环境变量`HILDORS_ADMIN_TOKEN`后重启，通过`Authorization: Bearer <token>`访问；未配置时管理接口关闭。此令牌仅用于本地联调，不是正式用户认证或员工角色权限。
+运营管理页面：`http://127.0.0.1:8787/console`。支持管理员账号登录、8小时 HttpOnly 会话、统计、搜索、状态筛选、内容草稿创建和二次确认下架。网页不保存密码，退出后服务器会立即撤销会话。
+团队测试模式需配置`HILDORS_ADMIN_USERNAME`和`HILDORS_ADMIN_PASSWORD_FILE`；内部兼容接口仍使用`HILDORS_ADMIN_TOKEN_FILE`。密码和令牌文件不得提交到 Git。
 
 SQLite保存于`backend/data/catalog.sqlite`，已忽略提交。首次初始化四个现有Demo的元数据，不复制视频、不上传文件、不自动恢复已下架内容。
 

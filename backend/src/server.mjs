@@ -1,5 +1,5 @@
 import { createServer } from 'node:http';
-import { randomUUID, timingSafeEqual } from 'node:crypto';
+import { randomBytes, randomUUID, timingSafeEqual } from 'node:crypto';
 import { mkdirSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { resolve } from 'node:path';
@@ -32,8 +32,10 @@ function publicPackage(item) {
       ...(item.demo ? { bundledAsset: c.bundledAsset, thumbnail: c.thumbnail } : {}) })) };
 }
 
-export function app(store, { adminToken = '', mediaDirectory = fileURLToPath(new URL('../data/media/', import.meta.url)), uploadLimit, inspector = inspectVideo, enableDownloads = false, mode = 'local' } = {}) {
+export function app(store, { adminToken = '', adminUsername = '', adminPassword = '', mediaDirectory = fileURLToPath(new URL('../data/media/', import.meta.url)), uploadLimit, inspector = inspectVideo, enableDownloads = false, mode = 'local' } = {}) {
   let processing = false;
+  const sessions = new Map();
+  const sessionLifetime = 8 * 60 * 60 * 1000;
   return createServer(async (req, res) => {
     const requestId = randomUUID();
     function send(status, data) {
@@ -52,10 +54,32 @@ export function app(store, { adminToken = '', mediaDirectory = fileURLToPath(new
           'X-Content-Type-Options': 'nosniff', 'Content-Security-Policy': "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' blob:; media-src 'self' blob:; frame-ancestors 'none'; base-uri 'none'; form-action 'self'" });
         return res.end(readFileSync(new URL(`../public/${name}`, import.meta.url)));
       }
+      if (req.method === 'POST' && path === '/admin/login') {
+        const chunks = []; let bytes = 0;
+        for await (const chunk of req) { bytes += chunk.length; if (bytes > 4096) return fail(413, 'BODY_TOO_LARGE'); chunks.push(chunk); }
+        let credentials;
+        try { credentials = JSON.parse(Buffer.concat(chunks).toString('utf8')); } catch { return fail(400, 'INVALID_JSON'); }
+        const same = (a, b) => { const left = Buffer.from(String(a || '')), right = Buffer.from(String(b || '')); return left.length === right.length && timingSafeEqual(left, right); };
+        if (!adminUsername || !adminPassword || !same(credentials.username, adminUsername) || !same(credentials.password, adminPassword)) return fail(401, 'INVALID_CREDENTIALS');
+        const session = randomBytes(32).toString('base64url'); sessions.set(session, Date.now() + sessionLifetime);
+        res.setHeader('Set-Cookie', `hildors_admin=${session}; HttpOnly; SameSite=Strict; Path=/; Max-Age=${sessionLifetime / 1000}`);
+        return send(200, { authenticated: true });
+      }
+      if (req.method === 'POST' && path === '/admin/logout') {
+        const session = /(?:^|;\s*)hildors_admin=([^;]+)/.exec(req.headers.cookie || '')?.[1];
+        if (session) sessions.delete(session);
+        res.setHeader('Set-Cookie', 'hildors_admin=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0');
+        return send(200, { authenticated: false });
+      }
       if (path.startsWith('/admin/')) {
         const supplied = Buffer.from(req.headers.authorization || '');
         const expected = Buffer.from(`Bearer ${adminToken}`);
-        if (!adminToken || supplied.length !== expected.length || !timingSafeEqual(supplied, expected)) return fail(401, 'UNAUTHORIZED');
+        const bearerValid = adminToken && supplied.length === expected.length && timingSafeEqual(supplied, expected);
+        const session = /(?:^|;\s*)hildors_admin=([^;]+)/.exec(req.headers.cookie || '')?.[1];
+        const expires = session && sessions.get(session);
+        const sessionValid = Boolean(expires && expires > Date.now());
+        if (session && !sessionValid) sessions.delete(session);
+        if (!bearerValid && !sessionValid) return fail(401, 'UNAUTHORIZED');
       }
       if (req.method === 'GET' && path === '/health') return send(200, { status: 'ok', mode });
       if (req.method === 'GET' && path === '/ready') {
@@ -220,7 +244,8 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   mkdirSync(directory, { recursive: true });
   const store = createStore(resolve(directory, 'catalog.sqlite'));
   if (config.seedDemos) seedDemos(store);
-  const server = app(store, { adminToken: config.adminToken, mediaDirectory: resolve(directory, 'media'), mode: config.mode });
+  const server = app(store, { adminToken: config.adminToken, adminUsername: config.adminUsername,
+    adminPassword: config.adminPassword, mediaDirectory: resolve(directory, 'media'), mode: config.mode });
   server.listen(config.port, config.host, () => console.log(`HILDORS ${config.mode}: http://${config.host}:${config.port}/health`));
   const stop = () => server.close(() => { store.close(); process.exit(0); });
   process.on('SIGINT', stop); process.on('SIGTERM', stop);

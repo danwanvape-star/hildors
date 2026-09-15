@@ -8,7 +8,7 @@ import { app } from '../src/server.mjs';
 
 test('catalog, access control, draft gating and withdrawal', async t => {
   const store = createStore(); seedDemos(store); seedDemos(store);
-  const server = app(store, { adminToken: 'test-only-token' });
+  const server = app(store, { adminToken: 'test-only-token', adminUsername: 'admin', adminPassword: 'strong-test-password' });
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
   t.after(async () => { await new Promise(resolve => server.close(resolve)); store.close(); });
   const base = `http://127.0.0.1:${server.address().port}`;
@@ -17,10 +17,10 @@ test('catalog, access control, draft gating and withdrawal', async t => {
   assert.match(consolePage.headers.get('content-security-policy'), /frame-ancestors 'none'/);
   const consoleHtml = await consolePage.text();
   assert.match(consoleHtml, /内容管理/);
-  assert.match(consoleHtml, /当前电脑已记住登录/);
+  assert.match(consoleHtml, /管理员登录/);
   const consoleScript = await fetch(base + '/console/app.js');
   assert.equal(consoleScript.status, 200);
-  assert.match(await consoleScript.text(), /localStorage\.setItem/);
+  assert.match(await consoleScript.text(), /admin\/login/);
   assert.equal((await fetch(base + '/console/style.css')).status, 200);
   assert.equal((await fetch(base + '/console/connection.css')).status, 200);
   assert.equal((await fetch(base + '/console/secret.env')).status, 404);
@@ -31,6 +31,11 @@ test('catalog, access control, draft gating and withdrawal', async t => {
     return { status: res.status, data: await res.json() };
   };
   assert.equal((await call('/admin/packages', undefined, false)).status, 401);
+  const badLogin = await fetch(base + '/admin/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: 'admin', password: 'wrong' }) });
+  assert.equal(badLogin.status, 401);
+  const login = await fetch(base + '/admin/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: 'admin', password: 'strong-test-password' }) });
+  assert.equal(login.status, 200); const cookie = login.headers.get('set-cookie').split(';')[0];
+  assert.equal((await fetch(base + '/admin/packages', { headers: { Cookie: cookie } })).status, 200);
   const first = await call('/v1/catalog?limit=2');
   assert.equal(first.data.items.length, 2);
   assert.equal((await call('/v1/catalog?limit=2&cursor=' + first.data.nextCursor)).data.items.length, 2);

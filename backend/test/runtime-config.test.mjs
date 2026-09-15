@@ -16,7 +16,7 @@ test('runtime is loopback-only and staging fails closed without explicit storage
     assert.throws(() => runtimeConfig(env, directory));
   }
   const config = runtimeConfig({ HILDORS_MODE: 'team-staging', HILDORS_DATA_DIR: directory,
-    HILDORS_ADMIN_TOKEN: 'a'.repeat(43), HILDORS_HOST: '0.0.0.0', HILDORS_PORT: '8877' }, directory);
+    HILDORS_ADMIN_TOKEN: 'a'.repeat(43), HILDORS_ADMIN_USERNAME: 'admin', HILDORS_ADMIN_PASSWORD: 'b'.repeat(20), HILDORS_HOST: '0.0.0.0', HILDORS_PORT: '8877' }, directory);
   assert.equal(config.host, '127.0.0.1'); assert.equal(config.port, 8877); assert.equal(config.seedDemos, false);
 });
 

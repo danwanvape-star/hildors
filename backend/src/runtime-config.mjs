@@ -9,10 +9,16 @@ export function runtimeConfig(env, defaultDirectory) {
   if (env.HILDORS_ADMIN_TOKEN && env.HILDORS_ADMIN_TOKEN_FILE) throw new Error('Configure only one admin credential source');
   const adminToken = env.HILDORS_ADMIN_TOKEN_FILE
     ? readFileSync(env.HILDORS_ADMIN_TOKEN_FILE, 'utf8').trim() : env.HILDORS_ADMIN_TOKEN || '';
+  const adminUsername = env.HILDORS_ADMIN_USERNAME || '';
+  const adminPassword = env.HILDORS_ADMIN_PASSWORD_FILE
+    ? readFileSync(env.HILDORS_ADMIN_PASSWORD_FILE, 'utf8').trim() : env.HILDORS_ADMIN_PASSWORD || '';
   if (mode === 'team-staging') {
     if (!env.HILDORS_DATA_DIR || !isAbsolute(env.HILDORS_DATA_DIR)) throw new Error('Staging requires an absolute data directory');
     if (adminToken.length < 32 || /[\r\n]/.test(adminToken)) throw new Error('Staging requires a strong admin credential');
+    if (!adminUsername || adminUsername.length > 64 || adminPassword.length < 16 || /[\r\n]/.test(adminPassword)) {
+      throw new Error('Staging requires strong admin username/password credentials');
+    }
   }
-  return { mode, port, host: '127.0.0.1', adminToken,
+  return { mode, port, host: '127.0.0.1', adminToken, adminUsername, adminPassword,
     directory: resolve(env.HILDORS_DATA_DIR || defaultDirectory), seedDemos: mode === 'local' };
 }

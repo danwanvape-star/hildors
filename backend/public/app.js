@@ -1,8 +1,5 @@
 const $ = id => document.getElementById(id);
-const tokenKey = 'hildors-admin-token';
-const savedToken = () => { try { return localStorage.getItem(tokenKey) || ''; } catch { return ''; } };
-const rememberToken = value => { try { value ? localStorage.setItem(tokenKey, value) : localStorage.removeItem(tokenKey); } catch {} };
-let token = savedToken(), items = [], epoch = 0;
+let items = [], epoch = 0;
 let reviewing = null;
 const previews = new Set();
 function showConnection(connected) {
@@ -10,10 +7,10 @@ function showConnection(connected) {
   $('connected').hidden = !connected;
 }
 function clearPreviews() { for (const url of previews) URL.revokeObjectURL(url); previews.clear(); }
-const messages = { UNAUTHORIZED: '令牌无效或服务未配置管理令牌。', VERSION_OR_STATE_CONFLICT: '内容已被更新，请刷新后重试。', MEDIA_REVIEW_REQUIRED: '需要先完成素材处理和审核。', INVALID_PACKAGE: '请检查名称、视频数量和标签。' };
+const messages = { UNAUTHORIZED: '登录已过期，请重新登录。', INVALID_CREDENTIALS: '用户名或密码错误。', VERSION_OR_STATE_CONFLICT: '内容已被更新，请刷新后重试。', MEDIA_REVIEW_REQUIRED: '需要先完成素材处理和审核。', INVALID_PACKAGE: '请检查名称、视频数量和标签。' };
 async function api(path, body) {
   const response = await fetch(path, { method: body === undefined ? 'GET' : 'POST',
-    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin',
     body: body === undefined ? undefined : JSON.stringify(body) });
   const result = await response.json();
   if (!response.ok) throw new Error(messages[result.code] || '操作失败，请稍后重试。');
@@ -42,7 +39,7 @@ function render() {
         if (inspection?.status === 'checked') {
           row.append(text('p', `${inspection.width}×${inspection.height} · ${inspection.durationSeconds.toFixed(1)}秒 · ${inspection.videoCodec} · 编码检查通过`));
           const current = epoch;
-          fetch(`/admin/media/${clip.media.id}/thumbnail`, { headers: { Authorization: `Bearer ${token}` } })
+          fetch(`/admin/media/${clip.media.id}/thumbnail`, { credentials: 'same-origin' })
             .then(response => { if (!response.ok) throw new Error(); return response.blob(); })
             .then(blob => {
               if (current !== epoch || !row.isConnected) return;
@@ -71,7 +68,7 @@ function render() {
         play.onclick = async () => {
           play.disabled = true; const current = epoch;
           try {
-            const response = await fetch(`/admin/media/${clip.media.id}`, { headers: { Authorization: `Bearer ${token}` } });
+            const response = await fetch(`/admin/media/${clip.media.id}`, { credentials: 'same-origin' });
             if (!response.ok) throw new Error('无法加载视频，请重新连接后台。');
             const blob = await response.blob();
             if (current !== epoch || !row.isConnected) return;
@@ -92,7 +89,7 @@ function render() {
           input.disabled = true; $('notice').textContent = '正在上传素材，请保持页面打开…';
           try {
             const response = await fetch(`/admin/packages/${encodeURIComponent(item.id)}/clips/${encodeURIComponent(clip.id)}/media`, {
-              method: 'PUT', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'video/mp4', 'If-Match': String(item.version) }, body: file });
+              method: 'PUT', credentials: 'same-origin', headers: { 'Content-Type': 'video/mp4', 'If-Match': String(item.version) }, body: file });
             const result = await response.json();
             if (!response.ok) throw new Error(messages[result.code] || '上传失败，请确认是有效的MP4文件后重试。');
             await refresh(); $('notice').textContent = '素材已保存，等待编码检查、审核和设备适配。';
@@ -143,12 +140,12 @@ async function refresh() {
   items = result.items; $('workspace').hidden = false; render();
 }
 $('login').onsubmit = async event => {
-  event.preventDefault(); epoch++; token = $('token').value.trim();
+  event.preventDefault(); epoch++;
   $('workspace').hidden = true;
-  try { await refresh(); rememberToken(token); showConnection(true); $('token').value = ''; $('notice').textContent = '后台已连接，当前电脑已记住登录。'; }
-  catch (error) { token = ''; rememberToken(''); showConnection(false); $('notice').textContent = error.message; }
+  try { await api('/admin/login', { username: $('username').value.trim(), password: $('password').value }); $('password').value = ''; await refresh(); showConnection(true); $('notice').textContent = '后台已登录。'; }
+  catch (error) { $('password').value = ''; showConnection(false); $('notice').textContent = error.message; }
 };
-$('logout').onclick = () => { epoch++; clearPreviews(); token = ''; rememberToken(''); items = []; reviewing = null; $('token').value = ''; showConnection(false); $('workspace').hidden = true; $('cards').replaceChildren(); $('editor').close(); $('review-dialog').close(); $('notice').textContent = '已退出，本机保存的令牌已清除。'; };
+$('logout').onclick = async () => { epoch++; await api('/admin/logout', {}).catch(() => {}); clearPreviews(); items = []; reviewing = null; showConnection(false); $('workspace').hidden = true; $('cards').replaceChildren(); $('editor').close(); $('review-dialog').close(); $('notice').textContent = '已安全退出后台。'; };
 $('refresh').onclick = async () => { try { await refresh(); $('notice').textContent = '内容已刷新。'; } catch (error) { $('notice').textContent = error.message; } };
 $('search').oninput = render; $('status').onchange = render;
 $('new').onclick = () => { $('create').reset(); $('form-error').textContent = ''; $('editor').showModal(); };
@@ -182,9 +179,6 @@ $('create').onsubmit = async event => {
   finally { $('save').disabled = false; }
 };
 
-if (token) {
-  showConnection(true);
-  $('notice').textContent = '正在自动连接后台…';
-  refresh().then(() => { $('notice').textContent = '后台已连接，当前电脑已记住登录。'; })
-    .catch(error => { token = ''; rememberToken(''); showConnection(false); $('workspace').hidden = true; $('notice').textContent = error.message; });
-}
+$('notice').textContent = '正在检查登录状态…';
+refresh().then(() => { showConnection(true); $('notice').textContent = '后台已登录。'; })
+  .catch(() => { showConnection(false); $('workspace').hidden = true; $('notice').textContent = '请使用管理员账号登录。'; });
