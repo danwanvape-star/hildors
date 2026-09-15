@@ -26,7 +26,7 @@ export async function receiveMedia(req, directory, limit = 256 * 1024 * 1024) {
   } catch (error) { await handle?.close(); await unlink(temporary).catch(() => {}); throw error; }
 }
 
-export async function serveMedia(req, res, directory, id) {
+export async function serveMedia(req, res, directory, id, { publicCache = false } = {}) {
   const path = resolve(directory, `${id}.mp4`);
   const info = await stat(path);
   let start = 0, end = info.size - 1, status = 200;
@@ -38,7 +38,8 @@ export async function serveMedia(req, res, directory, id) {
     status = 206;
   }
   const headers = { 'Content-Type': 'video/mp4', 'Content-Length': end - start + 1,
-    'Cache-Control': 'no-store', 'Accept-Ranges': 'bytes', 'X-Content-Type-Options': 'nosniff' };
+    'Cache-Control': publicCache ? 'public, max-age=3600' : 'no-store',
+    'Accept-Ranges': 'bytes', 'X-Content-Type-Options': 'nosniff' };
   if (status === 206) headers['Content-Range'] = `bytes ${start}-${end}/${info.size}`;
   res.writeHead(status, headers);
   const stream = createReadStream(path, { start, end });

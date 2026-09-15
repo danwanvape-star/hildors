@@ -4,7 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hildors_cockpit/src/features/community/remote_catalog_repository.dart';
 import 'package:hildors_cockpit/src/features/community/remote_catalog_page.dart';
 
-Map<String, dynamic> item(String id) => {
+Map<String, dynamic> item(String id, {bool withMedia = false}) => {
       'id': id,
       'title': '测试角色 $id',
       'status': 'published',
@@ -12,7 +12,13 @@ Map<String, dynamic> item(String id) => {
       'format': 'package',
       'tags': ['神话'],
       'clips': [
-        {'id': '$id-clip', 'title': '待机', 'durationSeconds': 10.2}
+        {
+          'id': '$id-clip',
+          'title': '待机',
+          'durationSeconds': 10.2,
+          if (withMedia) 'previewPath': '/v1/media/video-id',
+          if (withMedia) 'thumbnailPath': '/v1/media/video-id/thumbnail'
+        }
       ],
     };
 
@@ -23,13 +29,17 @@ void main() {
         RemoteCatalogRepository('https://example.test', fetch: (uri) async {
       requests.add(uri);
       return jsonEncode({
-        'items': [item(requests.length == 1 ? 'a' : 'b')],
+        'items': [item(requests.length == 1 ? 'a' : 'b', withMedia: true)],
         'nextCursor': requests.length == 1 ? 'a' : null
       });
     });
     final packages = await repo.load();
     expect(packages.map((p) => p.id), ['a', 'b']);
     expect(packages.first.clips.single.durationSeconds, 10.2);
+    expect(packages.first.clips.single.previewUrl,
+        'https://example.test/v1/media/video-id');
+    expect(packages.first.clips.single.thumbnailUrl,
+        'https://example.test/v1/media/video-id/thumbnail');
     expect(requests.last.queryParameters['cursor'], 'a');
   });
   test('分页重复和未发布内容不能静默混入目录', () async {

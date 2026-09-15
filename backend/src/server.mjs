@@ -29,7 +29,11 @@ function publicPackage(item) {
     source: item.source, format: item.format, tags: item.tags, demo: item.demo,
     clips: item.clips.map(c => ({ id: c.id, title: c.title, hardwareReady: false,
       durationSeconds: c.media?.inspection?.durationSeconds ?? c.durationSeconds,
-      ...(item.demo ? { bundledAsset: c.bundledAsset, thumbnail: c.thumbnail } : {}) })) };
+      ...(item.demo ? { bundledAsset: c.bundledAsset, thumbnail: c.thumbnail } : {}),
+      ...(!item.demo && c.media?.inspection?.status === 'checked' ? {
+        previewPath: `/v1/media/${c.media.id}`,
+        thumbnailPath: `/v1/media/${c.media.id}/thumbnail`,
+      } : {}) })) };
 }
 
 export function app(store, { adminToken = '', adminUsername = '', adminPassword = '', mediaDirectory = fileURLToPath(new URL('../data/media/', import.meta.url)), uploadLimit, inspector = inspectVideo, enableDownloads = false, mode = 'local' } = {}) {
@@ -87,7 +91,7 @@ export function app(store, { adminToken = '', adminUsername = '', adminPassword 
           return store.ready() ? send(200, { status: 'ready' }) : fail(503, 'NOT_READY');
         } catch { return fail(503, 'NOT_READY'); }
       }
-      if (path.startsWith('/v1/me')) {
+      if (path === '/v1/me' || path.startsWith('/v1/me/')) {
         const token = /^Bearer ([A-Za-z0-9_-]{43})$/.exec(req.headers.authorization || '')?.[1];
         const userId = store.authenticate(token);
         if (!userId) return fail(401, 'USER_AUTH_REQUIRED');
@@ -145,6 +149,19 @@ export function app(store, { adminToken = '', adminUsername = '', adminPassword 
           && p.title.toLowerCase().includes(query)
           && p.id > (url.searchParams.get('cursor') || ''));
         return send(200, { items: items.slice(0, limit).map(publicPackage), nextCursor: items.length > limit ? items[limit - 1].id : null });
+      }
+      const publicMedia = /^\/v1\/media\/([a-f0-9-]{36})(\/thumbnail)?$/.exec(path);
+      if (req.method === 'GET' && publicMedia) {
+        const published = store.list().some(p => p.status === 'published' && p.clips.some(c =>
+          c.media?.id === publicMedia[1] && c.media.inspection?.status === 'checked'));
+        if (!published) return fail(404, 'NOT_FOUND');
+        if (publicMedia[2]) {
+          const image = readFileSync(resolve(mediaDirectory, `${publicMedia[1]}.jpg`));
+          res.writeHead(200, { 'Content-Type': 'image/jpeg', 'Cache-Control': 'public, max-age=3600',
+            'X-Content-Type-Options': 'nosniff' });
+          return res.end(image);
+        }
+        return await serveMedia(req, res, mediaDirectory, publicMedia[1], { publicCache: true });
       }
       if (req.method === 'GET' && path.startsWith('/v1/packages/')) {
         const item = store.get(decodeURIComponent(path.slice('/v1/packages/'.length)));

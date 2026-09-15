@@ -48,6 +48,9 @@ test('four real demos: upload, decode, thumbnail, review and metadata publicatio
         const published = await (await fetch(base + '/v1/packages/' + draft.id)).json();
         assert.equal(published.status, 'published'); assert.equal(published.review, undefined);
         assert.equal(published.clips[0].hardwareReady, false); assert.equal(published.clips[0].media, undefined);
+        assert.equal(published.clips[0].previewPath, `/v1/media/${media.id}`);
+        assert.equal((await fetch(base + published.clips[0].thumbnailPath)).status, 200);
+        assert.equal((await fetch(base + published.clips[0].previewPath, { headers: { Range: 'bytes=0-11' } })).status, 206);
         report.push({ file: name, ...media.inspection, bytes: media.bytes, thumbnailBytes: thumbnail.length });
       }
       await mkdir(output, { recursive: true });

@@ -3,9 +3,11 @@ import 'remote_catalog_transport_stub.dart'
     if (dart.library.io) 'remote_catalog_transport_io.dart' as transport;
 
 class RemoteCatalogClip {
-  const RemoteCatalogClip(this.id, this.title, this.durationSeconds);
+  const RemoteCatalogClip(this.id, this.title, this.durationSeconds,
+      {this.previewUrl, this.thumbnailUrl});
   final String id, title;
   final double? durationSeconds;
+  final String? previewUrl, thumbnailUrl;
 }
 
 class RemoteCatalogPackage {
@@ -45,7 +47,9 @@ class RemoteCatalogPackage {
         throw const FormatException('视频时长无效');
       }
       return RemoteCatalogClip(requiredText(raw, 'id'),
-          requiredText(raw, 'title'), (duration as num?)?.toDouble());
+          requiredText(raw, 'title'), (duration as num?)?.toDouble(),
+          previewUrl: raw['previewPath'] as String?,
+          thumbnailUrl: raw['thumbnailPath'] as String?);
     }).toList(growable: false);
     if (clips.map((c) => c.id).toSet().length != clips.length ||
         (value['format'] == 'single' && clips.length != 1)) {
@@ -95,7 +99,7 @@ class RemoteCatalogRepository {
       }
       for (final raw in data['items'] as List) {
         if (raw is! Map<String, dynamic>) throw const FormatException('目录条目无效');
-        final item = RemoteCatalogPackage.fromJson(raw);
+        final item = _withAbsoluteUrls(RemoteCatalogPackage.fromJson(raw));
         if (!seenIds.add(item.id)) throw const FormatException('目录分页发生变化，请刷新');
         result.add(item);
       }
@@ -107,5 +111,27 @@ class RemoteCatalogRepository {
       cursor = next;
     }
     throw const FormatException('目录过大，请缩小查询范围');
+  }
+
+  RemoteCatalogPackage _withAbsoluteUrls(RemoteCatalogPackage package) {
+    String? absolute(String? value) => value == null || value.isEmpty
+        ? null
+        : baseUri.resolve(value).toString();
+    return RemoteCatalogPackage(
+      id: package.id,
+      title: package.title,
+      source: package.source,
+      format: package.format,
+      tags: package.tags,
+      clips: package.clips
+          .map((clip) => RemoteCatalogClip(
+                clip.id,
+                clip.title,
+                clip.durationSeconds,
+                previewUrl: absolute(clip.previewUrl),
+                thumbnailUrl: absolute(clip.thumbnailUrl),
+              ))
+          .toList(growable: false),
+    );
   }
 }

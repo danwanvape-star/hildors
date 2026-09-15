@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'content_preview_player.dart';
 import 'remote_catalog_repository.dart';
 
 class RemoteCatalogPage extends StatefulWidget {
@@ -106,15 +107,23 @@ class _RemoteCatalogPageState extends State<RemoteCatalogPage> {
                               child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    const AspectRatio(
+                                    AspectRatio(
                                         aspectRatio: 1,
                                         child: ColoredBox(
-                                            color: Color(0xff101d2c),
-                                            child: Center(
-                                                child: Icon(
-                                                    Icons
-                                                        .video_library_outlined,
-                                                    size: 36)))),
+                                            color: const Color(0xff101d2c),
+                                            child: item.clips.first.thumbnailUrl != null
+                                                ? Image.network(
+                                                    item.clips.first
+                                                        .thumbnailUrl!,
+                                                    fit: BoxFit.contain,
+                                                    errorBuilder: (_, __, ___) =>
+                                                        const Center(
+                                                            child: Icon(Icons.broken_image_outlined,
+                                                                size: 36)))
+                                                : const Center(
+                                                    child: Icon(
+                                                        Icons.video_library_outlined,
+                                                        size: 36)))),
                                     Padding(
                                         padding: const EdgeInsets.all(8),
                                         child: Column(
@@ -153,8 +162,25 @@ class _RemoteCatalogPageState extends State<RemoteCatalogPage> {
                   Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
+                        if (clip.previewUrl != null)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 10),
+                            child: ContentPreviewPlayer(
+                                assetPath: null, networkUrl: clip.previewUrl),
+                          ),
                         ListTile(
-                            leading: const Icon(Icons.movie_outlined),
+                            leading: clip.thumbnailUrl == null
+                                ? const Icon(Icons.movie_outlined)
+                                : ClipRRect(
+                                    borderRadius: BorderRadius.circular(8),
+                                    child: SizedBox.square(
+                                      dimension: 56,
+                                      child: Image.network(clip.thumbnailUrl!,
+                                          fit: BoxFit.contain,
+                                          errorBuilder: (_, __, ___) =>
+                                              const Icon(
+                                                  Icons.broken_image_outlined)),
+                                    )),
                             title: Text(clip.title),
                             subtitle: Text(clip.durationSeconds == null
                                 ? '时长待确认'

@@ -4,9 +4,11 @@ import 'package:video_player/video_player.dart';
 import '../../media/bundled_video_controller.dart';
 
 class ContentPreviewPlayer extends StatefulWidget {
-  const ContentPreviewPlayer({required this.assetPath, super.key});
+  const ContentPreviewPlayer(
+      {required this.assetPath, this.networkUrl, super.key});
 
   final String? assetPath;
+  final String? networkUrl;
 
   @override
   State<ContentPreviewPlayer> createState() => _ContentPreviewPlayerState();
@@ -26,7 +28,8 @@ class _ContentPreviewPlayerState extends State<ContentPreviewPlayer> {
 
   Future<void> _initialize() async {
     final assetPath = widget.assetPath;
-    if (assetPath == null) return;
+    final networkUrl = widget.networkUrl;
+    if (assetPath == null && networkUrl == null) return;
     if (mounted) {
       setState(() {
         _error = null;
@@ -34,7 +37,10 @@ class _ContentPreviewPlayerState extends State<ContentPreviewPlayer> {
       });
     }
     try {
-      final controller = await createBundledVideoController(assetPath);
+      final controller = networkUrl != null
+          ? VideoPlayerController.networkUrl(Uri.parse(networkUrl))
+          : await createBundledVideoController(assetPath!);
+      if (!controller.value.isInitialized) await controller.initialize();
       await controller.setLooping(true);
       if (!mounted) {
         await controller.dispose();

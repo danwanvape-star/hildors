@@ -15,6 +15,7 @@ test('delivery is opt-in, authenticated, entitlement-gated and range-capable', a
   const bytes = Buffer.from('deterministic-delivery-test-fixture');
   const id = randomUUID(), sha256 = createHash('sha256').update(bytes).digest('hex');
   await writeFile(join(directory, `${id}.mp4`), bytes);
+  await writeFile(join(directory, `${id}.jpg`), Buffer.from([0xff, 0xd8, 0xff, 0xd9]));
   const item = store.create({ title: 'test', source: 'hildors', format: 'single', tags: [], clips: [{ id: 'clip' }] });
   store.attachMedia(item.id, 'clip', 1, { id, bytes: bytes.length, sha256 });
   store.setInspection(item.id, 'clip', id, { status: 'checked' });
@@ -29,6 +30,9 @@ test('delivery is opt-in, authenticated, entitlement-gated and range-capable', a
     headers: { ...(bearer ? { Authorization: `Bearer ${bearer}` } : {}), ...headers },
   });
   try {
+    const publicBase = `http://127.0.0.1:${server.address().port}/v1/media/${id}`;
+    assert.equal((await fetch(publicBase + '/thumbnail')).status, 200);
+    assert.equal((await fetch(publicBase, { headers: { Range: 'bytes=2-5' } })).status, 206);
     assert.equal((await (await request('access')).json()).canDownload, true);
     assert.equal((await (await request('access', other)).json()).canDownload, false);
     assert.equal((await (await request('access', token, {}, disabled)).json()).reason, 'DOWNLOAD_NOT_ENABLED');
