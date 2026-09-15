@@ -8,6 +8,8 @@
 
 团队测试可先用美国区域1台2核4GB CVM与50GB磁盘，视频20MB左右，每次只处理一个检查任务。内测只有少量文件，不在此机器存正式用户照片或订单。磁盘存放只是临时测试方案，不替代正式COS。公网安全组不开放8787；SSH仅允许团队固定出口IP或受管访问入口，使用SSH密钥。
 
+当前预发布入口为 `https://api.hildors.com`：Nginx 仅反向代理 App API，HTTP 自动跳转 HTTPS，`/admin/` 与 `/console` 在公网返回404。Node 服务仍仅监听 `127.0.0.1:8787`，运营后台继续使用 SSH 隧道。Let's Encrypt 证书由 Certbot 定时续期。
+
 ## 交付文件
 
 - backend/src/runtime-config.mjs：校验运行模式、端口、管理员凭证来源及数据目录。

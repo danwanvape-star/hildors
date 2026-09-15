@@ -9,6 +9,16 @@ node backend/src/server.mjs
 E:/Flutter/flutter/bin/flutter.bat run --dart-define=HILDORS_API_BASE_URL=http://127.0.0.1:8787
 ```
 
+## 云端预发布环境
+
+预发布 API 已部署在 `https://api.hildors.com`。构建连接云端目录的 Android 测试包：
+
+```powershell
+E:/Flutter/flutter/bin/flutter.bat build apk --release --dart-define=HILDORS_API_BASE_URL=https://api.hildors.com
+```
+
+不传 `HILDORS_API_BASE_URL` 时继续使用 App 内置 Demo，便于硬件局域网播放功能独立联调。当前云端目录尚未录入正式内容，因此普通体验包暂不硬编码云端地址。运营后台不开放公网，仍通过 SSH 隧道访问；App 不持有管理员令牌。
+
 以上URL适用于同机桌面调试。Android USB联调可以先执行`adb reverse tcp:8787 tcp:8787`，再使用相同地址。后台默认只监听本机，不自动改成公网或局域网监听。手机直接访问127.0.0.1是手机自身，未设置端口转发会连接失败。
 
 Android/iOS的HTTP开发访问须满足平台网络策略；正式服务使用HTTPS。此轮尚未验证iOS签名构建或真机网络策略。Web构建可编译，但目录网络传输当前返回不支持，展示可重试错误；不是Web联调实现。
