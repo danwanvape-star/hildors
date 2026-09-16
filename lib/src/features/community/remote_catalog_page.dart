@@ -226,19 +226,22 @@ class _RemoteCatalogPageState extends State<RemoteCatalogPage> {
                           aspectRatio: 1,
                           child: ColoredBox(
                               color: const Color(0xff101d2c),
-                              child: (item.coverUrl ?? item.clips.first.thumbnailUrl) !=
+                              child: (item.format == 'package'
+                                          ? item.coverUrl
+                                          : item.clips.first.thumbnailUrl) !=
                                       null
                                   ? Image.network(
-                                      (item.coverUrl ??
-                                          item.clips.first.thumbnailUrl)!,
+                                      (item.format == 'package'
+                                          ? item.coverUrl!
+                                          : item.clips.first.thumbnailUrl!),
+                                      key: ValueKey(item.format == 'package'
+                                          ? 'package-cover-${item.id}'
+                                          : 'single-thumbnail-${item.id}'),
                                       fit: BoxFit.contain,
                                       errorBuilder: (_, __, ___) => const Center(
-                                          child: Icon(
-                                              Icons.broken_image_outlined,
-                                              size: 36)))
-                                  : const Center(
-                                      child: Icon(Icons.video_library_outlined,
-                                          size: 36)))),
+                                          child:
+                                              Icon(Icons.broken_image_outlined, size: 36)))
+                                  : Center(child: Icon(item.format == 'package' ? Icons.folder_copy_outlined : Icons.video_library_outlined, key: ValueKey(item.format == 'package' ? 'package-cover-placeholder-${item.id}' : 'single-thumbnail-placeholder-${item.id}'), size: 36)))),
                       Padding(
                           padding: const EdgeInsets.all(8),
                           child: Column(
@@ -260,6 +263,28 @@ class _RemoteCatalogPageState extends State<RemoteCatalogPage> {
         builder: (_) => Scaffold(
               appBar: AppBar(title: Text(item.title)),
               body: ListView(padding: const EdgeInsets.all(16), children: [
+                if (item.format == 'package')
+                  AspectRatio(
+                    aspectRatio: 1,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(18),
+                      child: ColoredBox(
+                        color: const Color(0xff101d2c),
+                        child: item.coverUrl == null
+                            ? const Center(
+                                child:
+                                    Icon(Icons.folder_copy_outlined, size: 52))
+                            : Image.network(item.coverUrl!,
+                                key:
+                                    ValueKey('package-detail-cover-${item.id}'),
+                                fit: BoxFit.contain,
+                                errorBuilder: (_, __, ___) => const Center(
+                                    child: Icon(Icons.broken_image_outlined,
+                                        size: 52))),
+                      ),
+                    ),
+                  ),
+                if (item.format == 'package') const SizedBox(height: 16),
                 Text(item.source == 'hildors' ? 'HILDORS 出品' : '创作者作品'),
                 const SizedBox(height: 12),
                 Text(item.tags.join(' / ')),

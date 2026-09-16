@@ -11,6 +11,7 @@ void main() {
       title: '官方角色',
       source: 'hildors',
       format: 'single',
+      coverUrl: 'https://example.test/should-not-be-used.jpg',
       tags: ['游戏'],
       clips: [RemoteCatalogClip('official-clip', '待机', 10)],
     ),
@@ -19,6 +20,7 @@ void main() {
       title: '创作者角色',
       source: 'creator',
       format: 'package',
+      coverUrl: 'https://example.test/creator-cover.jpg',
       tags: ['二次元'],
       clips: [RemoteCatalogClip('creator-clip', '舞蹈', 12)],
     ),
@@ -97,5 +99,20 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('官方角色'), findsWidgets);
     expect(find.text('创作者角色'), findsWidgets);
+  });
+
+  testWidgets('角色包一级只显示角色主图，进入后才显示包内视频', (tester) async {
+    await tester.pumpWidget(MaterialApp(
+        home: Scaffold(body: RemoteCatalogPage(load: () async => packages))));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('package-cover-creator')), findsWidgets);
+    expect(
+        find.byKey(const ValueKey('single-thumbnail-official')), findsNothing);
+    await tester.tap(find.text('创作者角色').first);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('package-detail-cover-creator')),
+        findsOneWidget);
+    expect(find.text('包内视频'), findsOneWidget);
+    expect(find.text('舞蹈'), findsOneWidget);
   });
 }
