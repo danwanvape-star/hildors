@@ -5,6 +5,7 @@ import '../video/character_package_page.dart';
 import '../video/character_video_package.dart';
 import 'remote_catalog_page.dart';
 import 'remote_catalog_repository.dart';
+import 'remote_layout_repository.dart';
 
 class CollectionCatalogItem {
   const CollectionCatalogItem(
@@ -100,7 +101,10 @@ class _CollectionCatalogPageState extends State<CollectionCatalogPage> {
     const backendUrl = String.fromEnvironment('HILDORS_API_BASE_URL');
     if (backendUrl.isNotEmpty) {
       return RemoteCatalogPage(
-          load: () => RemoteCatalogRepository(backendUrl).load());
+        load: () => RemoteCatalogRepository(backendUrl).load(),
+        loadLayout: () =>
+            RemoteLayoutRepository(backendUrl).loadPage('collection'),
+      );
     }
     final items = filterCollectionCatalog(
         source: source, format: format, topic: topic, query: query);

@@ -22,8 +22,8 @@
 </div>
 <div id="layout-workspace" data-panel="layout" hidden>
 <div class="layout-actions"><div><h2>App 页面装修</h2><p>拖拽调整模块顺序；首页设备控制与主导航受保护，不在此处修改。</p></div><div><button id="layout-save" class="secondary">保存草稿</button><button id="layout-publish">发布到 App</button><button id="layout-rollback" class="secondary">回滚上一版</button></div></div>
-<div class="layout-tabs"><button data-layout-page="collection" class="active">藏品页</button><button data-layout-page="discover" class="secondary">发现页</button><span id="layout-version" class="badge">版本 -</span></div>
-<div class="layout-editor"><section><h3>模块列表</h3><p>拖住模块上下移动。模块类型固定，避免误删核心功能。</p><div id="layout-blocks" class="layout-blocks"></div></section><section><h3>手机预览</h3><div class="phone-preview"><div class="phone-title" id="layout-preview-title">藏品</div><div id="layout-preview"></div><div class="phone-nav">首页　藏品　发现　我的</div></div></section></div>
+<div class="layout-tabs"><button data-layout-page="collection" class="active">藏品页</button><button data-layout-page="discover" class="secondary">发现页</button><span id="layout-dirty" class="layout-dirty">已保存</span><span id="layout-version" class="badge">版本 -</span></div>
+<div class="layout-editor"><section><h3>模块列表</h3><p>拖住模块上下移动。模块类型固定，避免误删核心功能。</p><div id="layout-blocks" class="layout-blocks"></div></section><section><h3>发布前预览</h3><p>此处展示当前草稿；保存草稿后再发布才会影响 App。</p><div class="phone-preview"><div class="phone-title" id="layout-preview-title">藏品</div><div id="layout-preview"></div><div class="phone-nav">首页　藏品　发现　我的</div></div></section></div>
 </div>
 <dialog id="editor"><form id="create"><div class="dialog-title"><h2>创建内容草稿</h2><button type="button" id="close" class="secondary">关闭</button></div><p>先填写视频清单。真实素材完成处理和审核后才能发布。</p>
 <label>内容名称<input name="title" maxlength="120" required placeholder="例如：星轨法师 · 基础角色包"></label>

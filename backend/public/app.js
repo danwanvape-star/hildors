@@ -1,7 +1,7 @@
 const $ = id => document.getElementById(id);
 let items = [], epoch = 0;
 let orders = [], creators = [], activeView = 'content';
-let layoutState = null, layoutPage = 'collection', draggedLayoutIndex = null;
+let layoutState = null, layoutPage = 'collection', draggedLayoutIndex = null, layoutSavedSnapshot = '';
 let reviewing = null;
 const previews = new Set();
 function showConnection(connected) {
@@ -75,6 +75,7 @@ async function refreshCreators() { creators = (await api('/admin/creators')).ite
 function renderLayout() {
   if (!layoutState) return;
   $('layout-version').textContent = `草稿版本 ${layoutState.version}`;
+  updateLayoutDirty();
   $('layout-rollback').disabled = !layoutState.canRollback;
   document.querySelectorAll('[data-layout-page]').forEach(button => button.classList.toggle('active', button.dataset.layoutPage === layoutPage));
   $('layout-preview-title').textContent = layoutPage === 'collection' ? '藏品' : '发现';
@@ -89,14 +90,20 @@ function renderLayout() {
     const handle = text('span', '☷', 'layout-handle');
     const fields = text('div', '', 'layout-fields');
     fields.append(text('strong', block.type));
-    const title = document.createElement('input'); title.value = block.title; title.maxLength = 40; title.oninput = () => { block.title = title.value; renderLayoutPreview(); }; fields.append(title);
+    const title = document.createElement('input'); title.value = block.title; title.maxLength = 40; title.oninput = () => { block.title = title.value; renderLayoutPreview(); updateLayoutDirty(); }; fields.append(title);
     const options = text('div', '', 'layout-options');
-    const visible = document.createElement('input'); visible.type = 'checkbox'; visible.checked = block.visible; visible.onchange = () => { block.visible = visible.checked; renderLayoutPreview(); };
+    const visible = document.createElement('input'); visible.type = 'checkbox'; visible.checked = block.visible; visible.onchange = () => { block.visible = visible.checked; renderLayout(); };
     const visibleLabel = text('label', ' 显示'); visibleLabel.prepend(visible);
-    const columns = document.createElement('select'); for (const count of [1,2,3]) { const option = document.createElement('option'); option.value = count; option.textContent = `${count}列`; option.selected = count === block.columns; columns.append(option); } columns.onchange = () => { block.columns = Number(columns.value); renderLayoutPreview(); };
+    const columns = document.createElement('select'); for (const count of [1,2,3]) { const option = document.createElement('option'); option.value = count; option.textContent = `${count}列`; option.selected = count === block.columns; columns.append(option); } columns.onchange = () => { block.columns = Number(columns.value); renderLayout(); };
     options.append(visibleLabel, columns); row.append(handle, fields, options); $('layout-blocks').append(row);
   });
   renderLayoutPreview();
+}
+function updateLayoutDirty() {
+  const dirty = Boolean(layoutSavedSnapshot) && JSON.stringify(layoutState.draft) !== layoutSavedSnapshot;
+  $('layout-dirty').textContent = dirty ? '有未保存修改' : '草稿已保存';
+  $('layout-dirty').className = `layout-dirty${dirty ? ' unsaved' : ''}`;
+  $('layout-publish').disabled = dirty;
 }
 function renderLayoutPreview() {
   if (!layoutState) return; const target = $('layout-preview'); target.replaceChildren();
@@ -107,7 +114,7 @@ function renderLayoutPreview() {
     card.append(grid); target.append(card);
   }
 }
-async function refreshLayout() { layoutState = await api('/admin/layout'); renderLayout(); }
+async function refreshLayout() { layoutState = await api('/admin/layout'); layoutSavedSnapshot = JSON.stringify(layoutState.draft); renderLayout(); }
 function render() {
   clearPreviews();
   $('total').textContent = items.length;
@@ -253,9 +260,10 @@ document.querySelectorAll('[data-view]').forEach(button => button.onclick = asyn
   catch (error) { $('notice').textContent = error.message; }
 });
 document.querySelectorAll('[data-layout-page]').forEach(button => button.onclick = () => { layoutPage = button.dataset.layoutPage; renderLayout(); });
-$('layout-save').onclick = async () => { try { layoutState = await api('/admin/layout/draft', { version: layoutState.version, layout: layoutState.draft }); renderLayout(); $('notice').textContent = '页面装修草稿已保存，尚未影响用户。'; } catch (error) { $('notice').textContent = error.message; } };
-$('layout-publish').onclick = async () => { if (!confirm('确认把当前草稿发布到 App？用户下次刷新页面时会看到新布局。')) return; try { layoutState = await api('/admin/layout/publish', { version: layoutState.version }); renderLayout(); $('notice').textContent = '新版布局已发布到 App。'; } catch (error) { $('notice').textContent = error.message; } };
-$('layout-rollback').onclick = async () => { if (!confirm('确认恢复上一版已发布布局？')) return; try { layoutState = await api('/admin/layout/rollback', { version: layoutState.version }); renderLayout(); $('notice').textContent = '已恢复上一版布局。'; } catch (error) { $('notice').textContent = error.message; } };
+$('layout-save').onclick = async () => { try { layoutState = await api('/admin/layout/draft', { version: layoutState.version, layout: layoutState.draft }); layoutSavedSnapshot = JSON.stringify(layoutState.draft); renderLayout(); $('notice').textContent = '页面装修草稿已保存，尚未影响用户。'; } catch (error) { $('notice').textContent = error.message; } };
+$('layout-publish').onclick = async () => { if (JSON.stringify(layoutState.draft) !== layoutSavedSnapshot) { $('notice').textContent = '请先保存草稿，再发布到 App。'; return; } const visible = Object.values(layoutState.draft.pages).flat().filter(x => x.visible).length; if (!confirm(`确认发布预览中的布局？\n本次共显示 ${visible} 个模块，用户下次刷新后生效。`)) return; try { layoutState = await api('/admin/layout/publish', { version: layoutState.version }); layoutSavedSnapshot = JSON.stringify(layoutState.draft); renderLayout(); $('layout-dirty').textContent = '已发布'; $('layout-dirty').className = 'layout-dirty published'; $('notice').textContent = '新版布局已发布到 App。'; } catch (error) { $('notice').textContent = error.message; } };
+$('layout-rollback').onclick = async () => { if (JSON.stringify(layoutState.draft) !== layoutSavedSnapshot && !confirm('当前有未保存修改，回滚将丢弃这些修改。是否继续？')) return; if (!confirm('确认恢复上一版已发布布局？恢复后会立即影响 App。')) return; try { layoutState = await api('/admin/layout/rollback', { version: layoutState.version }); layoutSavedSnapshot = JSON.stringify(layoutState.draft); renderLayout(); $('notice').textContent = '已恢复上一版布局。'; } catch (error) { $('notice').textContent = error.message; } };
+window.addEventListener('beforeunload', event => { if (layoutState && JSON.stringify(layoutState.draft) !== layoutSavedSnapshot) { event.preventDefault(); event.returnValue = ''; } });
 $('new').onclick = () => { $('create').reset(); $('form-error').textContent = ''; $('editor').showModal(); };
 $('close').onclick = () => $('editor').close();
 $('review-close').onclick = () => $('review-dialog').close();
