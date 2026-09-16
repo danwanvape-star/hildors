@@ -122,6 +122,38 @@ class CloudBusinessIntake {
     }
   }
 
+  Future<Map<String, dynamic>?> loadCreatorProfile() async {
+    final baseUri = _baseUri;
+    if (baseUri == null) return null;
+    final client = HttpClient()..connectionTimeout = const Duration(seconds: 8);
+    try {
+      return await (() async {
+        for (var attempt = 0; attempt < 2; attempt++) {
+          final token = await _session(client, baseUri);
+          final request = await client.getUrl(
+            baseUri.resolve('/v1/me/creator-profile'),
+          );
+          request.followRedirects = false;
+          request.headers.set(HttpHeaders.authorizationHeader, 'Bearer $token');
+          final response = await request.close();
+          final value = await _readJson(response);
+          if (response.statusCode == HttpStatus.ok) return value;
+          if (response.statusCode == HttpStatus.notFound) return null;
+          if (response.statusCode != HttpStatus.unauthorized || attempt > 0) {
+            return null;
+          }
+          await _clearToken();
+        }
+        return null;
+      })()
+          .timeout(const Duration(seconds: 15));
+    } catch (_) {
+      return null;
+    } finally {
+      client.close(force: true);
+    }
+  }
+
   Future<bool> submitCustomizationOrder({
     required String characterName,
     required String sourceType,

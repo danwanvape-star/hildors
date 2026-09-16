@@ -1482,8 +1482,19 @@ class _CreatorHubPageState extends State<CreatorHubPage>
     _reload();
   }
 
-  Future<void> _reload() =>
-      loadGateData(repository.loadProfile, (loaded) => profile = loaded);
+  Future<void> _reload() => loadGateData(() async {
+        final local = await repository.loadProfile();
+        if (local == null) return null;
+        final cloud = await CloudBusinessIntake.instance.loadCreatorProfile();
+        final cloudStatus = cloud?['status'];
+        return cloudStatus is String
+            ? creatorProfileWithCloudReview(
+                local,
+                status: cloudStatus,
+                reviewedAt: cloud?['updatedAt'] as String?,
+              )
+            : local;
+      }, (loaded) => profile = loaded);
 
   Future<void> _submit() async {
     if (submitting || gateLoading || !mounted) return;

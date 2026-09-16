@@ -307,6 +307,40 @@ class MemoryCreatorProfileRepository implements CreatorProfileRepository {
   }
 }
 
+CreatorProfile creatorProfileWithCloudReview(
+  CreatorProfile profile, {
+  required String status,
+  String? reviewedAt,
+}) {
+  const labels = {
+    'pending': '审核中',
+    'approved': '已认证',
+    'rejected': '未通过',
+    'suspended': '已停用',
+  };
+  return CreatorProfile(
+    displayName: profile.displayName,
+    portfolioUrl: profile.portfolioUrl,
+    status: labels[status] ?? profile.status,
+    agreementVersion: profile.agreementVersion,
+    submittedAt: profile.submittedAt,
+    skillTags: profile.skillTags,
+    marketRegion: profile.marketRegion,
+    settlementCurrency: status == 'approved'
+        ? (profile.marketRegion == 'cn_mainland' ? 'CNY' : 'USD')
+        : profile.settlementCurrency,
+    marketRegionVerifiedAt: status == 'approved'
+        ? (reviewedAt ?? profile.marketRegionVerifiedAt)
+        : profile.marketRegionVerifiedAt,
+    payoutAccountStatus: profile.payoutAccountStatus,
+    payoutAccountReference: profile.payoutAccountReference,
+    taxFormType: profile.taxFormType,
+    payoutSubmittedAt: profile.payoutSubmittedAt,
+    payoutVerifiedAt: profile.payoutVerifiedAt,
+    reviewedAt: reviewedAt ?? profile.reviewedAt,
+  );
+}
+
 CreatorProfile _copyCreatorProfile(
   CreatorProfile profile, {
   required String payoutAccountStatus,
