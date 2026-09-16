@@ -1,6 +1,22 @@
 import { DatabaseSync } from 'node:sqlite';
 import { randomUUID, randomBytes, createHash } from 'node:crypto';
 
+const defaultLayout = () => ({
+  schemaVersion: 1,
+  pages: {
+    collection: [
+      { id: 'collection-featured', type: 'featured', title: '精选角色', visible: true, columns: 3 },
+      { id: 'collection-hildors', type: 'hildors', title: 'HILDORS 出品', visible: true, columns: 3 },
+      { id: 'collection-creators', type: 'creators', title: '创作者作品', visible: true, columns: 3 },
+    ],
+    discover: [
+      { id: 'discover-customization', type: 'customization', title: '定制你的专属角色', visible: true, columns: 1 },
+      { id: 'discover-portal', type: 'character_portal', title: 'Character Portal', visible: true, columns: 2 },
+      { id: 'discover-creator', type: 'creator_join', title: '加入创作者计划', visible: true, columns: 1 },
+    ],
+  },
+});
+
 export function createStore(path = ':memory:') {
   const db = new DatabaseSync(path);
   db.exec(`PRAGMA foreign_keys=ON;
@@ -23,7 +39,13 @@ export function createStore(path = ':memory:') {
       status TEXT NOT NULL, document TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL);
     CREATE TABLE IF NOT EXISTS creator_profiles (
       id TEXT PRIMARY KEY, user_id TEXT NOT NULL UNIQUE REFERENCES users(id), version INTEGER NOT NULL,
-      status TEXT NOT NULL, document TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL);`);
+      status TEXT NOT NULL, document TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL);
+    CREATE TABLE IF NOT EXISTS app_layouts (
+      id TEXT PRIMARY KEY, version INTEGER NOT NULL, draft TEXT NOT NULL, published TEXT NOT NULL,
+      previous_published TEXT, updated_at TEXT NOT NULL);`);
+  const initialLayout = JSON.stringify(defaultLayout());
+  db.prepare('INSERT OR IGNORE INTO app_layouts VALUES (?,?,?,?,?,?)')
+    .run('main', 1, initialLayout, initialLayout, null, new Date().toISOString());
   const tokenHash = token => createHash('sha256').update(token).digest('hex');
   const decode = row => row ? { ...JSON.parse(row.document), id: row.id,
     version: row.version, status: row.status } : null;
@@ -125,6 +147,32 @@ export function createStore(path = ':memory:') {
       db.prepare('UPDATE creator_profiles SET status=?,document=?,version=version+1,updated_at=? WHERE id=?')
         .run(status, JSON.stringify(document), now, id);
       return this.getCreatorProfile(id);
+    },
+    getLayout() {
+      const row = db.prepare('SELECT * FROM app_layouts WHERE id=?').get('main');
+      return { version: row.version, draft: JSON.parse(row.draft), published: JSON.parse(row.published),
+        canRollback: Boolean(row.previous_published), updatedAt: row.updated_at };
+    },
+    saveLayoutDraft(version, document) {
+      const current = this.getLayout();
+      if (current.version !== version) throw new Error('CONFLICT');
+      db.prepare('UPDATE app_layouts SET draft=?,version=version+1,updated_at=? WHERE id=?')
+        .run(JSON.stringify(document), new Date().toISOString(), 'main');
+      return this.getLayout();
+    },
+    publishLayout(version) {
+      const current = this.getLayout();
+      if (current.version !== version) throw new Error('CONFLICT');
+      db.prepare('UPDATE app_layouts SET previous_published=published,published=draft,version=version+1,updated_at=? WHERE id=?')
+        .run(new Date().toISOString(), 'main');
+      return this.getLayout();
+    },
+    rollbackLayout(version) {
+      const current = this.getLayout();
+      if (current.version !== version || !current.canRollback) throw new Error('CONFLICT');
+      db.prepare('UPDATE app_layouts SET draft=previous_published,published=previous_published,previous_published=published,version=version+1,updated_at=? WHERE id=?')
+        .run(new Date().toISOString(), 'main');
+      return this.getLayout();
     },
     review(id, version, decision, note, rightsReference) {
       return transaction(() => {

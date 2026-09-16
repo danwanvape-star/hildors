@@ -35,3 +35,29 @@ test('customization intake and creator registration are user-scoped and admin-ma
   assert.equal((await reviewed.json()).status, 'approved');
   assert.equal((await fetch(base + '/admin/customization-orders')).status, 401);
 });
+
+test('app layout supports guarded draft, publication and rollback', async t => {
+  const store = createStore();
+  const server = app(store, { adminToken: 'admin-test' });
+  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+  t.after(async () => { await new Promise(resolve => server.close(resolve)); store.close(); });
+  const base = `http://127.0.0.1:${server.address().port}`;
+  const adminHeaders = { Authorization: 'Bearer admin-test', 'Content-Type': 'application/json' };
+  const initial = await (await fetch(base + '/admin/layout', { headers: adminHeaders })).json();
+  assert.equal(initial.draft.pages.collection[0].type, 'featured');
+  const changed = structuredClone(initial.draft);
+  changed.pages.collection.reverse();
+  const saved = await (await fetch(base + '/admin/layout/draft', { method: 'POST', headers: adminHeaders,
+    body: JSON.stringify({ version: initial.version, layout: changed }) })).json();
+  assert.equal(saved.published.pages.collection[0].type, 'featured');
+  const published = await (await fetch(base + '/admin/layout/publish', { method: 'POST', headers: adminHeaders,
+    body: JSON.stringify({ version: saved.version }) })).json();
+  const publicLayout = await (await fetch(base + '/v1/layout')).json();
+  assert.equal(publicLayout.layout.pages.collection[0].type, 'creators');
+  const rolledBack = await (await fetch(base + '/admin/layout/rollback', { method: 'POST', headers: adminHeaders,
+    body: JSON.stringify({ version: published.version }) })).json();
+  assert.equal(rolledBack.published.pages.collection[0].type, 'featured');
+  changed.pages.collection[0].type = 'unsafe_widget';
+  assert.equal((await fetch(base + '/admin/layout/draft', { method: 'POST', headers: adminHeaders,
+    body: JSON.stringify({ version: rolledBack.version, layout: changed }) })).status, 400);
+});

@@ -1,9 +1,9 @@
 <!doctype html>
 <html lang="zh-CN">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>HILDORS · 内容管理</title><link rel="stylesheet" href="/console/style.css"><link rel="stylesheet" href="/console/connection.css"></head>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>HILDORS · 内容管理</title><link rel="stylesheet" href="/console/style.css"><link rel="stylesheet" href="/console/connection.css"><link rel="stylesheet" href="/console/admin-nav.css"><link rel="stylesheet" href="/console/layout.css"></head>
 <body>
 <link rel="stylesheet" href="/console/media.css">
-<aside><div class="brand">HILDORS<span>CHARACTER PORTAL</span></div><button class="nav active" data-view="content">内容管理</button><button class="nav" data-view="orders">定制订单</button><button class="nav" data-view="creators">创作者管理</button><p>云端运营后台</p><p>用户原始素材与公开内容分区管理。</p></aside>
+<aside><div class="brand">HILDORS<span>CHARACTER PORTAL</span></div><button class="nav active" data-view="content">内容管理</button><button class="nav" data-view="orders">定制订单</button><button class="nav" data-view="creators">创作者管理</button><button class="nav" data-view="layout">页面装修</button><p>云端运营后台</p><p>用户原始素材与公开内容分区管理。</p></aside>
 <main><header><div><small>CONTENT STUDIO</small><h1>内容管理</h1><p>建立角色包，管理每一条视频。</p></div><span class="badge">本地原型</span></header>
 <section class="login"><form id="login"><label>管理员登录</label><div class="row"><input id="username" autocomplete="username" required maxlength="64" placeholder="用户名"><input id="password" type="password" autocomplete="current-password" required placeholder="密码"><button>登录后台</button></div><p>登录状态由服务器安全保持 8 小时，网页不保存密码。</p></form><div id="connected" class="connected" hidden><div><strong>后台已登录</strong><p>当前浏览器会话有效。</p></div><button type="button" id="logout" class="secondary">退出后台</button></div></section>
 <p id="notice" role="status" aria-live="polite">请使用管理员账号登录。</p>
@@ -19,6 +19,11 @@
 <div id="creators-workspace" data-panel="creators" hidden>
 <section class="summary"><div><strong id="creators-total">0</strong><span>全部创作者</span></div><div><strong id="creators-pending">0</strong><span>待审核</span></div><div><strong id="creators-approved">0</strong><span>已认证</span></div></section>
 <div class="toolbar"><select id="creator-status"><option value="">全部状态</option><option value="pending">待审核</option><option value="approved">已认证</option><option value="rejected">未通过</option><option value="suspended">已停用</option></select><button id="creators-refresh" class="secondary">刷新创作者</button></div><div id="creator-cards" class="grid"></div>
+</div>
+<div id="layout-workspace" data-panel="layout" hidden>
+<div class="layout-actions"><div><h2>App 页面装修</h2><p>拖拽调整模块顺序；首页设备控制与主导航受保护，不在此处修改。</p></div><div><button id="layout-save" class="secondary">保存草稿</button><button id="layout-publish">发布到 App</button><button id="layout-rollback" class="secondary">回滚上一版</button></div></div>
+<div class="layout-tabs"><button data-layout-page="collection" class="active">藏品页</button><button data-layout-page="discover" class="secondary">发现页</button><span id="layout-version" class="badge">版本 -</span></div>
+<div class="layout-editor"><section><h3>模块列表</h3><p>拖住模块上下移动。模块类型固定，避免误删核心功能。</p><div id="layout-blocks" class="layout-blocks"></div></section><section><h3>手机预览</h3><div class="phone-preview"><div class="phone-title" id="layout-preview-title">藏品</div><div id="layout-preview"></div><div class="phone-nav">首页　藏品　发现　我的</div></div></section></div>
 </div>
 <dialog id="editor"><form id="create"><div class="dialog-title"><h2>创建内容草稿</h2><button type="button" id="close" class="secondary">关闭</button></div><p>先填写视频清单。真实素材完成处理和审核后才能发布。</p>
 <label>内容名称<input name="title" maxlength="120" required placeholder="例如：星轨法师 · 基础角色包"></label>
