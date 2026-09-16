@@ -26,6 +26,37 @@ export async function receiveMedia(req, directory, limit = 256 * 1024 * 1024) {
   } catch (error) { await handle?.close(); await unlink(temporary).catch(() => {}); throw error; }
 }
 
+export async function receiveImage(req, directory, contentType, limit = 8 * 1024 * 1024) {
+  await mkdir(directory, { recursive: true });
+  const extension = contentType === 'image/png' ? 'png' : 'jpg';
+  const id = randomUUID(); const path = resolve(directory, `${id}.${extension}`);
+  const temporary = `${path}.part`; let handle; let bytes = 0; let header = Buffer.alloc(0);
+  try {
+    handle = await open(temporary, 'wx');
+    for await (const chunk of req) {
+      bytes += chunk.length;
+      if (bytes > limit) throw new Error('UPLOAD_TOO_LARGE');
+      if (header.length < 12) header = Buffer.concat([header, chunk.subarray(0, 12 - header.length)]);
+      let offset = 0;
+      while (offset < chunk.length) offset += (await handle.write(chunk, offset, chunk.length - offset)).bytesWritten;
+    }
+    const jpeg = header[0] === 0xff && header[1] === 0xd8 && header[2] === 0xff;
+    const png = header.subarray(0, 8).equals(Buffer.from([137,80,78,71,13,10,26,10]));
+    if (bytes < 32 || (extension === 'jpg' ? !jpeg : !png)) throw new Error('INVALID_IMAGE');
+    await handle.close(); handle = undefined; await rename(temporary, path);
+    return { id, bytes, extension, contentType, uploadedAt: new Date().toISOString() };
+  } catch (error) { await handle?.close(); await unlink(temporary).catch(() => {}); throw error; }
+}
+
+export async function serveImage(res, directory, image, { publicCache = false } = {}) {
+  const path = resolve(directory, `${image.id}.${image.extension}`);
+  const info = await stat(path);
+  res.writeHead(200, { 'Content-Type': image.contentType, 'Content-Length': info.size,
+    'Cache-Control': publicCache ? 'public, max-age=3600' : 'no-store', 'X-Content-Type-Options': 'nosniff' });
+  const stream = createReadStream(path); stream.on('error', () => res.destroy());
+  res.on('close', () => stream.destroy()); stream.pipe(res);
+}
+
 export async function serveMedia(req, res, directory, id, { publicCache = false } = {}) {
   const path = resolve(directory, `${id}.mp4`);
   const info = await stat(path);

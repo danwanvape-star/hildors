@@ -9,7 +9,7 @@ function showConnection(connected) {
   $('connected').hidden = !connected;
 }
 function clearPreviews() { for (const url of previews) URL.revokeObjectURL(url); previews.clear(); }
-const messages = { UNAUTHORIZED: '登录已过期，请重新登录。', INVALID_CREDENTIALS: '用户名或密码错误。', VERSION_OR_STATE_CONFLICT: '内容已被更新，请刷新后重试。', INVALID_ORDER_TRANSITION: '不能跳过必要步骤，请按流程推进订单。', MEDIA_REVIEW_REQUIRED: '需要先完成素材处理和审核。', INVALID_PACKAGE: '请检查名称、视频数量和标签。' };
+const messages = { UNAUTHORIZED: '登录已过期，请重新登录。', INVALID_CREDENTIALS: '用户名或密码错误。', VERSION_OR_STATE_CONFLICT: '内容已被更新，请刷新后重试。', INVALID_ORDER_TRANSITION: '不能跳过必要步骤，请按流程推进订单。', ORDER_QUOTE_REQUIRED: '报价时必须填写金额、币种和预计工期。', ORDER_PRODUCTION_REQUIRED: '进入制作前必须指定负责人和截止日期。', ORDER_DELIVERABLE_REQUIRED: '提交质检前必须填写成品文件或任务地址。', ORDER_QC_REQUIRED: '平台质检全部通过后才能提交用户验收。', ORDER_DELIVERY_REQUIRED: '完成交付前必须填写最终交付记录。', MEDIA_REVIEW_REQUIRED: '需要先完成素材处理和审核。', PACKAGE_COVER_REQUIRED: '角色视频包必须先上传角色主图。', INVALID_PACKAGE: '请检查名称、视频数量和标签。' };
 async function api(path, body) {
   const response = await fetch(path, { method: body === undefined ? 'GET' : 'POST',
     headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin',
@@ -23,6 +23,19 @@ const orderLabels = { free_review: '待预审', needs_info: '待补充资料', a
 const orderSteps = ['free_review','approved_for_quote','quoted','in_production','quality_review','user_acceptance','delivered'];
 const orderTransitions = { free_review: ['needs_info','approved_for_quote','rejected'], needs_info: ['free_review','approved_for_quote','rejected'], approved_for_quote: ['quoted','needs_info','rejected'], quoted: ['in_production','needs_info','withdrawn'], in_production: ['quality_review'], quality_review: ['in_production','user_acceptance'], user_acceptance: ['quality_review','delivered'], delivered: [], rejected: ['free_review'], withdrawn: [] };
 const creatorLabels = { pending: '待审核', approved: '已认证', rejected: '未通过', suspended: '已停用' };
+function inputField(label, name, value = '', type = 'text') {
+  const wrap = text('label', label); const input = document.createElement('input');
+  input.name = name; input.type = type; input.value = value ?? ''; wrap.append(input); return wrap;
+}
+function orderFields(next, order) {
+  const fields = text('div', '', 'order-fields'), saved = order.workflow || {};
+  if (next === 'quoted') fields.append(inputField('报价金额', 'quoteAmount', saved.quoteAmount, 'number'), inputField('币种', 'currency', saved.currency || 'USD'), inputField('预计工期（天）', 'deliveryDays', saved.deliveryDays, 'number'));
+  if (next === 'in_production') fields.append(inputField('制作负责人', 'assignee', saved.assignee), inputField('计划交付日期', 'dueAt', saved.dueAt, 'date'));
+  if (next === 'quality_review') fields.append(inputField('成品文件/任务地址', 'deliverableReference', saved.deliverableReference));
+  if (next === 'user_acceptance') { const label = text('label', ' 平台已完成画面、声音、授权及设备适配检查'); const check = document.createElement('input'); check.type = 'checkbox'; check.name = 'qcPassed'; label.prepend(check); fields.append(label); }
+  if (next === 'delivered') fields.append(inputField('最终交付包编号或地址', 'deliveryReference', saved.deliveryReference));
+  return fields;
+}
 function showView(view) {
   activeView = view;
   document.querySelectorAll('[data-panel]').forEach(panel => panel.hidden = panel.dataset.panel !== view);
@@ -54,9 +67,15 @@ function renderOrders() {
     const actions = text('div', '', 'order-actions');
     for (const next of orderTransitions[order.status] || []) {
       const button = text('button', orderLabels[next], next === 'rejected' || next === 'withdrawn' ? 'danger' : next === 'needs_info' ? 'secondary' : '');
-      button.onclick = async () => { if ((next === 'needs_info' || next === 'rejected') && !note.value.trim()) { $('notice').textContent = '退回或拒绝时必须填写处理说明。'; note.focus(); return; } for (const item of actions.querySelectorAll('button')) item.disabled = true; try { await api(`/admin/customization-orders/${encodeURIComponent(order.id)}`, { version: order.version, status: next, note: note.value }); await refreshOrders(); $('notice').textContent = `订单已更新为“${orderLabels[next]}”。`; } catch (error) { $('notice').textContent = error.message; for (const item of actions.querySelectorAll('button')) item.disabled = false; } };
+      button.onclick = async () => {
+        if ((next === 'needs_info' || next === 'rejected') && !note.value.trim()) { $('notice').textContent = '退回或拒绝时必须填写处理说明。'; note.focus(); return; }
+        const fieldsNode = orderFields(next, order); if (fieldsNode.children.length) { actions.replaceChildren(fieldsNode); const confirmButton = text('button', `确认：${orderLabels[next]}`); actions.append(confirmButton); confirmButton.onclick = () => submit(confirmButton); return; }
+        await submit(button);
+        async function submit(trigger) { const fields = {}; for (const input of actions.querySelectorAll('[name]')) fields[input.name] = input.type === 'checkbox' ? input.checked : input.value; trigger.disabled = true; try { await api(`/admin/customization-orders/${encodeURIComponent(order.id)}`, { version: order.version, status: next, note: note.value, fields }); await refreshOrders(); $('notice').textContent = `订单已更新为“${orderLabels[next]}”。`; } catch (error) { $('notice').textContent = error.message; trigger.disabled = false; } }
+      };
       actions.append(button);
     }
+    if (order.workflow && Object.keys(order.workflow).length) { const overview = text('div', '', 'workflow-overview'); overview.append(text('h3', '履约信息')); for (const [key, value] of Object.entries(order.workflow)) overview.append(text('span', `${key}：${value === true ? '已完成' : value}`)); card.append(overview); }
     card.append(text('h3', '下一步处理'), note, actions);
     const history = text('details', '', 'order-history'); history.append(text('summary', `处理记录（${(order.workflowHistory || []).length}）`));
     for (const item of [...(order.workflowHistory || [])].reverse()) history.append(text('p', `${new Date(item.at).toLocaleString()}　${orderLabels[item.from] || item.from} → ${orderLabels[item.to] || item.to}${item.note ? `｜${item.note}` : ''}`));
@@ -76,10 +95,16 @@ function renderCreators() {
       text('div', `${creator.marketRegion} · ${(creator.skillTags || []).join(' / ') || '未填写技能'}`, 'meta'),
       text('p', `邮箱：${creator.email || '旧申请待补充'}`),
       text('p', `作品集：${creator.portfolioUrl || '未填写'}`), text('p', `申请编号：${creator.id}`));
-    const select = actionSelect(creatorLabels, creator.status), note = document.createElement('input'); note.placeholder = '审核说明（建议填写）';
-    const save = text('button', '保存审核结果', 'secondary');
-    save.onclick = async () => { save.disabled = true; try { await api(`/admin/creators/${encodeURIComponent(creator.id)}`, { version: creator.version, status: select.value, note: note.value }); await refreshCreators(); $('notice').textContent = '创作者状态已更新。'; } catch (error) { $('notice').textContent = error.message; save.disabled = false; } };
-    card.append(select, note, save); $('creator-cards').append(card);
+    const management = creator.management || {}, form = text('div', '', 'creator-management');
+    const select = actionSelect(creatorLabels, creator.status); select.name = 'status';
+    const tier = actionSelect({ standard: '标准创作者', verified: '认证创作者', partner: '签约伙伴' }, management.tier || 'standard'); tier.name = 'tier';
+    form.append(text('label', '账号状态'), select, text('label', '创作者等级'), tier,
+      inputField('平台分成比例（%）', 'commissionRate', management.commissionRate ?? 0, 'number'), inputField('运营负责人', 'manager', management.manager));
+    for (const [name, labelText] of [['identityVerified','身份已核验'],['agreementSigned','协议已签署'],['payoutReady','收款资料已完善'],['canPublish','允许提交内容']]) { const label = text('label', ` ${labelText}`); const check = document.createElement('input'); check.type = 'checkbox'; check.name = name; check.checked = management[name] === true; label.prepend(check); form.append(label); }
+    const note = document.createElement('textarea'); note.name = 'note'; note.rows = 2; note.placeholder = '审核与运营备注'; note.value = management.note || '';
+    const save = text('button', '保存创作者档案', 'secondary');
+    save.onclick = async () => { const body = { version: creator.version }; for (const input of form.querySelectorAll('[name]')) body[input.name] = input.type === 'checkbox' ? input.checked : input.value; body.note = note.value; save.disabled = true; try { await api(`/admin/creators/${encodeURIComponent(creator.id)}`, body); await refreshCreators(); $('notice').textContent = '创作者档案与权限已更新。'; } catch (error) { $('notice').textContent = error.message; save.disabled = false; } };
+    form.append(note, save); card.append(form); $('creator-cards').append(card);
   }
   if (!visible.length) $('creator-cards').append(text('p', '当前没有创作者申请。App 更新并提交申请后会显示在这里。', 'empty'));
 }
@@ -138,9 +163,21 @@ function render() {
   $('cards').replaceChildren();
   for (const item of visible) {
     const card = text('article', '', 'card');
+    card.classList.add(item.format === 'package' ? 'package-card' : 'single-card');
+    if (item.format === 'package') {
+      const cover = document.createElement('div'); cover.className = 'package-cover';
+      if (item.cover) { const image = document.createElement('img'); image.src = `/admin/covers/${item.cover.id}`; image.alt = `${item.title}角色主图`; cover.append(image); }
+      else cover.append(text('span', '角色主图待上传'));
+      card.append(cover);
+    }
     card.append(text('span', { published: '已发布', draft: '草稿', withdrawn: '已下架' }[item.status], 'status'),
       text('h2', item.title), text('div', `${item.source === 'hildors' ? 'HILDORS出品' : '创作者作品'} · ${item.format === 'single' ? '独立视频' : '角色视频包'} · ${item.clips.length}个视频`, 'meta'),
       text('p', item.tags.join(' / ') || '未设置题材标签'));
+    if (item.status === 'draft' && item.format === 'package') {
+      const coverLabel = text('label', item.cover ? '替换角色主图' : '上传角色主图（必需）'); const coverInput = document.createElement('input'); coverInput.type = 'file'; coverInput.accept = 'image/jpeg,image/png';
+      coverInput.onchange = async () => { const file = coverInput.files[0]; if (!file) return; coverInput.disabled = true; try { const response = await fetch(`/admin/packages/${encodeURIComponent(item.id)}/cover`, { method: 'PUT', credentials: 'same-origin', headers: { 'Content-Type': file.type, 'If-Match': String(item.version) }, body: file }); const result = await response.json(); if (!response.ok) throw new Error(messages[result.code] || '主图上传失败。'); await refresh(); $('notice').textContent = '角色主图已保存。'; } catch (error) { $('notice').textContent = error.message; coverInput.disabled = false; } }; coverLabel.append(coverInput); card.append(coverLabel);
+    }
+    const folderTitle = item.format === 'package' ? text('h3', `包内视频（${item.clips.length}）`) : null; if (folderTitle) card.append(folderTitle);
     const list = document.createElement('ul');
     for (const clip of item.clips) {
       const row = text('li', clip.title);
@@ -212,9 +249,10 @@ function render() {
     }
     const allMedia = item.clips.every(c => c.media);
     const allChecked = item.clips.every(c => c.media?.inspection?.status === 'checked');
-    card.append(list, text('p', item.demo ? '内置演示素材 · 厂家转码待接入' : item.status === 'published' ? '已发布到 App 内容目录' : !allMedia ? '下一步：为每个视频上传 MP4 素材' : !allChecked ? '下一步：检查全部素材并生成缩略图' : item.review?.decision === 'approved' ? '审核已通过，可发布到 App' : '素材已就绪，可审核并发布到 App', 'workflow-hint'));
+    const coverReady = item.format === 'single' || Boolean(item.cover) || item.demo;
+    card.append(list, text('p', item.demo ? '内置演示素材 · 厂家转码待接入' : item.status === 'published' ? '已发布到 App 内容目录' : !coverReady ? '下一步：上传角色主图' : !allMedia ? '下一步：为包内每个视频上传 MP4 素材' : !allChecked ? '下一步：检查全部素材并生成缩略图' : item.review?.decision === 'approved' ? '审核已通过，可发布到 App' : '素材已就绪，可审核并发布到 App', 'workflow-hint'));
     if (item.review) card.append(text('p', `审核：${item.review.decision === 'approved' ? '已通过' : '退回修改'} · ${item.review.note}`));
-    if (item.status === 'draft' && allChecked && item.review?.decision !== 'approved') {
+    if (item.status === 'draft' && coverReady && allChecked && item.review?.decision !== 'approved') {
       const reviewButton = text('button', '审核并发布到 App', 'publish-action');
       reviewButton.onclick = () => {
         reviewing = item; $('review-form').reset(); $('review-error').textContent = '';

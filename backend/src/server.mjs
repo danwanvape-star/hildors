@@ -4,7 +4,7 @@ import { mkdirSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { resolve } from 'node:path';
 import { createStore, seedDemos } from './store.mjs';
-import { receiveMedia, serveMedia } from './media.mjs';
+import { receiveMedia, receiveImage, serveImage, serveMedia } from './media.mjs';
 import { unlink } from 'node:fs/promises';
 import { inspectVideo } from './processor.mjs';
 import { authorizedClip } from './delivery.mjs';
@@ -27,6 +27,7 @@ function validDocument(value) {
 function publicPackage(item) {
   return { id: item.id, title: item.title, version: item.version, status: item.status,
     source: item.source, format: item.format, tags: item.tags, demo: item.demo,
+    ...(item.cover ? { coverPath: `/v1/covers/${item.cover.id}` } : {}),
     clips: item.clips.map(c => ({ id: c.id, title: c.title, hardwareReady: false,
       durationSeconds: c.media?.inspection?.durationSeconds ?? c.durationSeconds,
       ...(item.demo ? { bundledAsset: c.bundledAsset, thumbnail: c.thumbnail } : {}),
@@ -230,6 +231,12 @@ export function app(store, { adminToken = '', adminUsername = '', adminPassword 
         }
         return await serveMedia(req, res, mediaDirectory, publicMedia[1], { publicCache: true });
       }
+      const publicCover = /^\/v1\/covers\/([a-f0-9-]{36})$/.exec(path);
+      if (req.method === 'GET' && publicCover) {
+        const item = store.list().find(p => p.status === 'published' && p.cover?.id === publicCover[1]);
+        if (!item) return fail(404, 'NOT_FOUND');
+        return await serveImage(res, mediaDirectory, item.cover, { publicCache: true });
+      }
       if (req.method === 'GET' && path.startsWith('/v1/packages/')) {
         const item = store.get(decodeURIComponent(path.slice('/v1/packages/'.length)));
         return item?.status === 'published' ? send(200, publicPackage(item)) : fail(404, 'NOT_FOUND');
@@ -261,6 +268,12 @@ export function app(store, { adminToken = '', adminUsername = '', adminPassword 
         res.writeHead(200, { 'Content-Type': 'image/jpeg', 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' });
         return res.end(image);
       }
+      const adminCover = /^\/admin\/covers\/([a-f0-9-]{36})$/.exec(path);
+      if (req.method === 'GET' && adminCover) {
+        const item = store.list().find(p => p.cover?.id === adminCover[1]);
+        if (!item) return fail(404, 'NOT_FOUND');
+        return await serveImage(res, mediaDirectory, item.cover);
+      }
       const upload = /^\/admin\/packages\/([^/]+)\/clips\/([^/]+)\/media$/.exec(path);
       if (req.method === 'PUT' && upload) {
         const id = decodeURIComponent(upload[1]), clipId = decodeURIComponent(upload[2]);
@@ -271,6 +284,15 @@ export function app(store, { adminToken = '', adminUsername = '', adminPassword 
         const media = await receiveMedia(req, mediaDirectory, uploadLimit);
         try { return send(200, store.attachMedia(id, clipId, version, media)); }
         catch (error) { await unlink(resolve(mediaDirectory, `${media.id}.mp4`)).catch(() => {}); throw error; }
+      }
+      const coverUpload = /^\/admin\/packages\/([^/]+)\/cover$/.exec(path);
+      if (req.method === 'PUT' && coverUpload) {
+        const id = decodeURIComponent(coverUpload[1]), item = store.get(id), version = Number(req.headers['if-match']);
+        if (!item) return fail(404, 'NOT_FOUND');
+        if (item.status !== 'draft' || item.version !== version || item.format !== 'package') return fail(409, 'VERSION_OR_STATE_CONFLICT');
+        if (!['image/jpeg','image/png'].includes(req.headers['content-type'])) return fail(415, 'IMAGE_REQUIRED');
+        const cover = await receiveImage(req, mediaDirectory, req.headers['content-type']);
+        return send(200, store.attachCover(id, version, cover));
       }
       const mediaRoute = /^\/admin\/media\/([a-f0-9-]{36})$/.exec(path);
       if (req.method === 'GET' && mediaRoute) {
@@ -319,14 +341,14 @@ export function app(store, { adminToken = '', adminUsername = '', adminPassword 
         const chunks = []; for await (const chunk of req) chunks.push(chunk);
         let value; try { value = JSON.parse(Buffer.concat(chunks).toString('utf8')); } catch { return fail(400, 'INVALID_JSON'); }
         if (!Number.isInteger(value?.version) || typeof value?.status !== 'string' || typeof (value.note ?? '') !== 'string') return fail(400, 'INVALID_ORDER_UPDATE');
-        return send(200, store.updateCustomizationOrder(id, value.version, value.status, value.note ?? ''));
+        return send(200, store.updateCustomizationOrderWorkflow(id, value.version, value.status, value.note ?? '', value.fields ?? {}));
       }
       if (req.method === 'POST' && path.startsWith('/admin/creators/')) {
         const id = decodeURIComponent(path.slice('/admin/creators/'.length));
         const chunks = []; for await (const chunk of req) chunks.push(chunk);
         let value; try { value = JSON.parse(Buffer.concat(chunks).toString('utf8')); } catch { return fail(400, 'INVALID_JSON'); }
         if (!Number.isInteger(value?.version) || typeof value?.status !== 'string' || typeof (value.note ?? '') !== 'string') return fail(400, 'INVALID_CREATOR_UPDATE');
-        return send(200, store.reviewCreatorProfile(id, value.version, value.status, value.note ?? ''));
+        return send(200, store.manageCreatorProfile(id, value.version, value));
       }
       if (req.method === 'POST' && path === '/admin/layout/draft') {
         const chunks = []; let bytes = 0; for await (const chunk of req) { bytes += chunk.length; if (bytes > 65536) return fail(413, 'BODY_TOO_LARGE'); chunks.push(chunk); }
@@ -350,9 +372,12 @@ export function app(store, { adminToken = '', adminUsername = '', adminPassword 
     } catch (error) {
       if (error.message === 'EMAIL_IN_USE') return fail(409, 'EMAIL_IN_USE');
       if (error.message === 'INVALID_ORDER_TRANSITION') return fail(409, 'INVALID_ORDER_TRANSITION');
+      if (error.message.startsWith('ORDER_')) return fail(400, error.message);
+      if (error.message === 'INVALID_IMAGE') return fail(415, 'INVALID_IMAGE');
       if (error.message === 'UPLOAD_TOO_LARGE') return fail(413, 'UPLOAD_TOO_LARGE');
       if (error.message === 'INVALID_MP4') return fail(415, 'INVALID_MP4');
       if (error.message === 'MEDIA_REVIEW_REQUIRED') return fail(409, 'MEDIA_REVIEW_REQUIRED');
+      if (error.message === 'PACKAGE_COVER_REQUIRED') return fail(409, 'PACKAGE_COVER_REQUIRED');
       if (error.code === 'ENOENT') return fail(404, 'NOT_FOUND');
       return fail(error.message === 'CONFLICT' ? 409 : 500, error.message === 'CONFLICT' ? 'VERSION_OR_STATE_CONFLICT' : 'INTERNAL_ERROR');
     }

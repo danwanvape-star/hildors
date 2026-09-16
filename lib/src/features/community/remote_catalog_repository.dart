@@ -17,8 +17,10 @@ class RemoteCatalogPackage {
       required this.source,
       required this.format,
       required this.tags,
+      this.coverUrl,
       required this.clips});
   final String id, title, source, format;
+  final String? coverUrl;
   final List<String> tags;
   final List<RemoteCatalogClip> clips;
 
@@ -60,6 +62,7 @@ class RemoteCatalogPackage {
         title: requiredText(value, 'title'),
         source: value['source'] as String,
         format: value['format'] as String,
+        coverUrl: value['coverPath'] as String?,
         tags: (value['tags'] as List).map((t) {
           if (t is! String) throw const FormatException('标签格式无效');
           return t;
@@ -122,6 +125,7 @@ class RemoteCatalogRepository {
       title: package.title,
       source: package.source,
       format: package.format,
+      coverUrl: absolute(package.coverUrl),
       tags: package.tags,
       clips: package.clips
           .map((clip) => RemoteCatalogClip(

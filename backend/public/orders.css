@@ -25,6 +25,17 @@
 .order-step.current span { color: #062b29; background: #5edcc8; border-color: #5edcc8; }
 .order-actions { display: flex; flex-wrap: wrap; gap: 10px; }
 .order-actions .danger { color: #ffbbb8; background: #54252c; }
+.order-fields { display:grid; grid-template-columns:repeat(3,minmax(150px,1fr)); gap:12px; width:100%; }
+.order-fields label { margin:0; }
+.workflow-overview { display:flex; flex-wrap:wrap; gap:8px; margin:16px 0; padding:14px; border:1px solid #284158; border-radius:12px; background:#0b1623; }
+.workflow-overview h3 { width:100%; margin:0 0 4px; }
+.workflow-overview span { padding:7px 10px; border-radius:999px; background:#17283a; color:#a9bad0; font-size:12px; }
+.creator-management { display:grid; grid-template-columns:repeat(2,minmax(160px,1fr)); gap:12px; margin-top:16px; padding-top:16px; border-top:1px solid #26364a; }
+.creator-management textarea,.creator-management button { grid-column:1/-1; width:100%; }
+.package-card { border-color:#315369; background:linear-gradient(145deg,#111d2b,#111724); }
+.package-cover { aspect-ratio:16/9; display:grid; place-items:center; overflow:hidden; margin:-2px -2px 16px; border-radius:12px; background:radial-gradient(circle at 50% 40%,#294153,#0a111b 70%); color:#7890a8; }
+.package-cover img { width:100%; height:100%; object-fit:cover; }
+.package-card>ul { padding:14px; border-radius:12px; background:#09121d; }
 .order-history { margin-top: 18px; padding-top: 14px; border-top: 1px solid #26364a; }
 .order-history summary { cursor: pointer; color: #9eb2c9; }
 .order-history p { margin: 8px 0; font-size: 12px; }
@@ -33,3 +44,4 @@
   .order-progress { overflow-x: auto; grid-template-columns: repeat(7, 100px); }
 }
 @media (max-width: 700px) { .order-card { grid-column: span 1; } }
+@media (max-width: 700px) { .order-fields,.creator-management { grid-template-columns:1fr; } }

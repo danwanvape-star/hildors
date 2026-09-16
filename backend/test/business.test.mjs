@@ -68,3 +68,38 @@ test('app layout supports guarded draft, publication and rollback', async t => {
   assert.equal((await fetch(base + '/admin/layout/draft', { method: 'POST', headers: adminHeaders,
     body: JSON.stringify({ version: rolledBack.version, layout: changed }) })).status, 400);
 });
+
+test('order workflow captures commercial controls and creator management permissions', () => {
+  const store = createStore();
+  try {
+    const user = store.createUser('workflow-user');
+    let order = store.createCustomizationOrder(user, { characterName: '角色 A' });
+    order = store.updateCustomizationOrderWorkflow(order.id, order.version, 'approved_for_quote', '预审通过');
+    assert.throws(() => store.updateCustomizationOrderWorkflow(order.id, order.version, 'quoted', '', {}), /ORDER_QUOTE_REQUIRED/);
+    order = store.updateCustomizationOrderWorkflow(order.id, order.version, 'quoted', '报价完成',
+      { quoteAmount: 399, currency: 'USD', deliveryDays: 14 });
+    assert.equal(order.workflow.quoteAmount, 399);
+    assert.equal(order.workflow.currency, 'USD');
+    assert.throws(() => store.updateCustomizationOrderWorkflow(order.id, order.version, 'in_production', '', {}), /ORDER_PRODUCTION_REQUIRED/);
+
+    let creator = store.upsertCreatorProfile(user, { displayName: 'Creator', email: 'creator@example.test' });
+    creator = store.manageCreatorProfile(creator.id, creator.version, { status: 'approved', tier: 'partner',
+      commissionRate: 30, manager: '运营 A', canPublish: true, identityVerified: true,
+      agreementSigned: true, payoutReady: false, note: '批准合作' });
+    assert.equal(creator.management.tier, 'partner');
+    assert.equal(creator.management.canPublish, true);
+    assert.equal(creator.management.payoutReady, false);
+  } finally { store.close(); }
+});
+
+test('character package keeps a separate cover asset from its clips', () => {
+  const store = createStore();
+  try {
+    const item = store.create({ title: '角色包', source: 'hildors', format: 'package', tags: ['游戏'],
+      clips: [{ id: 'idle', title: '待机' }, { id: 'dance', title: '舞蹈' }] });
+    const covered = store.attachCover(item.id, item.version,
+      { id: 'cover-id', extension: 'jpg', contentType: 'image/jpeg', bytes: 100 });
+    assert.equal(covered.cover.id, 'cover-id');
+    assert.deepEqual(covered.clips.map(clip => clip.id), ['idle', 'dance']);
+  } finally { store.close(); }
+});

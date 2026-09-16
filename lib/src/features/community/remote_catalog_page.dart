@@ -226,15 +226,16 @@ class _RemoteCatalogPageState extends State<RemoteCatalogPage> {
                           aspectRatio: 1,
                           child: ColoredBox(
                               color: const Color(0xff101d2c),
-                              child: item.clips.first.thumbnailUrl != null
+                              child: (item.coverUrl ?? item.clips.first.thumbnailUrl) !=
+                                      null
                                   ? Image.network(
-                                      item.clips.first.thumbnailUrl!,
+                                      (item.coverUrl ??
+                                          item.clips.first.thumbnailUrl)!,
                                       fit: BoxFit.contain,
-                                      errorBuilder: (_, __, ___) =>
-                                          const Center(
-                                              child: Icon(
-                                                  Icons.broken_image_outlined,
-                                                  size: 36)))
+                                      errorBuilder: (_, __, ___) => const Center(
+                                          child: Icon(
+                                              Icons.broken_image_outlined,
+                                              size: 36)))
                                   : const Center(
                                       child: Icon(Icons.video_library_outlined,
                                           size: 36)))),

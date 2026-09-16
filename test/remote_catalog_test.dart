@@ -10,6 +10,7 @@ Map<String, dynamic> item(String id, {bool withMedia = false}) => {
       'status': 'published',
       'source': 'creator',
       'format': 'package',
+      'coverPath': '/v1/covers/cover-$id',
       'tags': ['神话'],
       'clips': [
         {
@@ -40,6 +41,7 @@ void main() {
         'https://example.test/v1/media/video-id');
     expect(packages.first.clips.single.thumbnailUrl,
         'https://example.test/v1/media/video-id/thumbnail');
+    expect(packages.first.coverUrl, 'https://example.test/v1/covers/cover-a');
     expect(requests.last.queryParameters['cursor'], 'a');
   });
   test('分页重复和未发布内容不能静默混入目录', () async {

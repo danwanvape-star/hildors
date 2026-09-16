@@ -147,6 +147,28 @@ export function createStore(path = ':memory:') {
         .run(status, JSON.stringify(document), now, id);
       return this.getCustomizationOrder(id);
     },
+    updateCustomizationOrderWorkflow(id, version, status, note = '', fields = {}) {
+      const current = this.getCustomizationOrder(id);
+      if (!current || current.version !== version) throw new Error('CONFLICT');
+      const transitions = { free_review: ['needs_info','approved_for_quote','rejected'], needs_info: ['free_review','approved_for_quote','rejected'],
+        approved_for_quote: ['quoted','needs_info','rejected'], quoted: ['in_production','needs_info','withdrawn'],
+        in_production: ['quality_review'], quality_review: ['in_production','user_acceptance'],
+        user_acceptance: ['quality_review','delivered'], delivered: [], rejected: ['free_review'], withdrawn: [] };
+      if (status !== current.status && !transitions[current.status]?.includes(status)) throw new Error('INVALID_ORDER_TRANSITION');
+      const clean = value => typeof value === 'string' ? value.trim() : value;
+      const patch = Object.fromEntries(Object.entries(fields ?? {}).map(([key, value]) => [key, clean(value)]));
+      if (status === 'quoted' && (!(Number(patch.quoteAmount) > 0) || !patch.currency || !(Number(patch.deliveryDays) > 0))) throw new Error('ORDER_QUOTE_REQUIRED');
+      if (status === 'in_production' && (!patch.assignee || !patch.dueAt)) throw new Error('ORDER_PRODUCTION_REQUIRED');
+      if (status === 'quality_review' && !patch.deliverableReference) throw new Error('ORDER_DELIVERABLE_REQUIRED');
+      if (status === 'user_acceptance' && patch.qcPassed !== true) throw new Error('ORDER_QC_REQUIRED');
+      if (status === 'delivered' && !patch.deliveryReference) throw new Error('ORDER_DELIVERY_REQUIRED');
+      const next = this.updateCustomizationOrder(id, version, status, note);
+      const document = { ...next, workflow: { ...(current.workflow ?? {}), ...patch }, status: undefined, id: undefined,
+        userId: undefined, version: undefined, createdAt: undefined, updatedAt: undefined };
+      db.prepare('UPDATE customization_orders SET document=?,version=version+1,updated_at=? WHERE id=?')
+        .run(JSON.stringify(document), new Date().toISOString(), id);
+      return this.getCustomizationOrder(id);
+    },
     upsertCreatorProfile(userId, document) {
       const email = String(document.email ?? '').trim().toLowerCase();
       if (!email) throw new Error('INVALID_CREATOR_PROFILE');
@@ -182,6 +204,25 @@ export function createStore(path = ':memory:') {
       const now = new Date().toISOString();
       db.prepare('UPDATE creator_profiles SET status=?,document=?,version=version+1,updated_at=? WHERE id=?')
         .run(status, JSON.stringify(document), now, id);
+      return this.getCreatorProfile(id);
+    },
+    manageCreatorProfile(id, version, value) {
+      const current = this.getCreatorProfile(id);
+      if (!current || current.version !== version) throw new Error('CONFLICT');
+      if (!['pending','approved','rejected','suspended'].includes(value.status)) throw new Error('INVALID_CREATOR_STATUS');
+      const commissionRate = Number(value.commissionRate ?? 0);
+      if (!Number.isFinite(commissionRate) || commissionRate < 0 || commissionRate > 100) throw new Error('INVALID_CREATOR_PROFILE');
+      const management = { tier: String(value.tier ?? 'standard').trim(), commissionRate,
+        manager: String(value.manager ?? '').trim(), canPublish: value.canPublish === true,
+        identityVerified: value.identityVerified === true, agreementSigned: value.agreementSigned === true,
+        payoutReady: value.payoutReady === true, note: String(value.note ?? '').trim() };
+      const history = Array.isArray(current.managementHistory) ? [...current.managementHistory] : [];
+      history.push({ at: new Date().toISOString(), status: value.status, manager: management.manager, note: management.note });
+      const document = { ...current, management, managementHistory: history, reviewNote: management.note,
+        status: undefined, id: undefined, userId: undefined, version: undefined, createdAt: undefined, updatedAt: undefined };
+      const now = new Date().toISOString();
+      db.prepare('UPDATE creator_profiles SET status=?,document=?,version=version+1,updated_at=? WHERE id=?')
+        .run(value.status, JSON.stringify(document), now, id);
       return this.getCreatorProfile(id);
     },
     getLayout() {
@@ -250,6 +291,16 @@ export function createStore(path = ':memory:') {
         audit(id, 'media_uploaded'); return get(id);
       });
     },
+    attachCover(id, version, cover) {
+      return transaction(() => {
+        const current = get(id);
+        if (!current || current.status !== 'draft' || current.version !== version || current.format !== 'package') throw new Error('CONFLICT');
+        current.cover = cover; delete current.review;
+        delete current.id; delete current.status; delete current.version;
+        db.prepare('UPDATE packages SET document=?,version=version+1 WHERE id=?').run(JSON.stringify(current), id);
+        audit(id, 'cover_uploaded'); return get(id);
+      });
+    },
     list: () => db.prepare('SELECT * FROM packages ORDER BY id').all().map(decode),
     create(document, id = randomUUID()) {
       return transaction(() => {
@@ -269,6 +320,7 @@ export function createStore(path = ':memory:') {
         }
         if (next === 'published' && !current.demo && (current.review?.decision !== 'approved'
           || !current.clips.every(c => c.media?.inspection?.status === 'checked'))) throw new Error('MEDIA_REVIEW_REQUIRED');
+        if (next === 'published' && current.format === 'package' && !current.cover && !current.demo) throw new Error('PACKAGE_COVER_REQUIRED');
         db.prepare('UPDATE packages SET status=?,version=version+1 WHERE id=?').run(next, id);
         audit(id, next); return get(id);
       });
