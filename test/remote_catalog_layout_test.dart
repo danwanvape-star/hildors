@@ -72,4 +72,30 @@ void main() {
     expect(find.text('创作者角色'), findsWidgets);
     expect(find.text('暂时无法加载内容库'), findsNothing);
   });
+
+  testWidgets('可按后台题材标签和内容形式组合筛选', (tester) async {
+    tester.view.physicalSize = const Size(390, 1100);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    await tester.pumpWidget(MaterialApp(
+        home: Scaffold(body: RemoteCatalogPage(load: () async => packages))));
+    await tester.pumpAndSettle();
+
+    expect(find.widgetWithText(ChoiceChip, '游戏'), findsOneWidget);
+    expect(find.widgetWithText(ChoiceChip, '二次元'), findsOneWidget);
+    expect(find.widgetWithText(ChoiceChip, '角色视频包'), findsOneWidget);
+    await tester.tap(find.widgetWithText(ChoiceChip, '角色视频包'));
+    await tester.pumpAndSettle();
+    expect(find.text('创作者角色'), findsOneWidget);
+    expect(find.text('官方角色'), findsNothing);
+
+    await tester.tap(find.widgetWithText(ChoiceChip, '游戏'));
+    await tester.pumpAndSettle();
+    expect(find.text('暂无符合条件的内容'), findsOneWidget);
+    await tester.tap(find.text('清除筛选'));
+    await tester.pumpAndSettle();
+    expect(find.text('官方角色'), findsWidgets);
+    expect(find.text('创作者角色'), findsWidgets);
+  });
 }

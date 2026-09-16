@@ -23,7 +23,8 @@ class RemoteCatalogPage extends StatefulWidget {
 
 class _RemoteCatalogPageState extends State<RemoteCatalogPage> {
   late Future<_CatalogData> _request;
-  String query = '', source = '全部';
+  final searchController = TextEditingController();
+  String query = '', source = '全部', format = '全部', topic = '全部';
 
   @override
   void initState() {
@@ -32,6 +33,12 @@ class _RemoteCatalogPageState extends State<RemoteCatalogPage> {
   }
 
   void _reload() => _request = _loadData();
+
+  @override
+  void dispose() {
+    searchController.dispose();
+    super.dispose();
+  }
 
   Future<_CatalogData> _loadData() async {
     final packages = await widget.load();
@@ -65,14 +72,25 @@ class _RemoteCatalogPageState extends State<RemoteCatalogPage> {
             ]));
           }
           final data = snapshot.data!;
+          final topics = data.packages
+              .expand((item) => item.tags)
+              .where((tag) => tag.trim().isNotEmpty)
+              .toSet()
+              .toList()
+            ..sort();
           final items = data.packages
               .where((p) =>
                   (source == '全部' || p.source == source) &&
+                  (format == '全部' || p.format == format) &&
+                  (topic == '全部' || p.tags.contains(topic)) &&
                   '${p.title} ${p.tags.join(' ')}'
                       .toLowerCase()
                       .contains(query.trim().toLowerCase()))
               .toList(growable: false);
-          final filtering = query.trim().isNotEmpty || source != '全部';
+          final filtering = query.trim().isNotEmpty ||
+              source != '全部' ||
+              format != '全部' ||
+              topic != '全部';
           return ListView(padding: const EdgeInsets.all(16), children: [
             Row(children: [
               const Expanded(
@@ -91,28 +109,44 @@ class _RemoteCatalogPageState extends State<RemoteCatalogPage> {
                 style: const TextStyle(fontSize: 12)),
             const SizedBox(height: 12),
             TextField(
+                controller: searchController,
                 onChanged: (value) => setState(() => query = value),
                 decoration: const InputDecoration(
                     hintText: '搜索角色、视频或题材', prefixIcon: Icon(Icons.search))),
             const SizedBox(height: 12),
-            Wrap(spacing: 8, children: [
-              for (final entry in const {
-                '全部': '全部',
-                'hildors': 'HILDORS 出品',
-                'creator': '创作者作品'
-              }.entries)
-                ChoiceChip(
-                    label: Text(entry.value),
-                    selected: source == entry.key,
-                    onSelected: (_) => setState(() => source = entry.key))
-            ]),
+            _filterRow(
+                '出处',
+                const {'全部': '全部', 'hildors': 'HILDORS 出品', 'creator': '创作者作品'},
+                source,
+                (value) => setState(() => source = value)),
+            _filterRow(
+                '形式',
+                const {
+                  '全部': '全部',
+                  'single': '单条视频',
+                  'package': '角色视频包',
+                },
+                format,
+                (value) => setState(() => format = value)),
+            if (topics.isNotEmpty)
+              _filterRow('题材', {'全部': '全部', for (final tag in topics) tag: tag},
+                  topic, (value) => setState(() => topic = value)),
             const SizedBox(height: 6),
             if (items.isEmpty)
               const Padding(
                   padding: EdgeInsets.all(24), child: Text('暂无符合条件的内容')),
-            if (filtering && items.isNotEmpty) ...[
-              const _SectionTitle('筛选结果'),
-              _grid(items, 3),
+            if (filtering) ...[
+              Row(children: [
+                const Expanded(child: _SectionTitle('筛选结果')),
+                TextButton(
+                    onPressed: () => setState(() {
+                          source = format = topic = '全部';
+                          query = '';
+                          searchController.clear();
+                        }),
+                    child: const Text('清除筛选')),
+              ]),
+              if (items.isNotEmpty) _grid(items, 3),
             ] else
               for (final block in data.layout) ...[
                 if (_itemsFor(block, items).isNotEmpty) ...[
@@ -122,6 +156,33 @@ class _RemoteCatalogPageState extends State<RemoteCatalogPage> {
               ],
           ]);
         },
+      );
+
+  Widget _filterRow(String label, Map<String, String> options, String selected,
+          ValueChanged<String> onSelected) =>
+      Padding(
+        padding: const EdgeInsets.only(top: 8),
+        child: Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
+          SizedBox(
+              width: 38,
+              child: Text(label,
+                  style:
+                      const TextStyle(fontSize: 12, color: Color(0xff91a6ba)))),
+          Expanded(
+              child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(children: [
+              for (final entry in options.entries)
+                Padding(
+                  padding: const EdgeInsets.only(right: 6),
+                  child: ChoiceChip(
+                      label: Text(entry.value),
+                      selected: selected == entry.key,
+                      onSelected: (_) => onSelected(entry.key)),
+                ),
+            ]),
+          )),
+        ]),
       );
 
   List<RemoteCatalogPackage> _itemsFor(
