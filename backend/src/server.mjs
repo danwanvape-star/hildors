@@ -38,7 +38,7 @@ function publicPackage(item) {
 
 function validLayout(value) {
   const allowed = {
-    collection: new Set(['featured', 'hildors', 'creators']),
+    collection: new Set(['hildors', 'creators']),
     discover: new Set(['customization', 'character_portal', 'creator_join']),
   };
   if (!value || value.schemaVersion !== 1 || !value.pages || typeof value.pages !== 'object') return false;
@@ -149,12 +149,15 @@ export function app(store, { adminToken = '', adminUsername = '', adminPassword 
           for await (const chunk of req) { bytes += chunk.length; if (bytes > 32768) return fail(413, 'BODY_TOO_LARGE'); chunks.push(chunk); }
           let value; try { value = JSON.parse(Buffer.concat(chunks).toString('utf8')); } catch { return fail(400, 'INVALID_JSON'); }
           if (!value || typeof value.displayName !== 'string' || !value.displayName.trim() || value.displayName.length > 80
+            || typeof value.email !== 'string' || value.email.length > 254
+            || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(value.email.trim())
             || typeof value.portfolioUrl !== 'string' || value.portfolioUrl.length > 500
             || !Array.isArray(value.skillTags) || value.skillTags.length > 20
             || !value.skillTags.every(x => typeof x === 'string' && x.length <= 60)
             || typeof value.marketRegion !== 'string' || value.marketRegion.length > 32
             || typeof value.agreementVersion !== 'string' || !value.agreementVersion.trim()) return fail(400, 'INVALID_CREATOR_PROFILE');
           return send(200, store.upsertCreatorProfile(userId, { displayName: value.displayName.trim(),
+            email: value.email.trim().toLowerCase(),
             portfolioUrl: value.portfolioUrl.trim(), skillTags: value.skillTags,
             marketRegion: value.marketRegion, agreementVersion: value.agreementVersion,
             agreementAcceptedAt: new Date().toISOString() }));
@@ -345,6 +348,7 @@ export function app(store, { adminToken = '', adminUsername = '', adminPassword 
       }
       return fail(404, 'NOT_FOUND');
     } catch (error) {
+      if (error.message === 'EMAIL_IN_USE') return fail(409, 'EMAIL_IN_USE');
       if (error.message === 'UPLOAD_TOO_LARGE') return fail(413, 'UPLOAD_TOO_LARGE');
       if (error.message === 'INVALID_MP4') return fail(415, 'INVALID_MP4');
       if (error.message === 'MEDIA_REVIEW_REQUIRED') return fail(409, 'MEDIA_REVIEW_REQUIRED');

@@ -10,6 +10,7 @@ class CreatorProfile {
     required this.status,
     required this.agreementVersion,
     required this.submittedAt,
+    this.email = '',
     this.skillTags = const [],
     this.marketRegion = 'other',
     this.settlementCurrency,
@@ -27,6 +28,7 @@ class CreatorProfile {
   final String status;
   final String agreementVersion;
   final String submittedAt;
+  final String email;
   final List<String> skillTags;
   final String marketRegion;
   final String? settlementCurrency;
@@ -44,6 +46,7 @@ class CreatorProfile {
         'status': status,
         'agreementVersion': agreementVersion,
         'submittedAt': submittedAt,
+        'email': email,
         'skillTags': skillTags,
         'marketRegion': marketRegion,
         'settlementCurrency': settlementCurrency,
@@ -76,6 +79,7 @@ class CreatorProfile {
       status: status,
       agreementVersion: agreementVersion,
       submittedAt: submittedAt,
+      email: value['email'] as String? ?? '',
       skillTags: (value['skillTags'] as List? ?? const [])
           .whereType<String>()
           .toList(),
@@ -101,6 +105,7 @@ abstract interface class CreatorProfileRepository {
     required String agreementVersion,
     required List<String> skillTags,
     required String marketRegion,
+    String email = '',
   });
 
   Future<void> approveApplication();
@@ -144,6 +149,7 @@ class LocalCreatorProfileRepository implements CreatorProfileRepository {
     required String agreementVersion,
     required List<String> skillTags,
     required String marketRegion,
+    String email = '',
   }) async {
     final file = await _file();
     final profile = CreatorProfile(
@@ -154,6 +160,7 @@ class LocalCreatorProfileRepository implements CreatorProfileRepository {
       submittedAt: DateTime.now().toUtc().toIso8601String(),
       skillTags: List.of(skillTags),
       marketRegion: marketRegion,
+      email: email.trim().toLowerCase(),
     );
     await file.writeAsString(jsonEncode(profile.toJson()), flush: true);
   }
@@ -169,6 +176,7 @@ class LocalCreatorProfileRepository implements CreatorProfileRepository {
       status: '已认证',
       agreementVersion: profile.agreementVersion,
       submittedAt: profile.submittedAt,
+      email: profile.email,
       skillTags: profile.skillTags,
       marketRegion: profile.marketRegion,
       settlementCurrency: profile.marketRegion == 'cn_mainland' ? 'CNY' : 'USD',
@@ -237,6 +245,7 @@ class MemoryCreatorProfileRepository implements CreatorProfileRepository {
     required String agreementVersion,
     required List<String> skillTags,
     required String marketRegion,
+    String email = '',
   }) async {
     profile = CreatorProfile(
       displayName: displayName,
@@ -246,6 +255,7 @@ class MemoryCreatorProfileRepository implements CreatorProfileRepository {
       submittedAt: DateTime.now().toUtc().toIso8601String(),
       skillTags: List.of(skillTags),
       marketRegion: marketRegion,
+      email: email.trim().toLowerCase(),
     );
   }
 
@@ -260,6 +270,7 @@ class MemoryCreatorProfileRepository implements CreatorProfileRepository {
       status: '已认证',
       agreementVersion: current.agreementVersion,
       submittedAt: current.submittedAt,
+      email: current.email,
       skillTags: current.skillTags,
       marketRegion: current.marketRegion,
       settlementCurrency: current.marketRegion == 'cn_mainland' ? 'CNY' : 'USD',
@@ -318,6 +329,7 @@ CreatorProfile creatorProfileWithCloudReview(
     'rejected': '未通过',
     'suspended': '已停用',
     'sync_failed': '待同步',
+    'email_required': '待补充邮箱',
   };
   return CreatorProfile(
     displayName: profile.displayName,
@@ -325,6 +337,7 @@ CreatorProfile creatorProfileWithCloudReview(
     status: labels[status] ?? profile.status,
     agreementVersion: profile.agreementVersion,
     submittedAt: profile.submittedAt,
+    email: profile.email,
     skillTags: profile.skillTags,
     marketRegion: profile.marketRegion,
     settlementCurrency: status == 'approved'
@@ -356,6 +369,7 @@ CreatorProfile _copyCreatorProfile(
       status: profile.status,
       agreementVersion: profile.agreementVersion,
       submittedAt: profile.submittedAt,
+      email: profile.email,
       skillTags: profile.skillTags,
       marketRegion: profile.marketRegion,
       settlementCurrency: profile.settlementCurrency,

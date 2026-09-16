@@ -1449,6 +1449,7 @@ class _OrderStage extends StatelessWidget {
 
 typedef CreatorCloudSubmit = Future<bool> Function({
   required String displayName,
+  required String email,
   required String portfolioUrl,
   required String agreementVersion,
   required List<String> skillTags,
@@ -1478,6 +1479,7 @@ class _CreatorHubPageState extends State<CreatorHubPage>
   late final CreatorProfileRepository repository =
       widget.profileRepository ?? const LocalCreatorProfileRepository();
   final nameController = TextEditingController();
+  final emailController = TextEditingController();
   final portfolioController = TextEditingController();
   final payoutReferenceController = TextEditingController();
   CreatorProfile? profile;
@@ -1501,6 +1503,7 @@ class _CreatorHubPageState extends State<CreatorHubPage>
   Future<bool> _submitCloudProfile(CreatorProfile value) =>
       widget.cloudProfileSubmitter?.call(
         displayName: value.displayName,
+        email: value.email,
         portfolioUrl: value.portfolioUrl,
         agreementVersion: value.agreementVersion,
         skillTags: value.skillTags,
@@ -1508,6 +1511,7 @@ class _CreatorHubPageState extends State<CreatorHubPage>
       ) ??
       CloudBusinessIntake.instance.submitCreatorProfile(
         displayName: value.displayName,
+        email: value.email,
         portfolioUrl: value.portfolioUrl,
         agreementVersion: value.agreementVersion,
         skillTags: value.skillTags,
@@ -1522,6 +1526,9 @@ class _CreatorHubPageState extends State<CreatorHubPage>
   Future<void> _reload() => loadGateData(() async {
         final local = await repository.loadProfile();
         if (local == null) return null;
+        if (local.email.isEmpty && local.status != '已认证') {
+          return creatorProfileWithCloudReview(local, status: 'email_required');
+        }
         if (!_cloudConfigured) return local;
         var cloud = await _loadCloudProfile();
         if (cloud == null && local.status == '审核中') {
@@ -1536,13 +1543,25 @@ class _CreatorHubPageState extends State<CreatorHubPage>
                 reviewedAt: cloud?['updatedAt'] as String?,
               )
             : creatorProfileWithCloudReview(local, status: 'sync_failed');
-      }, (loaded) => profile = loaded);
+      }, (loaded) {
+        profile = loaded;
+        if (loaded != null && loaded.email.isEmpty) {
+          nameController.text = loaded.displayName;
+          portfolioController.text = loaded.portfolioUrl;
+          selectedSkills
+            ..clear()
+            ..addAll(loaded.skillTags);
+          creatorMarketRegion = loaded.marketRegion;
+        }
+      });
 
   Future<void> _submit() async {
     if (submitting || gateLoading || !mounted) return;
     final name = nameController.text.trim();
+    final email = emailController.text.trim().toLowerCase();
     final portfolio = portfolioController.text.trim();
     if (name.isEmpty ||
+        !RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(email) ||
         portfolio.isEmpty ||
         selectedSkills.isEmpty ||
         creatorMarketRegion == null ||
@@ -1554,6 +1573,7 @@ class _CreatorHubPageState extends State<CreatorHubPage>
     try {
       await repository.submitApplication(
         displayName: name,
+        email: email,
         portfolioUrl: portfolio,
         agreementVersion: 'creator-marketplace-v1',
         skillTags: selectedSkills.toList(),
@@ -1595,6 +1615,7 @@ class _CreatorHubPageState extends State<CreatorHubPage>
   @override
   void dispose() {
     nameController.dispose();
+    emailController.dispose();
     portfolioController.dispose();
     payoutReferenceController.dispose();
     super.dispose();
@@ -1607,7 +1628,7 @@ class _CreatorHubPageState extends State<CreatorHubPage>
           appBar: AppBar(title: const Text('创作者工作台')),
           body: GateLoadPanel(failed: gateLoadFailed, onRetry: _reload));
     }
-    if (profile?.status == '已认证' && profile?.payoutAccountStatus == '已核验') {
+    if (profile?.status == '已认证') {
       return CreatorTaskBoardPage(
         orderRepository: widget.orderRepository,
         creatorSkills: profile!.skillTags.toSet(),
@@ -1720,7 +1741,7 @@ class _CreatorHubPageState extends State<CreatorHubPage>
                 description: '',
                 icon: Icons.draw_outlined),
             const SizedBox(height: 8),
-            const Text('平台将检查作品集、身份与收款资格。通过后才能访问脱敏任务。'),
+            const Text('平台将检查邮箱、作品集和身份。收款资料可在认证通过后补充。'),
             const SizedBox(height: 20),
             Text('擅长方向', style: GateDesign.theme().textTheme.titleMedium),
             const SizedBox(height: 8),
@@ -1771,6 +1792,19 @@ class _CreatorHubPageState extends State<CreatorHubPage>
             ),
             const SizedBox(height: 12),
             TextField(
+              key: const Key('creator-email'),
+              controller: emailController,
+              enabled: !submitting,
+              keyboardType: TextInputType.emailAddress,
+              autofillHints: const [AutofillHints.email],
+              decoration: const InputDecoration(
+                labelText: '邮箱（创作者唯一识别）',
+                helperText: '一个邮箱只能注册一个创作者账号。',
+              ),
+              onChanged: (_) => setState(() {}),
+            ),
+            const SizedBox(height: 12),
+            TextField(
               controller: portfolioController,
               enabled: !submitting,
               keyboardType: TextInputType.url,
@@ -1798,6 +1832,8 @@ class _CreatorHubPageState extends State<CreatorHubPage>
             FilledButton(
               onPressed: !submitting &&
                       nameController.text.trim().isNotEmpty &&
+                      RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$')
+                          .hasMatch(emailController.text.trim()) &&
                       portfolioController.text.trim().isNotEmpty &&
                       selectedSkills.isNotEmpty &&
                       creatorMarketRegion != null &&

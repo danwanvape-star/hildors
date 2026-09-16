@@ -68,7 +68,10 @@ class _RemoteCatalogPageState extends State<RemoteCatalogPage> {
               const Padding(
                   padding: EdgeInsets.all(16), child: Text('请检查网络连接后重试。')),
               FilledButton(
-                  onPressed: () => setState(_reload), child: const Text('重试')),
+                  onPressed: () => setState(() {
+                        _reload();
+                      }),
+                  child: const Text('重试')),
             ]));
           }
           final data = snapshot.data!;
@@ -99,7 +102,9 @@ class _RemoteCatalogPageState extends State<RemoteCatalogPage> {
                           fontSize: 20, fontWeight: FontWeight.bold))),
               IconButton(
                   tooltip: '刷新目录',
-                  onPressed: () => setState(_reload),
+                  onPressed: () => setState(() {
+                        _reload();
+                      }),
                   icon: const Icon(Icons.refresh))
             ]),
             Text(
@@ -188,7 +193,6 @@ class _RemoteCatalogPageState extends State<RemoteCatalogPage> {
   List<RemoteCatalogPackage> _itemsFor(
       RemoteLayoutBlock block, List<RemoteCatalogPackage> items) {
     return switch (block.type) {
-      'featured' => items.take(6).toList(growable: false),
       'hildors' =>
         items.where((item) => item.source == 'hildors').toList(growable: false),
       'creators' =>
@@ -319,12 +323,6 @@ class _CatalogData {
 }
 
 const _fallbackCollectionLayout = [
-  RemoteLayoutBlock(
-      id: 'collection-featured',
-      type: 'featured',
-      title: '精选角色',
-      visible: true,
-      columns: 3),
   RemoteLayoutBlock(
       id: 'collection-hildors',
       type: 'hildors',

@@ -74,6 +74,11 @@ class _FanFramingPageState extends State<FanFramingPage> {
     try {
       if (widget.asset) {
         player = await createBundledVideoController(widget.source);
+      } else if (Uri.tryParse(widget.source)?.hasAbsolutePath == true &&
+          (widget.source.startsWith('http://') ||
+              widget.source.startsWith('https://'))) {
+        player = VideoPlayerController.networkUrl(Uri.parse(widget.source));
+        await player.initialize();
       } else {
         player = VideoPlayerController.file(File(widget.source));
         await player.initialize();

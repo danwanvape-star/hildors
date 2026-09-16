@@ -175,6 +175,7 @@ class CloudBusinessIntake {
 
   Future<bool> submitCreatorProfile({
     required String displayName,
+    required String email,
     required String portfolioUrl,
     required String agreementVersion,
     required List<String> skillTags,
@@ -182,6 +183,7 @@ class CloudBusinessIntake {
   }) =>
       _post('/v1/me/creator-profile', {
         'displayName': displayName,
+        'email': email.trim().toLowerCase(),
         'portfolioUrl': portfolioUrl,
         'agreementVersion': agreementVersion,
         'skillTags': skillTags,

@@ -3,6 +3,8 @@ import '../customization/character_gate_prototype_pages.dart';
 import '../customization/character_entitlement_repository.dart';
 import '../video/character_package_page.dart';
 import '../video/character_video_package.dart';
+import '../video/device_playlist_draft.dart';
+import '../video/pending_playlist_store.dart';
 import 'remote_catalog_page.dart';
 import 'remote_catalog_repository.dart';
 import 'remote_layout_repository.dart';
@@ -104,6 +106,12 @@ class _CollectionCatalogPageState extends State<CollectionCatalogPage> {
         load: () => RemoteCatalogRepository(backendUrl).load(),
         loadLayout: () =>
             RemoteLayoutRepository(backendUrl).loadPage('collection'),
+        clipActions: (package, clip) => _RemotePlaylistAction(
+          packageId: package.id,
+          clipId: clip.id,
+          title: clip.title,
+          source: clip.previewUrl,
+        ),
       );
     }
     final items = filterCollectionCatalog(
@@ -344,5 +352,69 @@ class _CollectionCatalogPageState extends State<CollectionCatalogPage> {
                               style: const TextStyle(
                                   fontSize: 10, color: Color(0xff9aabc0)))),
                     ]))),
+      );
+}
+
+class _RemotePlaylistAction extends StatelessWidget {
+  const _RemotePlaylistAction({
+    required this.packageId,
+    required this.clipId,
+    required this.title,
+    required this.source,
+  });
+
+  final String packageId, clipId, title;
+  final String? source;
+
+  Future<void> _add(BuildContext context, DevicePlaylistKind kind) async {
+    final url = source;
+    if (url == null || url.isEmpty) return;
+    await PendingPlaylistStore.merge(kind, {
+      'cloud:$packageId:$clipId': (title: title, source: url, asset: false),
+    });
+    if (!context.mounted) return;
+    Navigator.of(context).pop();
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(
+          '已加入${kind == DevicePlaylistKind.startup ? '日常展示' : '音乐联动'}播放列表'),
+    ));
+  }
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.only(bottom: 14),
+        child: FilledButton.tonalIcon(
+          onPressed: source == null
+              ? null
+              : () => showModalBottomSheet<void>(
+                    context: context,
+                    builder: (sheetContext) => SafeArea(
+                      child: Padding(
+                        padding: const EdgeInsets.all(18),
+                        child:
+                            Column(mainAxisSize: MainAxisSize.min, children: [
+                          const Text('加入播放列表',
+                              style: TextStyle(
+                                  fontSize: 18, fontWeight: FontWeight.w700)),
+                          const SizedBox(height: 12),
+                          ListTile(
+                            leading: const Icon(Icons.wb_sunny_outlined),
+                            title: const Text('日常展示'),
+                            onTap: () =>
+                                _add(sheetContext, DevicePlaylistKind.startup),
+                          ),
+                          ListTile(
+                            leading: const Icon(Icons.graphic_eq),
+                            title: const Text('音乐联动'),
+                            onTap: () => _add(
+                                sheetContext, DevicePlaylistKind.bluetooth),
+                          ),
+                        ]),
+                      ),
+                    ),
+                  ),
+          icon: const Icon(Icons.playlist_add),
+          label: Text(source == null ? '暂无可用视频' : '加入播放列表'),
+        ),
       );
 }

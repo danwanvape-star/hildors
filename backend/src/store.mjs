@@ -5,7 +5,6 @@ const defaultLayout = () => ({
   schemaVersion: 1,
   pages: {
     collection: [
-      { id: 'collection-featured', type: 'featured', title: '精选角色', visible: true, columns: 3 },
       { id: 'collection-hildors', type: 'hildors', title: 'HILDORS 出品', visible: true, columns: 3 },
       { id: 'collection-creators', type: 'creators', title: '创作者作品', visible: true, columns: 3 },
     ],
@@ -39,13 +38,30 @@ export function createStore(path = ':memory:') {
       status TEXT NOT NULL, document TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL);
     CREATE TABLE IF NOT EXISTS creator_profiles (
       id TEXT PRIMARY KEY, user_id TEXT NOT NULL UNIQUE REFERENCES users(id), version INTEGER NOT NULL,
-      status TEXT NOT NULL, document TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL);
+      status TEXT NOT NULL, document TEXT NOT NULL, email_normalized TEXT,
+      created_at TEXT NOT NULL, updated_at TEXT NOT NULL);
     CREATE TABLE IF NOT EXISTS app_layouts (
       id TEXT PRIMARY KEY, version INTEGER NOT NULL, draft TEXT NOT NULL, published TEXT NOT NULL,
       previous_published TEXT, updated_at TEXT NOT NULL);`);
+  const creatorColumns = db.prepare('PRAGMA table_info(creator_profiles)').all();
+  if (!creatorColumns.some(column => column.name === 'email_normalized')) {
+    db.exec('ALTER TABLE creator_profiles ADD COLUMN email_normalized TEXT');
+  }
+  db.exec(`CREATE UNIQUE INDEX IF NOT EXISTS creator_profiles_email_unique
+    ON creator_profiles(email_normalized) WHERE email_normalized IS NOT NULL;`);
   const initialLayout = JSON.stringify(defaultLayout());
   db.prepare('INSERT OR IGNORE INTO app_layouts VALUES (?,?,?,?,?,?)')
     .run('main', 1, initialLayout, initialLayout, null, new Date().toISOString());
+  const layoutRow = db.prepare('SELECT draft,published,previous_published FROM app_layouts WHERE id=?').get('main');
+  const withoutFeatured = raw => {
+    if (!raw) return raw;
+    const value = JSON.parse(raw);
+    value.pages.collection = (value.pages.collection ?? []).filter(block => block.type !== 'featured');
+    return JSON.stringify(value);
+  };
+  db.prepare('UPDATE app_layouts SET draft=?,published=?,previous_published=? WHERE id=?')
+    .run(withoutFeatured(layoutRow.draft), withoutFeatured(layoutRow.published),
+      withoutFeatured(layoutRow.previous_published), 'main');
   const tokenHash = token => createHash('sha256').update(token).digest('hex');
   const decode = row => row ? { ...JSON.parse(row.document), id: row.id,
     version: row.version, status: row.status } : null;
@@ -119,12 +135,19 @@ export function createStore(path = ':memory:') {
       return this.getCustomizationOrder(id);
     },
     upsertCreatorProfile(userId, document) {
+      const email = String(document.email ?? '').trim().toLowerCase();
+      if (!email) throw new Error('INVALID_CREATOR_PROFILE');
+      const owner = db.prepare('SELECT user_id FROM creator_profiles WHERE email_normalized=?').get(email);
+      if (owner && owner.user_id !== userId) throw new Error('EMAIL_IN_USE');
+      document = { ...document, email };
       const existing = db.prepare('SELECT id FROM creator_profiles WHERE user_id=?').get(userId);
       const now = new Date().toISOString(), id = existing?.id ?? randomUUID();
-      if (existing) db.prepare('UPDATE creator_profiles SET document=?,status=?,version=version+1,updated_at=? WHERE id=?')
-        .run(JSON.stringify(document), 'pending', now, id);
-      else db.prepare('INSERT INTO creator_profiles VALUES (?,?,1,?,?,?,?)')
-        .run(id, userId, 'pending', JSON.stringify(document), now, now);
+      if (existing) db.prepare('UPDATE creator_profiles SET document=?,email_normalized=?,status=?,version=version+1,updated_at=? WHERE id=?')
+        .run(JSON.stringify(document), email, 'pending', now, id);
+      else db.prepare(`INSERT INTO creator_profiles
+        (id,user_id,version,status,document,email_normalized,created_at,updated_at)
+        VALUES (?,?,1,?,?,?,?,?)`)
+        .run(id, userId, 'pending', JSON.stringify(document), email, now, now);
       return this.getCreatorProfile(id);
     },
     getCreatorProfile(id) {

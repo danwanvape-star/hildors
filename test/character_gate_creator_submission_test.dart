@@ -15,6 +15,7 @@ class _Profiles extends MemoryCreatorProfileRepository {
   @override
   Future<void> submitApplication(
       {required String displayName,
+      String email = '',
       required String portfolioUrl,
       required String agreementVersion,
       required List<String> skillTags,
@@ -23,6 +24,7 @@ class _Profiles extends MemoryCreatorProfileRepository {
     if (request != null) await request!.future;
     await super.submitApplication(
         displayName: displayName,
+        email: email,
         portfolioUrl: portfolioUrl,
         agreementVersion: agreementVersion,
         skillTags: skillTags,
@@ -66,8 +68,14 @@ Future<void> _application(WidgetTester tester) async {
   await tester.pumpAndSettle();
   await tester.enterText(find.byType(TextField).at(0), 'Studio');
   await tester.enterText(
-      find.byType(TextField).at(1), 'https://portfolio.example');
-  await tester.tap(find.byType(Checkbox).first);
+      find.byKey(const Key('creator-email')), 'studio@example.test');
+  await tester.enterText(
+      find.byType(TextField).at(2), 'https://portfolio.example');
+  await tester.scrollUntilVisible(find.text('我已年满 18 岁'), 180,
+      scrollable: find.byType(Scrollable).first);
+  await tester.drag(find.byType(Scrollable).first, const Offset(0, -80));
+  await tester.pumpAndSettle();
+  await tester.tap(find.text('我已年满 18 岁'));
   await tester.scrollUntilVisible(find.text('我同意创作者规则、保密要求和禁止私下交易条款'), 200,
       scrollable: find.byType(Scrollable).first);
   await tester.tap(find.text('我同意创作者规则、保密要求和禁止私下交易条款'));
@@ -77,22 +85,12 @@ Future<void> _application(WidgetTester tester) async {
   await tester.pumpAndSettle();
 }
 
-Future<void> _payout(WidgetTester tester) async {
-  await tester.tap(find.byKey(const Key('creator-tax-form')));
-  await tester.pumpAndSettle();
-  await tester.tap(find.text('中国大陆税务资料').last);
-  await tester.pumpAndSettle();
-  await tester.enterText(
-      find.byKey(const Key('creator-payout-reference')), 'provider-token');
-  await tester.ensureVisible(find.text('提交收款账户审核'));
-  await tester.pumpAndSettle();
-}
-
 void main() {
   testWidgets('本地申请会自动补交到云端后才显示审核中', (tester) async {
     final profiles = _Profiles();
     await profiles.submitApplication(
         displayName: 'Studio',
+        email: 'studio@example.test',
         portfolioUrl: 'https://portfolio.example',
         agreementVersion: 'creator-marketplace-v1',
         skillTags: ['待机动作'],
@@ -106,6 +104,7 @@ void main() {
           : {'status': 'pending', 'updatedAt': '2026-09-16'},
       cloudProfileSubmitter: (
           {required displayName,
+          required email,
           required portfolioUrl,
           required agreementVersion,
           required skillTags,
@@ -126,6 +125,7 @@ void main() {
     final profiles = _Profiles();
     await profiles.submitApplication(
         displayName: 'Studio',
+        email: 'studio@example.test',
         portfolioUrl: 'https://portfolio.example',
         agreementVersion: 'creator-marketplace-v1',
         skillTags: ['待机动作'],
@@ -136,6 +136,7 @@ void main() {
       cloudProfileLoader: () async => null,
       cloudProfileSubmitter: (
               {required displayName,
+              required email,
               required portfolioUrl,
               required agreementVersion,
               required skillTags,
@@ -191,41 +192,13 @@ void main() {
     expect(profiles.profile, isNull);
   });
 
-  testWidgets('payout suppresses duplicates and retains account and tax choice',
+  testWidgets('certified creator enters task board without payout binding',
       (tester) async {
-    final profiles = _Profiles(_certified)..request = Completer<void>();
+    final profiles = _Profiles(_certified);
     await _open(tester, profiles);
-    await _payout(tester);
-    final submit =
-        tester.widget<FilledButton>(find.byType(FilledButton)).onPressed!;
-    submit();
-    submit();
-    await tester.pump();
-    expect(profiles.payouts, 1);
-    expect(tester.widget<TextField>(find.byType(TextField)).enabled, isFalse);
-    profiles.request!.completeError(StateError('private token failure'));
-    await tester.pumpAndSettle();
-    expect(
-        find.textContaining('result could not be confirmed'), findsOneWidget);
-    expect(tester.widget<TextField>(find.byType(TextField)).controller!.text,
-        'provider-token');
-    expect(find.text('中国大陆税务资料'), findsOneWidget);
-    expect(find.text('结算币种：CNY'), findsOneWidget);
-    expect(tester.widget<FilledButton>(find.byType(FilledButton)).onPressed,
-        isNotNull);
-    expect(profiles.profile!.payoutAccountStatus, '待提交');
-  });
-
-  testWidgets('leaving during payout submission handles a late failure',
-      (tester) async {
-    final profiles = _Profiles(_certified)..request = Completer<void>();
-    await _open(tester, profiles);
-    await _payout(tester);
-    await tester.tap(find.text('提交收款账户审核'));
-    await tester.pumpWidget(const SizedBox());
-    profiles.request!.completeError(StateError('late failure'));
-    await tester.pumpAndSettle();
-    expect(tester.takeException(), isNull);
+    expect(find.byType(CreatorTaskBoardPage), findsOneWidget);
+    expect(find.text('设置创作者收款账户'), findsNothing);
+    expect(profiles.payouts, 0);
   });
 
   testWidgets('refresh advances review gates only after repository approval',
@@ -233,6 +206,7 @@ void main() {
     final profiles = _Profiles();
     await profiles.submitApplication(
         displayName: 'Studio',
+        email: 'studio@example.test',
         portfolioUrl: 'https://portfolio.example',
         agreementVersion: 'creator-marketplace-v1',
         skillTags: ['待机动作'],
@@ -244,19 +218,8 @@ void main() {
     await profiles.approveApplication();
     await tester.tap(find.byTooltip('Refresh'));
     await tester.pumpAndSettle();
-    expect(find.text('设置创作者收款账户'), findsOneWidget);
-    await _payout(tester);
-    await tester.tap(find.text('提交收款账户审核'));
-    await tester.pumpAndSettle();
-    expect(find.text('收款账户与税务资料审核中'), findsOneWidget);
-    await tester.tap(find.byTooltip('Refresh'));
-    await tester.pumpAndSettle();
-    expect(find.byType(CreatorTaskBoardPage), findsNothing);
-    await profiles.approvePayoutAccount();
-    await tester.tap(find.byTooltip('Refresh'));
-    await tester.pumpAndSettle();
     expect(find.byType(CreatorTaskBoardPage), findsOneWidget);
     expect(profiles.applications, 1);
-    expect(profiles.payouts, 1);
+    expect(profiles.payouts, 0);
   });
 }

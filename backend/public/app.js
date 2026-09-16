@@ -62,6 +62,7 @@ function renderCreators() {
     const card = text('article', '', 'card');
     card.append(text('span', creatorLabels[creator.status] || creator.status, 'status'), text('h2', creator.displayName),
       text('div', `${creator.marketRegion} · ${(creator.skillTags || []).join(' / ') || '未填写技能'}`, 'meta'),
+      text('p', `邮箱：${creator.email || '旧申请待补充'}`),
       text('p', `作品集：${creator.portfolioUrl || '未填写'}`), text('p', `申请编号：${creator.id}`));
     const select = actionSelect(creatorLabels, creator.status), note = document.createElement('input'); note.placeholder = '审核说明（建议填写）';
     const save = text('button', '保存审核结果', 'secondary');
