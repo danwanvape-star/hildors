@@ -127,9 +127,22 @@ export function createStore(path = ':memory:') {
       if (!current || current.version !== version) throw new Error('CONFLICT');
       const allowed = ['free_review','needs_info','approved_for_quote','quoted','in_production','quality_review','user_acceptance','delivered','rejected','withdrawn'];
       if (!allowed.includes(status)) throw new Error('INVALID_ORDER_STATUS');
-      const document = { ...current, adminNote: note.trim(), status: undefined, id: undefined,
-        userId: undefined, version: undefined, createdAt: undefined, updatedAt: undefined };
+      const transitions = {
+        free_review: ['needs_info','approved_for_quote','rejected'],
+        needs_info: ['free_review','approved_for_quote','rejected'],
+        approved_for_quote: ['quoted','needs_info','rejected'],
+        quoted: ['in_production','needs_info','withdrawn'],
+        in_production: ['quality_review'],
+        quality_review: ['in_production','user_acceptance'],
+        user_acceptance: ['quality_review','delivered'],
+        delivered: [], rejected: ['free_review'], withdrawn: [],
+      };
+      if (status !== current.status && !transitions[current.status]?.includes(status)) throw new Error('INVALID_ORDER_TRANSITION');
       const now = new Date().toISOString();
+      const history = Array.isArray(current.workflowHistory) ? [...current.workflowHistory] : [];
+      if (status !== current.status || note.trim()) history.push({ from: current.status, to: status, note: note.trim(), at: now, actor: 'admin' });
+      const document = { ...current, adminNote: note.trim(), workflowHistory: history, status: undefined, id: undefined,
+        userId: undefined, version: undefined, createdAt: undefined, updatedAt: undefined };
       db.prepare('UPDATE customization_orders SET status=?,document=?,version=version+1,updated_at=? WHERE id=?')
         .run(status, JSON.stringify(document), now, id);
       return this.getCustomizationOrder(id);

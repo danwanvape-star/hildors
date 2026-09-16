@@ -1,0 +1,35 @@
+.order-card { grid-column: span 3; }
+.order-card textarea { width: 100%; resize: vertical; }
+.order-progress {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+  margin: 20px 0;
+  padding: 14px;
+  background: #0b1420;
+  border-radius: 12px;
+}
+.order-step { min-width: 0; text-align: center; color: #64778f; }
+.order-step span {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  margin: 0 auto 7px;
+  border: 1px solid #405069;
+  border-radius: 50%;
+  font-size: 12px;
+}
+.order-step small { display: block; color: inherit; font-size: 10px; letter-spacing: 0; }
+.order-step.done, .order-step.current { color: #5edcc8; }
+.order-step.current span { color: #062b29; background: #5edcc8; border-color: #5edcc8; }
+.order-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.order-actions .danger { color: #ffbbb8; background: #54252c; }
+.order-history { margin-top: 18px; padding-top: 14px; border-top: 1px solid #26364a; }
+.order-history summary { cursor: pointer; color: #9eb2c9; }
+.order-history p { margin: 8px 0; font-size: 12px; }
+@media (max-width: 1050px) {
+  .order-card { grid-column: span 2; }
+  .order-progress { overflow-x: auto; grid-template-columns: repeat(7, 100px); }
+}
+@media (max-width: 700px) { .order-card { grid-column: span 1; } }

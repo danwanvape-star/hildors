@@ -9,7 +9,7 @@ function showConnection(connected) {
   $('connected').hidden = !connected;
 }
 function clearPreviews() { for (const url of previews) URL.revokeObjectURL(url); previews.clear(); }
-const messages = { UNAUTHORIZED: '登录已过期，请重新登录。', INVALID_CREDENTIALS: '用户名或密码错误。', VERSION_OR_STATE_CONFLICT: '内容已被更新，请刷新后重试。', MEDIA_REVIEW_REQUIRED: '需要先完成素材处理和审核。', INVALID_PACKAGE: '请检查名称、视频数量和标签。' };
+const messages = { UNAUTHORIZED: '登录已过期，请重新登录。', INVALID_CREDENTIALS: '用户名或密码错误。', VERSION_OR_STATE_CONFLICT: '内容已被更新，请刷新后重试。', INVALID_ORDER_TRANSITION: '不能跳过必要步骤，请按流程推进订单。', MEDIA_REVIEW_REQUIRED: '需要先完成素材处理和审核。', INVALID_PACKAGE: '请检查名称、视频数量和标签。' };
 async function api(path, body) {
   const response = await fetch(path, { method: body === undefined ? 'GET' : 'POST',
     headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin',
@@ -20,6 +20,8 @@ async function api(path, body) {
 }
 function text(tag, value, className) { const el = document.createElement(tag); el.textContent = value; if (className) el.className = className; return el; }
 const orderLabels = { free_review: '待预审', needs_info: '待补充资料', approved_for_quote: '待报价', quoted: '待用户确认报价', in_production: '制作中', quality_review: '待平台质检', user_acceptance: '待用户验收', delivered: '已交付', rejected: '预审未通过', withdrawn: '已撤回' };
+const orderSteps = ['free_review','approved_for_quote','quoted','in_production','quality_review','user_acceptance','delivered'];
+const orderTransitions = { free_review: ['needs_info','approved_for_quote','rejected'], needs_info: ['free_review','approved_for_quote','rejected'], approved_for_quote: ['quoted','needs_info','rejected'], quoted: ['in_production','needs_info','withdrawn'], in_production: ['quality_review'], quality_review: ['in_production','user_acceptance'], user_acceptance: ['quality_review','delivered'], delivered: [], rejected: ['free_review'], withdrawn: [] };
 const creatorLabels = { pending: '待审核', approved: '已认证', rejected: '未通过', suspended: '已停用' };
 function showView(view) {
   activeView = view;
@@ -39,16 +41,26 @@ function renderOrders() {
   const visible = orders.filter(x => !$('order-status').value || x.status === $('order-status').value);
   $('order-cards').replaceChildren();
   for (const order of visible) {
-    const card = text('article', '', 'card');
+    const card = text('article', '', 'card order-card');
     card.append(text('span', orderLabels[order.status] || order.status, 'status'), text('h2', order.characterName),
       text('div', `${order.sourceType} · ${order.marketRegion} · ${order.materialCount}份素材`, 'meta'),
       text('p', `需求：${(order.requestedFeatures || []).join(' / ') || '未填写'}`),
       text('p', `订单号：${order.id}`),
       text('p', order.materialsUploaded ? '私有素材已上传' : '仅同步需求元数据，原始素材未上传'));
-    const select = actionSelect(orderLabels, order.status), note = document.createElement('input'); note.placeholder = '处理说明（可选）';
-    const save = text('button', '更新订单状态', 'secondary');
-    save.onclick = async () => { save.disabled = true; try { await api(`/admin/customization-orders/${encodeURIComponent(order.id)}`, { version: order.version, status: select.value, note: note.value }); await refreshOrders(); $('notice').textContent = '订单状态已更新。'; } catch (error) { $('notice').textContent = error.message; save.disabled = false; } };
-    card.append(select, note, save); $('order-cards').append(card);
+    const progress = text('div', '', 'order-progress'), activeIndex = orderSteps.indexOf(order.status);
+    orderSteps.forEach((step, index) => { const node = text('div', '', `order-step${index < activeIndex ? ' done' : index === activeIndex ? ' current' : ''}`); node.append(text('span', index < activeIndex ? '✓' : String(index + 1)), text('small', orderLabels[step])); progress.append(node); });
+    card.append(progress);
+    const note = document.createElement('textarea'); note.rows = 2; note.maxLength = 1000; note.placeholder = '填写本次处理说明，用户端后续可同步查看';
+    const actions = text('div', '', 'order-actions');
+    for (const next of orderTransitions[order.status] || []) {
+      const button = text('button', orderLabels[next], next === 'rejected' || next === 'withdrawn' ? 'danger' : next === 'needs_info' ? 'secondary' : '');
+      button.onclick = async () => { if ((next === 'needs_info' || next === 'rejected') && !note.value.trim()) { $('notice').textContent = '退回或拒绝时必须填写处理说明。'; note.focus(); return; } for (const item of actions.querySelectorAll('button')) item.disabled = true; try { await api(`/admin/customization-orders/${encodeURIComponent(order.id)}`, { version: order.version, status: next, note: note.value }); await refreshOrders(); $('notice').textContent = `订单已更新为“${orderLabels[next]}”。`; } catch (error) { $('notice').textContent = error.message; for (const item of actions.querySelectorAll('button')) item.disabled = false; } };
+      actions.append(button);
+    }
+    card.append(text('h3', '下一步处理'), note, actions);
+    const history = text('details', '', 'order-history'); history.append(text('summary', `处理记录（${(order.workflowHistory || []).length}）`));
+    for (const item of [...(order.workflowHistory || [])].reverse()) history.append(text('p', `${new Date(item.at).toLocaleString()}　${orderLabels[item.from] || item.from} → ${orderLabels[item.to] || item.to}${item.note ? `｜${item.note}` : ''}`));
+    card.append(history); $('order-cards').append(card);
   }
   if (!visible.length) $('order-cards').append(text('p', '当前没有定制订单。App 更新并提交新需求后会显示在这里。', 'empty'));
 }

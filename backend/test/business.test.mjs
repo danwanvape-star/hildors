@@ -24,7 +24,14 @@ test('customization intake and creator registration are user-scoped and admin-ma
   assert.equal(adminOrders.items[0].characterName, '星际狐狸');
   const updated = await fetch(base + `/admin/customization-orders/${orderItem.id}`, { method: 'POST', headers: adminHeaders,
     body: JSON.stringify({ version: orderItem.version, status: 'approved_for_quote', note: '可报价' }) });
-  assert.equal((await updated.json()).status, 'approved_for_quote');
+  const updatedItem = await updated.json();
+  assert.equal(updatedItem.status, 'approved_for_quote');
+  assert.equal(updatedItem.workflowHistory[0].from, 'free_review');
+  assert.equal(updatedItem.workflowHistory[0].to, 'approved_for_quote');
+  const skipped = await fetch(base + `/admin/customization-orders/${orderItem.id}`, { method: 'POST', headers: adminHeaders,
+    body: JSON.stringify({ version: updatedItem.version, status: 'delivered', note: '跳过流程' }) });
+  assert.equal(skipped.status, 409);
+  assert.equal((await skipped.json()).code, 'INVALID_ORDER_TRANSITION');
   const creator = await fetch(base + '/v1/me/creator-profile', { method: 'POST', headers: userHeaders,
     body: JSON.stringify({ displayName: 'Creator A', email: 'creator-a@example.test', portfolioUrl: 'https://example.test/work',
       skillTags: ['3D'], marketRegion: 'us', agreementVersion: 'creator-v1' }) });

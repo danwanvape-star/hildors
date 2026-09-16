@@ -68,7 +68,7 @@ export function app(store, { adminToken = '', adminUsername = '', adminPassword 
     try {
       const url = new URL(req.url, 'http://localhost');
       const path = url.pathname;
-      const staticFiles = { '/console': ['index.html', 'text/html'], '/console/app.js': ['app.js', 'text/javascript'], '/console/style.css': ['style.css', 'text/css'], '/console/media.css': ['media.css', 'text/css'], '/console/connection.css': ['connection.css', 'text/css'], '/console/admin-nav.css': ['admin-nav.css', 'text/css'], '/console/layout.css': ['layout.css', 'text/css'] };
+      const staticFiles = { '/console': ['index.html', 'text/html'], '/console/app.js': ['app.js', 'text/javascript'], '/console/style.css': ['style.css', 'text/css'], '/console/media.css': ['media.css', 'text/css'], '/console/connection.css': ['connection.css', 'text/css'], '/console/admin-nav.css': ['admin-nav.css', 'text/css'], '/console/layout.css': ['layout.css', 'text/css'], '/console/orders.css': ['orders.css', 'text/css'] };
       if (req.method === 'GET' && Object.hasOwn(staticFiles, path)) {
         const [name, type] = staticFiles[path];
         res.writeHead(200, { 'Content-Type': `${type}; charset=utf-8`, 'Cache-Control': 'no-store',
@@ -349,6 +349,7 @@ export function app(store, { adminToken = '', adminUsername = '', adminPassword 
       return fail(404, 'NOT_FOUND');
     } catch (error) {
       if (error.message === 'EMAIL_IN_USE') return fail(409, 'EMAIL_IN_USE');
+      if (error.message === 'INVALID_ORDER_TRANSITION') return fail(409, 'INVALID_ORDER_TRANSITION');
       if (error.message === 'UPLOAD_TOO_LARGE') return fail(413, 'UPLOAD_TOO_LARGE');
       if (error.message === 'INVALID_MP4') return fail(415, 'INVALID_MP4');
       if (error.message === 'MEDIA_REVIEW_REQUIRED') return fail(409, 'MEDIA_REVIEW_REQUIRED');
