@@ -3,14 +3,22 @@
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>HILDORS · 内容管理</title><link rel="stylesheet" href="/console/style.css"><link rel="stylesheet" href="/console/connection.css"></head>
 <body>
 <link rel="stylesheet" href="/console/media.css">
-<aside><div class="brand">HILDORS<span>CHARACTER PORTAL</span></div><div class="nav active">内容管理</div><p>本地开发工作台</p><p>账号、云端上传与支付尚未接入。</p></aside>
+<aside><div class="brand">HILDORS<span>CHARACTER PORTAL</span></div><button class="nav active" data-view="content">内容管理</button><button class="nav" data-view="orders">定制订单</button><button class="nav" data-view="creators">创作者管理</button><p>云端运营后台</p><p>用户原始素材与公开内容分区管理。</p></aside>
 <main><header><div><small>CONTENT STUDIO</small><h1>内容管理</h1><p>建立角色包，管理每一条视频。</p></div><span class="badge">本地原型</span></header>
 <section class="login"><form id="login"><label>管理员登录</label><div class="row"><input id="username" autocomplete="username" required maxlength="64" placeholder="用户名"><input id="password" type="password" autocomplete="current-password" required placeholder="密码"><button>登录后台</button></div><p>登录状态由服务器安全保持 8 小时，网页不保存密码。</p></form><div id="connected" class="connected" hidden><div><strong>后台已登录</strong><p>当前浏览器会话有效。</p></div><button type="button" id="logout" class="secondary">退出后台</button></div></section>
 <p id="notice" role="status" aria-live="polite">请使用管理员账号登录。</p>
-<div id="workspace" hidden>
+<div id="workspace" data-panel="content" hidden>
 <section class="summary"><div><strong id="total">0</strong><span>全部内容</span></div><div><strong id="published">0</strong><span>已发布</span></div><div><strong id="drafts">0</strong><span>待处理草稿</span></div></section>
 <div class="toolbar"><input id="search" aria-label="搜索内容" placeholder="搜索名称或标签"><select id="status" aria-label="筛选状态"><option value="">全部状态</option><option value="published">已发布</option><option value="draft">草稿</option><option value="withdrawn">已下架</option></select><button id="refresh" class="secondary">刷新</button><button id="new">＋ 创建内容</button></div>
 <div id="cards" class="grid"></div>
+</div>
+<div id="orders-workspace" data-panel="orders" hidden>
+<section class="summary"><div><strong id="orders-total">0</strong><span>全部订单</span></div><div><strong id="orders-review">0</strong><span>待预审</span></div><div><strong id="orders-production">0</strong><span>制作中</span></div></section>
+<div class="toolbar"><select id="order-status"><option value="">全部状态</option><option value="free_review">待预审</option><option value="needs_info">待补充</option><option value="approved_for_quote">待报价</option><option value="in_production">制作中</option><option value="quality_review">待质检</option><option value="user_acceptance">待用户验收</option><option value="delivered">已交付</option><option value="rejected">未通过</option></select><button id="orders-refresh" class="secondary">刷新订单</button></div><div id="order-cards" class="grid"></div>
+</div>
+<div id="creators-workspace" data-panel="creators" hidden>
+<section class="summary"><div><strong id="creators-total">0</strong><span>全部创作者</span></div><div><strong id="creators-pending">0</strong><span>待审核</span></div><div><strong id="creators-approved">0</strong><span>已认证</span></div></section>
+<div class="toolbar"><select id="creator-status"><option value="">全部状态</option><option value="pending">待审核</option><option value="approved">已认证</option><option value="rejected">未通过</option><option value="suspended">已停用</option></select><button id="creators-refresh" class="secondary">刷新创作者</button></div><div id="creator-cards" class="grid"></div>
 </div>
 <dialog id="editor"><form id="create"><div class="dialog-title"><h2>创建内容草稿</h2><button type="button" id="close" class="secondary">关闭</button></div><p>先填写视频清单。真实素材完成处理和审核后才能发布。</p>
 <label>内容名称<input name="title" maxlength="120" required placeholder="例如：星轨法师 · 基础角色包"></label>

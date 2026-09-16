@@ -10,6 +10,7 @@ import 'character_gate_order_progress.dart';
 import 'character_gate_quality_review.dart';
 import 'customization_order_repository.dart';
 import 'creator_profile_repository.dart';
+import 'cloud_business_intake.dart';
 import '../video/character_video_package.dart';
 import '../video/character_package_page.dart';
 import '../video/character_package_picker.dart';
@@ -272,7 +273,8 @@ class _FreeCharacterDetailPageState extends State<FreeCharacterDetailPage>
       setState(() => claimed = true);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-            content: Text('已加入我的角色\n${GateCopy.text(context, 'freeClaimSuccess')}'),
+            content:
+                Text('已加入我的角色\n${GateCopy.text(context, 'freeClaimSuccess')}'),
             action: SnackBarAction(
               label: '立即查看',
               onPressed: () {
@@ -421,7 +423,10 @@ class _MyCharactersPageState extends State<MyCharactersPage>
   @override
   Widget build(BuildContext context) {
     if (widget.charactersOnly && !widget.ordersOnly) {
-      return CharacterPackagePicker(picking: false, repository: repository, orderRepository: orderRepository);
+      return CharacterPackagePicker(
+          picking: false,
+          repository: repository,
+          orderRepository: orderRepository);
     }
     final characters = characterGateCatalog
         .where((character) =>
@@ -567,7 +572,8 @@ class _MyCharactersPageState extends State<MyCharactersPage>
                             trailing: FilledButton.tonalIcon(
                               onPressed: sendingId != null
                                   ? null
-                                  : () => _send(characterId, order.characterName),
+                                  : () =>
+                                      _send(characterId, order.characterName),
                               icon: sending
                                   ? const SizedBox.square(
                                       dimension: 16,
@@ -1500,6 +1506,19 @@ class _CreatorHubPageState extends State<CreatorHubPage>
         skillTags: selectedSkills.toList(),
         marketRegion: creatorMarketRegion!,
       );
+      final cloudSaved =
+          await CloudBusinessIntake.instance.submitCreatorProfile(
+        displayName: name,
+        portfolioUrl: portfolio,
+        agreementVersion: 'creator-marketplace-v1',
+        skillTags: selectedSkills.toList(),
+        marketRegion: creatorMarketRegion!,
+      );
+      if (!cloudSaved && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('申请已保存在本机，云端同步失败，请稍后重新提交。'),
+        ));
+      }
       if (mounted) await _reload();
     } catch (_) {
       if (mounted) showGateActionError(context);
@@ -5469,6 +5488,21 @@ class _PrototypeReviewPageState extends State<PrototypeReviewPage> {
         );
         return;
       }
+      final cloudSaved =
+          await CloudBusinessIntake.instance.submitCustomizationOrder(
+        characterName: name,
+        sourceType: widget.type,
+        requestedFeatures: requestedFeatures.toList(),
+        privacyConsentVersion: 'customization-privacy-${marketRegion!}-v1',
+        materialCount: materialFileNames.length,
+        marketRegion: marketRegion!,
+      );
+      if (!cloudSaved && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('需求已保存在本机，云端同步失败，请稍后重新提交。'),
+        ));
+      }
+      if (!mounted) return;
       await showGateDialog<void>(
         context: context,
         builder: (context) => AlertDialog(

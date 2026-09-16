@@ -91,6 +91,10 @@ export function app(store, { adminToken = '', adminUsername = '', adminPassword 
           return store.ready() ? send(200, { status: 'ready' }) : fail(503, 'NOT_READY');
         } catch { return fail(503, 'NOT_READY'); }
       }
+      if (req.method === 'POST' && path === '/v1/device-session') {
+        const userId = store.createUser();
+        return send(201, { token: store.createSession(userId, 86400), expiresIn: 86400 });
+      }
       if (path === '/v1/me' || path.startsWith('/v1/me/')) {
         const token = /^Bearer ([A-Za-z0-9_-]{43})$/.exec(req.headers.authorization || '')?.[1];
         const userId = store.authenticate(token);
@@ -98,6 +102,45 @@ export function app(store, { adminToken = '', adminUsername = '', adminPassword 
         if (req.method === 'GET' && path === '/v1/me') return send(200, { id: userId });
         if (req.method === 'DELETE' && path === '/v1/me/session') {
           store.revokeSession(token); return send(200, { signedOut: true });
+        }
+        if (req.method === 'GET' && path === '/v1/me/customization-orders') {
+          return send(200, { items: store.listCustomizationOrders(userId) });
+        }
+        if (req.method === 'POST' && path === '/v1/me/customization-orders') {
+          const chunks = []; let bytes = 0;
+          for await (const chunk of req) { bytes += chunk.length; if (bytes > 32768) return fail(413, 'BODY_TOO_LARGE'); chunks.push(chunk); }
+          let value; try { value = JSON.parse(Buffer.concat(chunks).toString('utf8')); } catch { return fail(400, 'INVALID_JSON'); }
+          if (!value || typeof value.characterName !== 'string' || !value.characterName.trim()
+            || value.characterName.length > 120 || typeof value.sourceType !== 'string' || value.sourceType.length > 80
+            || !Array.isArray(value.requestedFeatures) || value.requestedFeatures.length > 20
+            || !value.requestedFeatures.every(x => typeof x === 'string' && x.length <= 80)
+            || !Number.isInteger(value.materialCount) || value.materialCount < 0 || value.materialCount > 20
+            || typeof value.marketRegion !== 'string' || value.marketRegion.length > 32
+            || typeof value.privacyConsentVersion !== 'string' || !value.privacyConsentVersion.trim()) return fail(400, 'INVALID_CUSTOMIZATION_ORDER');
+          return send(201, store.createCustomizationOrder(userId, {
+            characterName: value.characterName.trim(), sourceType: value.sourceType,
+            requestedFeatures: value.requestedFeatures, materialCount: value.materialCount,
+            marketRegion: value.marketRegion, privacyConsentVersion: value.privacyConsentVersion,
+            privacyConsentAt: new Date().toISOString(), materialsUploaded: false,
+          }));
+        }
+        if (req.method === 'GET' && path === '/v1/me/creator-profile') {
+          const profile = store.getCreatorProfile(userId); return profile ? send(200, profile) : fail(404, 'NOT_FOUND');
+        }
+        if (req.method === 'POST' && path === '/v1/me/creator-profile') {
+          const chunks = []; let bytes = 0;
+          for await (const chunk of req) { bytes += chunk.length; if (bytes > 32768) return fail(413, 'BODY_TOO_LARGE'); chunks.push(chunk); }
+          let value; try { value = JSON.parse(Buffer.concat(chunks).toString('utf8')); } catch { return fail(400, 'INVALID_JSON'); }
+          if (!value || typeof value.displayName !== 'string' || !value.displayName.trim() || value.displayName.length > 80
+            || typeof value.portfolioUrl !== 'string' || value.portfolioUrl.length > 500
+            || !Array.isArray(value.skillTags) || value.skillTags.length > 20
+            || !value.skillTags.every(x => typeof x === 'string' && x.length <= 60)
+            || typeof value.marketRegion !== 'string' || value.marketRegion.length > 32
+            || typeof value.agreementVersion !== 'string' || !value.agreementVersion.trim()) return fail(400, 'INVALID_CREATOR_PROFILE');
+          return send(200, store.upsertCreatorProfile(userId, { displayName: value.displayName.trim(),
+            portfolioUrl: value.portfolioUrl.trim(), skillTags: value.skillTags,
+            marketRegion: value.marketRegion, agreementVersion: value.agreementVersion,
+            agreementAcceptedAt: new Date().toISOString() }));
         }
         const download = /^\/v1\/me\/packages\/([^/]+)\/clips\/([^/]+)\/(download|manifest|access)$/.exec(path);
         if (req.method === 'GET' && download) {
@@ -168,6 +211,8 @@ export function app(store, { adminToken = '', adminUsername = '', adminPassword 
         return item?.status === 'published' ? send(200, publicPackage(item)) : fail(404, 'NOT_FOUND');
       }
       if (req.method === 'GET' && path === '/admin/packages') return send(200, { items: store.list() });
+      if (req.method === 'GET' && path === '/admin/customization-orders') return send(200, { items: store.listCustomizationOrders() });
+      if (req.method === 'GET' && path === '/admin/creators') return send(200, { items: store.listCreatorProfiles() });
       if (req.method === 'GET' && path === '/admin/audit') return send(200, { items: store.auditLog() });
       const inspect = /^\/admin\/packages\/([^/]+)\/clips\/([^/]+)\/inspect$/.exec(path);
       if (req.method === 'POST' && inspect) {
@@ -243,6 +288,20 @@ export function app(store, { adminToken = '', adminUsername = '', adminPassword 
           const result = store.transition(item.id, value?.version, match[2] === 'publish' ? 'published' : 'withdrawn');
           return send(200, result);
         }
+      }
+      if (req.method === 'POST' && path.startsWith('/admin/customization-orders/')) {
+        const id = decodeURIComponent(path.slice('/admin/customization-orders/'.length));
+        const chunks = []; for await (const chunk of req) chunks.push(chunk);
+        let value; try { value = JSON.parse(Buffer.concat(chunks).toString('utf8')); } catch { return fail(400, 'INVALID_JSON'); }
+        if (!Number.isInteger(value?.version) || typeof value?.status !== 'string' || typeof (value.note ?? '') !== 'string') return fail(400, 'INVALID_ORDER_UPDATE');
+        return send(200, store.updateCustomizationOrder(id, value.version, value.status, value.note ?? ''));
+      }
+      if (req.method === 'POST' && path.startsWith('/admin/creators/')) {
+        const id = decodeURIComponent(path.slice('/admin/creators/'.length));
+        const chunks = []; for await (const chunk of req) chunks.push(chunk);
+        let value; try { value = JSON.parse(Buffer.concat(chunks).toString('utf8')); } catch { return fail(400, 'INVALID_JSON'); }
+        if (!Number.isInteger(value?.version) || typeof value?.status !== 'string' || typeof (value.note ?? '') !== 'string') return fail(400, 'INVALID_CREATOR_UPDATE');
+        return send(200, store.reviewCreatorProfile(id, value.version, value.status, value.note ?? ''));
       }
       return fail(404, 'NOT_FOUND');
     } catch (error) {

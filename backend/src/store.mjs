@@ -17,7 +17,13 @@ export function createStore(path = ':memory:') {
     CREATE TABLE IF NOT EXISTS entitlements (
       user_id TEXT NOT NULL REFERENCES users(id), package_id TEXT NOT NULL REFERENCES packages(id),
       status TEXT NOT NULL CHECK(status IN ('active','revoked')), reference TEXT NOT NULL,
-      PRIMARY KEY(user_id, package_id));`);
+      PRIMARY KEY(user_id, package_id));
+    CREATE TABLE IF NOT EXISTS customization_orders (
+      id TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id), version INTEGER NOT NULL,
+      status TEXT NOT NULL, document TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL);
+    CREATE TABLE IF NOT EXISTS creator_profiles (
+      id TEXT PRIMARY KEY, user_id TEXT NOT NULL UNIQUE REFERENCES users(id), version INTEGER NOT NULL,
+      status TEXT NOT NULL, document TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL);`);
   const tokenHash = token => createHash('sha256').update(token).digest('hex');
   const decode = row => row ? { ...JSON.parse(row.document), id: row.id,
     version: row.version, status: row.status } : null;
@@ -59,6 +65,66 @@ export function createStore(path = ':memory:') {
     },
     entitlements(userId) {
       return db.prepare('SELECT package_id,status FROM entitlements WHERE user_id=? ORDER BY package_id').all(userId);
+    },
+    createCustomizationOrder(userId, document) {
+      const id = randomUUID(), now = new Date().toISOString();
+      db.prepare('INSERT INTO customization_orders VALUES (?,?,1,?,?,?,?)')
+        .run(id, userId, 'free_review', JSON.stringify(document), now, now);
+      return this.getCustomizationOrder(id);
+    },
+    getCustomizationOrder(id) {
+      const row = db.prepare('SELECT * FROM customization_orders WHERE id=?').get(id);
+      return row ? { ...JSON.parse(row.document), id: row.id, userId: row.user_id,
+        version: row.version, status: row.status, createdAt: row.created_at, updatedAt: row.updated_at } : null;
+    },
+    listCustomizationOrders(userId = null) {
+      const rows = userId
+        ? db.prepare('SELECT * FROM customization_orders WHERE user_id=? ORDER BY created_at DESC').all(userId)
+        : db.prepare('SELECT * FROM customization_orders ORDER BY created_at DESC').all();
+      return rows.map(row => ({ ...JSON.parse(row.document), id: row.id, userId: row.user_id,
+        version: row.version, status: row.status, createdAt: row.created_at, updatedAt: row.updated_at }));
+    },
+    updateCustomizationOrder(id, version, status, note = '') {
+      const current = this.getCustomizationOrder(id);
+      if (!current || current.version !== version) throw new Error('CONFLICT');
+      const allowed = ['free_review','needs_info','approved_for_quote','quoted','in_production','quality_review','user_acceptance','delivered','rejected','withdrawn'];
+      if (!allowed.includes(status)) throw new Error('INVALID_ORDER_STATUS');
+      const document = { ...current, adminNote: note.trim(), status: undefined, id: undefined,
+        userId: undefined, version: undefined, createdAt: undefined, updatedAt: undefined };
+      const now = new Date().toISOString();
+      db.prepare('UPDATE customization_orders SET status=?,document=?,version=version+1,updated_at=? WHERE id=?')
+        .run(status, JSON.stringify(document), now, id);
+      return this.getCustomizationOrder(id);
+    },
+    upsertCreatorProfile(userId, document) {
+      const existing = db.prepare('SELECT id FROM creator_profiles WHERE user_id=?').get(userId);
+      const now = new Date().toISOString(), id = existing?.id ?? randomUUID();
+      if (existing) db.prepare('UPDATE creator_profiles SET document=?,status=?,version=version+1,updated_at=? WHERE id=?')
+        .run(JSON.stringify(document), 'pending', now, id);
+      else db.prepare('INSERT INTO creator_profiles VALUES (?,?,1,?,?,?,?)')
+        .run(id, userId, 'pending', JSON.stringify(document), now, now);
+      return this.getCreatorProfile(id);
+    },
+    getCreatorProfile(id) {
+      const row = db.prepare('SELECT * FROM creator_profiles WHERE id=? OR user_id=?').get(id, id);
+      return row ? { ...JSON.parse(row.document), id: row.id, userId: row.user_id,
+        version: row.version, status: row.status, createdAt: row.created_at, updatedAt: row.updated_at } : null;
+    },
+    listCreatorProfiles() {
+      return db.prepare('SELECT * FROM creator_profiles ORDER BY created_at DESC').all().map(row => ({
+        ...JSON.parse(row.document), id: row.id, userId: row.user_id, version: row.version,
+        status: row.status, createdAt: row.created_at, updatedAt: row.updated_at }));
+    },
+    reviewCreatorProfile(id, version, status, note = '') {
+      const current = this.getCreatorProfile(id);
+      if (!current || current.version !== version) throw new Error('CONFLICT');
+      if (!['pending','approved','rejected','suspended'].includes(status)) throw new Error('INVALID_CREATOR_STATUS');
+      const document = { ...current, reviewNote: note.trim(), status: undefined, id: undefined,
+        userId: undefined, version: undefined, createdAt: undefined, updatedAt: undefined };
+      const now = new Date().toISOString();
+      db.prepare('UPDATE creator_profiles SET status=?,document=?,version=version+1,updated_at=? WHERE id=?')
+        .run(status, JSON.stringify(document), now, id);
+      return this.getCreatorProfile(id);
     },
     review(id, version, decision, note, rightsReference) {
       return transaction(() => {

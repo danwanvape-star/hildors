@@ -1,5 +1,6 @@
 const $ = id => document.getElementById(id);
 let items = [], epoch = 0;
+let orders = [], creators = [], activeView = 'content';
 let reviewing = null;
 const previews = new Set();
 function showConnection(connected) {
@@ -17,6 +18,59 @@ async function api(path, body) {
   return result;
 }
 function text(tag, value, className) { const el = document.createElement(tag); el.textContent = value; if (className) el.className = className; return el; }
+const orderLabels = { free_review: '待预审', needs_info: '待补充资料', approved_for_quote: '待报价', quoted: '待用户确认报价', in_production: '制作中', quality_review: '待平台质检', user_acceptance: '待用户验收', delivered: '已交付', rejected: '预审未通过', withdrawn: '已撤回' };
+const creatorLabels = { pending: '待审核', approved: '已认证', rejected: '未通过', suspended: '已停用' };
+function showView(view) {
+  activeView = view;
+  document.querySelectorAll('[data-panel]').forEach(panel => panel.hidden = panel.dataset.panel !== view);
+  document.querySelectorAll('[data-view]').forEach(button => button.classList.toggle('active', button.dataset.view === view));
+  $('notice').textContent = view === 'content' ? '管理 App 内容目录。' : view === 'orders' ? '管理角色定制业务订单。' : '审核和管理创作者资格。';
+}
+function actionSelect(options, selected) {
+  const select = document.createElement('select');
+  for (const [value, label] of Object.entries(options)) { const option = document.createElement('option'); option.value = value; option.textContent = label; option.selected = value === selected; select.append(option); }
+  return select;
+}
+function renderOrders() {
+  $('orders-total').textContent = orders.length;
+  $('orders-review').textContent = orders.filter(x => x.status === 'free_review').length;
+  $('orders-production').textContent = orders.filter(x => x.status === 'in_production').length;
+  const visible = orders.filter(x => !$('order-status').value || x.status === $('order-status').value);
+  $('order-cards').replaceChildren();
+  for (const order of visible) {
+    const card = text('article', '', 'card');
+    card.append(text('span', orderLabels[order.status] || order.status, 'status'), text('h2', order.characterName),
+      text('div', `${order.sourceType} · ${order.marketRegion} · ${order.materialCount}份素材`, 'meta'),
+      text('p', `需求：${(order.requestedFeatures || []).join(' / ') || '未填写'}`),
+      text('p', `订单号：${order.id}`),
+      text('p', order.materialsUploaded ? '私有素材已上传' : '仅同步需求元数据，原始素材未上传'));
+    const select = actionSelect(orderLabels, order.status), note = document.createElement('input'); note.placeholder = '处理说明（可选）';
+    const save = text('button', '更新订单状态', 'secondary');
+    save.onclick = async () => { save.disabled = true; try { await api(`/admin/customization-orders/${encodeURIComponent(order.id)}`, { version: order.version, status: select.value, note: note.value }); await refreshOrders(); $('notice').textContent = '订单状态已更新。'; } catch (error) { $('notice').textContent = error.message; save.disabled = false; } };
+    card.append(select, note, save); $('order-cards').append(card);
+  }
+  if (!visible.length) $('order-cards').append(text('p', '当前没有定制订单。App 更新并提交新需求后会显示在这里。', 'empty'));
+}
+function renderCreators() {
+  $('creators-total').textContent = creators.length;
+  $('creators-pending').textContent = creators.filter(x => x.status === 'pending').length;
+  $('creators-approved').textContent = creators.filter(x => x.status === 'approved').length;
+  const visible = creators.filter(x => !$('creator-status').value || x.status === $('creator-status').value);
+  $('creator-cards').replaceChildren();
+  for (const creator of visible) {
+    const card = text('article', '', 'card');
+    card.append(text('span', creatorLabels[creator.status] || creator.status, 'status'), text('h2', creator.displayName),
+      text('div', `${creator.marketRegion} · ${(creator.skillTags || []).join(' / ') || '未填写技能'}`, 'meta'),
+      text('p', `作品集：${creator.portfolioUrl || '未填写'}`), text('p', `申请编号：${creator.id}`));
+    const select = actionSelect(creatorLabels, creator.status), note = document.createElement('input'); note.placeholder = '审核说明（建议填写）';
+    const save = text('button', '保存审核结果', 'secondary');
+    save.onclick = async () => { save.disabled = true; try { await api(`/admin/creators/${encodeURIComponent(creator.id)}`, { version: creator.version, status: select.value, note: note.value }); await refreshCreators(); $('notice').textContent = '创作者状态已更新。'; } catch (error) { $('notice').textContent = error.message; save.disabled = false; } };
+    card.append(select, note, save); $('creator-cards').append(card);
+  }
+  if (!visible.length) $('creator-cards').append(text('p', '当前没有创作者申请。App 更新并提交申请后会显示在这里。', 'empty'));
+}
+async function refreshOrders() { orders = (await api('/admin/customization-orders')).items; renderOrders(); }
+async function refreshCreators() { creators = (await api('/admin/creators')).items; renderCreators(); }
 function render() {
   clearPreviews();
   $('total').textContent = items.length;
@@ -143,7 +197,7 @@ async function refresh() {
   const current = epoch;
   const result = await api('/admin/packages');
   if (current !== epoch) return;
-  items = result.items; $('workspace').hidden = false; render();
+  items = result.items; render(); showView(activeView);
 }
 $('login').onsubmit = async event => {
   event.preventDefault(); epoch++;
@@ -151,9 +205,16 @@ $('login').onsubmit = async event => {
   try { await api('/admin/login', { username: $('username').value.trim(), password: $('password').value }); $('password').value = ''; await refresh(); showConnection(true); $('notice').textContent = '后台已登录。'; }
   catch (error) { $('password').value = ''; showConnection(false); $('notice').textContent = error.message; }
 };
-$('logout').onclick = async () => { epoch++; await api('/admin/logout', {}).catch(() => {}); clearPreviews(); items = []; reviewing = null; showConnection(false); $('workspace').hidden = true; $('cards').replaceChildren(); $('editor').close(); $('review-dialog').close(); $('notice').textContent = '已安全退出后台。'; };
+$('logout').onclick = async () => { epoch++; await api('/admin/logout', {}).catch(() => {}); clearPreviews(); items = []; orders = []; creators = []; reviewing = null; showConnection(false); document.querySelectorAll('[data-panel]').forEach(x => x.hidden = true); $('cards').replaceChildren(); $('editor').close(); $('review-dialog').close(); $('notice').textContent = '已安全退出后台。'; };
 $('refresh').onclick = async () => { try { await refresh(); $('notice').textContent = '内容已刷新。'; } catch (error) { $('notice').textContent = error.message; } };
 $('search').oninput = render; $('status').onchange = render;
+$('order-status').onchange = renderOrders; $('creator-status').onchange = renderCreators;
+$('orders-refresh').onclick = () => refreshOrders().catch(error => $('notice').textContent = error.message);
+$('creators-refresh').onclick = () => refreshCreators().catch(error => $('notice').textContent = error.message);
+document.querySelectorAll('[data-view]').forEach(button => button.onclick = async () => {
+  try { if (button.dataset.view === 'orders') await refreshOrders(); if (button.dataset.view === 'creators') await refreshCreators(); showView(button.dataset.view); }
+  catch (error) { $('notice').textContent = error.message; }
+});
 $('new').onclick = () => { $('create').reset(); $('form-error').textContent = ''; $('editor').showModal(); };
 $('close').onclick = () => $('editor').close();
 $('review-close').onclick = () => $('review-dialog').close();

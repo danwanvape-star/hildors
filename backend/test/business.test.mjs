@@ -1,0 +1,37 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { createStore } from '../src/store.mjs';
+import { app } from '../src/server.mjs';
+
+test('customization intake and creator registration are user-scoped and admin-managed', async t => {
+  const store = createStore();
+  const server = app(store, { adminToken: 'admin-test' });
+  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+  t.after(async () => { await new Promise(resolve => server.close(resolve)); store.close(); });
+  const base = `http://127.0.0.1:${server.address().port}`;
+  const session = await fetch(base + '/v1/device-session', { method: 'POST' });
+  assert.equal(session.status, 201);
+  const token = (await session.json()).token;
+  const userHeaders = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
+  const adminHeaders = { Authorization: 'Bearer admin-test', 'Content-Type': 'application/json' };
+  const order = await fetch(base + '/v1/me/customization-orders', { method: 'POST', headers: userHeaders,
+    body: JSON.stringify({ characterName: '星际狐狸', sourceType: '原创角色', requestedFeatures: ['待机'],
+      materialCount: 3, marketRegion: 'us', privacyConsentVersion: 'privacy-v1' }) });
+  assert.equal(order.status, 201); const orderItem = await order.json();
+  assert.equal(orderItem.materialsUploaded, false);
+  assert.equal((await (await fetch(base + '/v1/me/customization-orders', { headers: userHeaders })).json()).items.length, 1);
+  const adminOrders = await (await fetch(base + '/admin/customization-orders', { headers: adminHeaders })).json();
+  assert.equal(adminOrders.items[0].characterName, '星际狐狸');
+  const updated = await fetch(base + `/admin/customization-orders/${orderItem.id}`, { method: 'POST', headers: adminHeaders,
+    body: JSON.stringify({ version: orderItem.version, status: 'approved_for_quote', note: '可报价' }) });
+  assert.equal((await updated.json()).status, 'approved_for_quote');
+  const creator = await fetch(base + '/v1/me/creator-profile', { method: 'POST', headers: userHeaders,
+    body: JSON.stringify({ displayName: 'Creator A', portfolioUrl: 'https://example.test/work',
+      skillTags: ['3D'], marketRegion: 'us', agreementVersion: 'creator-v1' }) });
+  assert.equal(creator.status, 200); const creatorItem = await creator.json();
+  assert.equal(creatorItem.status, 'pending');
+  const reviewed = await fetch(base + `/admin/creators/${creatorItem.id}`, { method: 'POST', headers: adminHeaders,
+    body: JSON.stringify({ version: creatorItem.version, status: 'approved', note: '作品审核通过' }) });
+  assert.equal((await reviewed.json()).status, 'approved');
+  assert.equal((await fetch(base + '/admin/customization-orders')).status, 401);
+});
