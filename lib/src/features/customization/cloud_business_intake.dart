@@ -10,6 +10,8 @@ class CloudBusinessIntake {
   static const _baseUrl = String.fromEnvironment('HILDORS_API_BASE_URL');
   static const _tokenFileName = 'cloud_business_session.json';
 
+  bool get isConfigured => _baseUri != null;
+
   Uri? get _baseUri {
     if (_baseUrl.isEmpty) return null;
     final uri = Uri.tryParse(_baseUrl);
@@ -90,7 +92,7 @@ class CloudBusinessIntake {
 
   Future<bool> _post(String path, Map<String, dynamic> document) async {
     final baseUri = _baseUri;
-    if (baseUri == null) return true;
+    if (baseUri == null) return false;
     final client = HttpClient()..connectionTimeout = const Duration(seconds: 8);
     try {
       return await (() async {

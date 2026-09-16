@@ -1447,15 +1447,27 @@ class _OrderStage extends StatelessWidget {
       );
 }
 
+typedef CreatorCloudSubmit = Future<bool> Function({
+  required String displayName,
+  required String portfolioUrl,
+  required String agreementVersion,
+  required List<String> skillTags,
+  required String marketRegion,
+});
+
 class CreatorHubPage extends StatefulWidget {
   const CreatorHubPage({
     this.orderRepository,
     this.profileRepository,
+    this.cloudProfileLoader,
+    this.cloudProfileSubmitter,
     super.key,
   });
 
   final CustomizationOrderRepository? orderRepository;
   final CreatorProfileRepository? profileRepository;
+  final Future<Map<String, dynamic>?> Function()? cloudProfileLoader;
+  final CreatorCloudSubmit? cloudProfileSubmitter;
 
   @override
   State<CreatorHubPage> createState() => _CreatorHubPageState();
@@ -1482,10 +1494,40 @@ class _CreatorHubPageState extends State<CreatorHubPage>
     _reload();
   }
 
+  Future<Map<String, dynamic>?> _loadCloudProfile() =>
+      widget.cloudProfileLoader?.call() ??
+      CloudBusinessIntake.instance.loadCreatorProfile();
+
+  Future<bool> _submitCloudProfile(CreatorProfile value) =>
+      widget.cloudProfileSubmitter?.call(
+        displayName: value.displayName,
+        portfolioUrl: value.portfolioUrl,
+        agreementVersion: value.agreementVersion,
+        skillTags: value.skillTags,
+        marketRegion: value.marketRegion,
+      ) ??
+      CloudBusinessIntake.instance.submitCreatorProfile(
+        displayName: value.displayName,
+        portfolioUrl: value.portfolioUrl,
+        agreementVersion: value.agreementVersion,
+        skillTags: value.skillTags,
+        marketRegion: value.marketRegion,
+      );
+
+  bool get _cloudConfigured =>
+      widget.cloudProfileLoader != null ||
+      widget.cloudProfileSubmitter != null ||
+      CloudBusinessIntake.instance.isConfigured;
+
   Future<void> _reload() => loadGateData(() async {
         final local = await repository.loadProfile();
         if (local == null) return null;
-        final cloud = await CloudBusinessIntake.instance.loadCreatorProfile();
+        if (!_cloudConfigured) return local;
+        var cloud = await _loadCloudProfile();
+        if (cloud == null && local.status == '审核中') {
+          final synced = await _submitCloudProfile(local);
+          if (synced) cloud = await _loadCloudProfile();
+        }
         final cloudStatus = cloud?['status'];
         return cloudStatus is String
             ? creatorProfileWithCloudReview(
@@ -1493,7 +1535,7 @@ class _CreatorHubPageState extends State<CreatorHubPage>
                 status: cloudStatus,
                 reviewedAt: cloud?['updatedAt'] as String?,
               )
-            : local;
+            : creatorProfileWithCloudReview(local, status: 'sync_failed');
       }, (loaded) => profile = loaded);
 
   Future<void> _submit() async {
@@ -1517,14 +1559,8 @@ class _CreatorHubPageState extends State<CreatorHubPage>
         skillTags: selectedSkills.toList(),
         marketRegion: creatorMarketRegion!,
       );
-      final cloudSaved =
-          await CloudBusinessIntake.instance.submitCreatorProfile(
-        displayName: name,
-        portfolioUrl: portfolio,
-        agreementVersion: 'creator-marketplace-v1',
-        skillTags: selectedSkills.toList(),
-        marketRegion: creatorMarketRegion!,
-      );
+      final local = await repository.loadProfile();
+      final cloudSaved = local != null && await _submitCloudProfile(local);
       if (!cloudSaved && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
           content: Text('申请已保存在本机，云端同步失败，请稍后重新提交。'),
@@ -1664,6 +1700,19 @@ class _CreatorHubPageState extends State<CreatorHubPage>
             Text('创作者申请审核中', style: GateDesign.theme().textTheme.headlineSmall),
             const SizedBox(height: 8),
             const Text('审核通过前不能查看用户任务、素材或接单。'),
+          ] else if (profile?.status == '待同步') ...[
+            const Icon(Icons.cloud_off_outlined, size: 52),
+            const SizedBox(height: 16),
+            Text('申请尚未同步到云端',
+                style: GateDesign.theme().textTheme.headlineSmall),
+            const SizedBox(height: 8),
+            const Text('申请已保存在手机上，但后台还未收到。请检查网络后重试。'),
+            const SizedBox(height: 16),
+            FilledButton.icon(
+              onPressed: submitting ? null : _reload,
+              icon: const Icon(Icons.sync),
+              label: const Text('重新同步申请'),
+            ),
           ] else ...[
             const GateSection(
                 eyebrow: 'JOIN THE CREATOR PROGRAM',

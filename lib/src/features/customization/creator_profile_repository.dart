@@ -317,6 +317,7 @@ CreatorProfile creatorProfileWithCloudReview(
     'approved': '已认证',
     'rejected': '未通过',
     'suspended': '已停用',
+    'sync_failed': '待同步',
   };
   return CreatorProfile(
     displayName: profile.displayName,

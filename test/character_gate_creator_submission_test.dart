@@ -89,6 +89,66 @@ Future<void> _payout(WidgetTester tester) async {
 }
 
 void main() {
+  testWidgets('本地申请会自动补交到云端后才显示审核中', (tester) async {
+    final profiles = _Profiles();
+    await profiles.submitApplication(
+        displayName: 'Studio',
+        portfolioUrl: 'https://portfolio.example',
+        agreementVersion: 'creator-marketplace-v1',
+        skillTags: ['待机动作'],
+        marketRegion: 'cn_mainland');
+    var loads = 0, submits = 0;
+    await tester.pumpWidget(MaterialApp(
+        home: CreatorHubPage(
+      profileRepository: profiles,
+      cloudProfileLoader: () async => ++loads == 1
+          ? null
+          : {'status': 'pending', 'updatedAt': '2026-09-16'},
+      cloudProfileSubmitter: (
+          {required displayName,
+          required portfolioUrl,
+          required agreementVersion,
+          required skillTags,
+          required marketRegion}) async {
+        submits++;
+        return true;
+      },
+    )));
+    await tester.pumpAndSettle();
+
+    expect(submits, 1);
+    expect(loads, 2);
+    expect(find.text('创作者申请审核中'), findsOneWidget);
+    expect(find.text('申请尚未同步到云端'), findsNothing);
+  });
+
+  testWidgets('云端失败时明确显示待同步而非审核中', (tester) async {
+    final profiles = _Profiles();
+    await profiles.submitApplication(
+        displayName: 'Studio',
+        portfolioUrl: 'https://portfolio.example',
+        agreementVersion: 'creator-marketplace-v1',
+        skillTags: ['待机动作'],
+        marketRegion: 'cn_mainland');
+    await tester.pumpWidget(MaterialApp(
+        home: CreatorHubPage(
+      profileRepository: profiles,
+      cloudProfileLoader: () async => null,
+      cloudProfileSubmitter: (
+              {required displayName,
+              required portfolioUrl,
+              required agreementVersion,
+              required skillTags,
+              required marketRegion}) async =>
+          false,
+    )));
+    await tester.pumpAndSettle();
+
+    expect(find.text('申请尚未同步到云端'), findsOneWidget);
+    expect(find.text('重新同步申请'), findsOneWidget);
+    expect(find.text('创作者申请审核中'), findsNothing);
+  });
+
   testWidgets('application suppresses duplicate calls and retains failed draft',
       (tester) async {
     final profiles = _Profiles()..request = Completer<void>();
