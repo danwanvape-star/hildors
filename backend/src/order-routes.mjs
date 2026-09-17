@@ -1,3 +1,4 @@
+import { serveImageVariant } from './cover-thumbnail.mjs';
 import { resolve } from 'node:path';
 import { unlink } from 'node:fs/promises';
 import { receiveImage, serveImage } from './media.mjs';
@@ -41,7 +42,16 @@ export async function orderRoute({req,res,url,store,send,fail,readJson,mediaDire
   }
   if(req.method==='GET' && action==='materials' && match[4]) {
     const material=(order.materials??[]).find(m=>m.id===match[4]);
-    if(!material) fail(404,'NOT_FOUND'); else await serveImage(res,directory,material);
+    if(!material) fail(404,'NOT_FOUND');
+    else if(url.searchParams.has('variant')) {
+      const variant=url.searchParams.get('variant');
+      if(!['thumbnail','preview'].includes(variant)) {fail(400,'INVALID_IMAGE_VARIANT');return true;}
+      await serveImageVariant(req,res,directory,material,{variant,preflight:()=>{
+        if(!authorized()) {fail(401,admin?'UNAUTHORIZED':'USER_AUTH_REQUIRED');return false;}
+        if(!allowed()||!store.getCustomizationOrder(id)?.materials?.some(m=>m.id===material.id)) {fail(404,'NOT_FOUND');return false;}
+        return true;
+      }});
+    } else await serveImage(res,directory,material);
     return true;
   }
   if(req.method==='POST' && action==='materials' && !match[4] && !admin && !creatorRoute) {

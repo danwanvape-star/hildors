@@ -8,13 +8,14 @@ import 'remote_catalog_test.dart' show item;
 void main() {
   for (final withThumbnail in [true, false]) {
     testWidgets(
-        'catalog and creator select cover; detail retains original (thumbnail: $withThumbnail)',
+        'catalog and creator select thumbnail; detail selects preview (thumbnail: $withThumbnail)',
         (tester) async {
       final repo = RemoteCatalogRepository('https://example.test',
           fetch: (_) async => jsonEncode({
                 'items': [
                   {
                     ...item('a'),
+                    'coverPreviewPath': '/v1/covers/cover-a/preview',
                     if (withThumbnail)
                       'coverThumbnailPath': '/v1/covers/cover-a/thumbnail',
                     'creator': {
@@ -45,7 +46,7 @@ void main() {
       final detail = tester
           .widget<Image>(find.byKey(const ValueKey('package-detail-cover-a')));
       expect((detail.image as NetworkImage).url,
-          'https://example.test/v1/covers/cover-a');
+          'https://example.test/v1/covers/cover-a/preview');
       await tester.tap(find.widgetWithText(TextButton, 'Alice'));
       await tester.pumpAndSettle();
       final creatorImage = tester.widget<Image>(find.byType(Image).last);

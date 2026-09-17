@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'cloud_business_intake.dart';
@@ -17,9 +18,11 @@ const _statuses = {
 };
 
 class CloudOrdersPage extends StatefulWidget {
-  const CloudOrdersPage({this.creator = false, this.request, super.key});
+  const CloudOrdersPage(
+      {this.creator = false, this.request, this.materialRequest, super.key});
   final bool creator;
   final CloudOrderRequest? request;
+  final Future<Uint8List> Function(String path)? materialRequest;
   @override
   State<CloudOrdersPage> createState() => _CloudOrdersPageState();
 }
@@ -179,31 +182,15 @@ class _CloudOrdersPageState extends State<CloudOrdersPage> {
   Future<void> _material(Map<String, dynamic> order, Map material) async {
     setState(() => busy = true);
     try {
-      final bytes = await CloudBusinessIntake.instance
-          .orderMaterial('$root/${order['id']}/materials/${material['id']}');
-      if (!mounted) return;
       await showDialog<void>(
-          context: context,
-          builder: (context) => Dialog(
-                  child: Column(mainAxisSize: MainAxisSize.min, children: [
-                Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: Text('${material['name'] ?? '素材'}')),
-                Flexible(
-                    child: InteractiveViewer(
-                        child: Image.memory(bytes,
-                            errorBuilder: (_, error, stack) => const Padding(
-                                padding: EdgeInsets.all(20),
-                                child: Text('设备无法预览此图片格式'))))),
-                TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text('关闭')),
-              ])));
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('$e')));
-      }
+        context: context,
+        builder: (context) => _OrderMaterialDialog(
+          name: '${material['name'] ?? '素材'}',
+          path: '$root/${order['id']}/materials/${material['id']}',
+          load: widget.materialRequest ??
+              CloudBusinessIntake.instance.orderMaterial,
+        ),
+      );
     } finally {
       if (mounted) setState(() => busy = false);
     }
@@ -397,5 +384,82 @@ class _CloudOrdersPageState extends State<CloudOrdersPage> {
                         child: ListView(
                             padding: const EdgeInsets.all(12),
                             children: items.map(_card).toList())),
+      );
+}
+
+class _OrderMaterialDialog extends StatefulWidget {
+  const _OrderMaterialDialog(
+      {required this.name, required this.path, required this.load});
+  final String name, path;
+  final Future<Uint8List> Function(String) load;
+
+  @override
+  State<_OrderMaterialDialog> createState() => _OrderMaterialDialogState();
+}
+
+class _OrderMaterialDialogState extends State<_OrderMaterialDialog> {
+  bool original = false;
+  late Future<Uint8List> image;
+
+  @override
+  void initState() {
+    super.initState();
+    image = _fetch();
+  }
+
+  Future<Uint8List> _fetch() async =>
+      widget.load(original ? widget.path : '${widget.path}?variant=preview');
+
+  void _retry() => setState(() {
+        image = _fetch();
+      });
+
+  Widget _failure(String message) => Center(
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+        Text(message, textAlign: TextAlign.center),
+        TextButton(onPressed: _retry, child: const Text('重试')),
+      ]));
+
+  @override
+  Widget build(BuildContext context) => Dialog(
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            Text(widget.name, maxLines: 2, overflow: TextOverflow.ellipsis),
+            const SizedBox(height: 12),
+            Flexible(
+                child: SizedBox(
+              width: 600,
+              height: MediaQuery.sizeOf(context).height * .6,
+              child: FutureBuilder<Uint8List>(
+                  future: image,
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState != ConnectionState.done) {
+                      return const Center(
+                          child: CircularProgressIndicator(
+                              semanticsLabel: '素材加载中'));
+                    }
+                    if (snapshot.hasError) return _failure('素材加载失败，请重试');
+                    return InteractiveViewer(
+                        child: Image.memory(snapshot.data!,
+                            fit: BoxFit.contain,
+                            errorBuilder: (_, error, stack) =>
+                                _failure('设备无法预览此图片格式')));
+                  }),
+            )),
+            Wrap(alignment: WrapAlignment.center, spacing: 8, children: [
+              if (!original)
+                TextButton(
+                    onPressed: () => setState(() {
+                          original = true;
+                          image = _fetch();
+                        }),
+                    child: const Text('查看原图')),
+              TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('关闭')),
+            ]),
+          ]),
+        ),
       );
 }

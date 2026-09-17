@@ -68,9 +68,10 @@ function renderOrderDetail(order) {
   else {
     const gallery=text('div','','order-materials');
     for(const material of order.materials) {
-      const item=text('figure',''),link=text('a',''); link.href=`${orderPath(order)}/materials/${encodeURIComponent(material.id)}`; link.target='_blank'; link.rel='noopener';
-      if(material.contentType?.startsWith('image/')) { const img=document.createElement('img'); img.src=link.href; img.alt=material.name||'用户参考图片'; img.loading='lazy'; img.onerror=()=>{img.replaceWith(text('span','图片加载失败，点击重试查看原图'));}; link.append(img); } else link.append(text('span','查看文件'));
-      item.append(link,text('figcaption',`${material.name||'素材'} · ${Math.ceil((material.bytes||0)/1024)} KB`)); gallery.append(item);
+      const item=text('figure',''),link=text('a',''); const originalPath=`${orderPath(order)}/materials/${encodeURIComponent(material.id)}`; link.href=originalPath+'?variant=preview'; link.target='_blank'; link.rel='noopener';
+      if(material.contentType?.startsWith('image/')) { const img=document.createElement('img'); img.src=originalPath+'?variant=thumbnail'; img.alt=material.name||'用户参考图片'; img.loading='lazy'; img.decoding='async'; img.onerror=()=>{img.replaceWith(text('span','图片加载失败，点击重试预览'));}; link.append(img); } else { link.href=originalPath; link.append(text('span','查看文件')); }
+      const original=text('a','查看原图'); original.href=originalPath; original.target='_blank'; original.rel='noopener';
+      item.append(link,text('figcaption',`${material.name||'素材'} · 原文件 ${Math.ceil((material.bytes||0)/1024)} KB`),original); gallery.append(item);
     }
     materials.append(gallery);
   }

@@ -3,7 +3,12 @@ import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import { readFileSync } from 'node:fs';
 
-
+test('content list loads a thumbnail rather than the original cover',()=>{
+  const {context,get}=consoleApp();
+  vm.runInContext("items=[{id:'one',title:'Nova',format:'package',source:'hildors',status:'draft',tags:[],cover:{id:'photo'},clips:[]}];render()",context);
+  const flatten=node=>[node,...node.children.flatMap(flatten)];
+  assert.equal(flatten(get('cards')).find(node=>node.tagName==='img').src,'/admin/covers/photo?variant=thumbnail');
+});
 
 function consoleApp() {
   class Element {

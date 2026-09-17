@@ -25,6 +25,7 @@ test('real cover derivative: dimensions, cache, concurrent requests, publication
   const catalogItem = await (await fetch(`http://127.0.0.1:${server.address().port}/v1/packages/package`)).json();
   assert.equal(catalogItem.coverPath, `/v1/covers/${id}`);
   assert.equal(catalogItem.coverThumbnailPath, `/v1/covers/${id}/thumbnail`);
+  assert.equal(catalogItem.coverPreviewPath, `/v1/covers/${id}/preview`);
   const responses = await Promise.all(Array.from({length:8},()=>fetch(url)));
   const buffers = await Promise.all(responses.map(async r=>{
    assert.equal(r.status,200); assert.equal(r.headers.get('content-type'),'image/jpeg');
@@ -43,7 +44,15 @@ test('real cover derivative: dimensions, cache, concurrent requests, publication
   assert.equal((await stat(output)).mtimeMs,before.mtimeMs);
   assert.deepEqual(await readFile(join(directory,`${id}.png`)),original);
   assert.deepEqual(await readdir(join(directory,'cover-thumbnails')),[`${id}.jpg`]);
+  const previewResponse = await fetch(url.replace('/thumbnail','/preview'));
+  assert.equal(previewResponse.status,200);
+  assert.equal(previewResponse.headers.get('content-type'),'image/jpeg');
+  await previewResponse.arrayBuffer();
+  const preview = await coverThumbnail(directory,cover,'preview');
+  const previewInfo = JSON.parse(execFileSync(findTool('ffprobe'),['-v','error','-show_streams','-of','json',preview]));
+  assert.equal(previewInfo.streams[0].width,1024);
   item.status='draft'; assert.equal((await fetch(url)).status,404);
+  assert.equal((await fetch(url.replace('/thumbnail','/preview'))).status,404);
   await assert.rejects(coverThumbnail(directory,{...cover,id:'../escape'}),/INVALID_IMAGE/);
   await assert.rejects(coverThumbnail(directory,{...cover,extension:'../png'}),/INVALID_IMAGE/);
  } finally {

@@ -41,7 +41,9 @@ class RemotePackageDetailPage extends StatelessWidget {
                 aspectRatio: 1,
                 child: _CatalogImage(
                     url: item.format == 'package'
-                        ? item.coverUrl
+                        ? (item.coverPreviewUrl ??
+                            item.coverThumbnailUrl ??
+                            item.coverUrl)
                         : item.clips.first.thumbnailUrl,
                     imageKey: ValueKey('package-detail-cover-${item.id}')));
             final intro =

@@ -1,4 +1,4 @@
-import { serveCoverThumbnail } from './cover-thumbnail.mjs';
+import { serveImageVariant } from './cover-thumbnail.mjs';
 import { validPricing, publicPricing, publicFullPreview } from './clip-pricing.mjs';
 import { createServer } from 'node:http';
 import { randomBytes, randomUUID, timingSafeEqual } from 'node:crypto';
@@ -34,7 +34,7 @@ function publicPackage(item) {
     description: item.description ?? '',
     ...(item.creator ? { creator: item.creator.anonymous ? { name: '匿名创作者', anonymous: true } : { id: item.creator.id, name: item.creator.name, anonymous: false } } : {}),
     source: item.source, format: item.format, tags: item.tags, demo: item.demo,
-    ...(item.cover ? { coverPath: `/v1/covers/${item.cover.id}`, coverThumbnailPath: `/v1/covers/${item.cover.id}/thumbnail` } : {}),
+    ...(item.cover ? { coverPath: `/v1/covers/${item.cover.id}`, coverThumbnailPath: `/v1/covers/${item.cover.id}/thumbnail`, coverPreviewPath: `/v1/covers/${item.cover.id}/preview` } : {}),
     clips: item.clips.filter(visibleClip).map(c => ({ id: c.id, title: c.title, hardwareReady: false,
       ...(validPricing(c.pricing) ? { pricing: publicPricing(c.pricing) } : {}),
       durationSeconds: c.media?.inspection?.durationSeconds ?? c.durationSeconds,
@@ -130,6 +130,7 @@ export function app(store, { adminToken = '', adminUsername = '', adminPassword 
         res.setHeader('Set-Cookie', 'hildors_admin=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0');
         return send(200, { authenticated: false });
       }
+      let adminAuthorized = () => false;
       if (path.startsWith('/admin/')) {
         const supplied = Buffer.from(req.headers.authorization || '');
         const expected = Buffer.from(`Bearer ${adminToken}`);
@@ -138,6 +139,7 @@ export function app(store, { adminToken = '', adminUsername = '', adminPassword 
         const expires = session && sessions.get(session);
         const sessionValid = Boolean(expires && expires > Date.now());
         if (session && !sessionValid) sessions.delete(session);
+        adminAuthorized = () => Boolean(bearerValid || (session && sessions.get(session) > Date.now()));
         if (!bearerValid && !sessionValid) return fail(401, 'UNAUTHORIZED');
       }
       if (req.method === 'GET' && path === '/health') return send(200, { status: 'ok', mode });
@@ -365,15 +367,15 @@ export function app(store, { adminToken = '', adminUsername = '', adminPassword 
           return true;
         } });
       }
-      const coverThumbnailRoute = /^\/v1\/covers\/([a-f0-9-]{36})\/thumbnail$/.exec(path);
+      const coverThumbnailRoute = /^\/v1\/covers\/([a-f0-9-]{36})\/(thumbnail|preview)$/.exec(path);
       if (req.method === 'GET' && coverThumbnailRoute) {
         const available = () => store.list().find(p => p.status === 'published' && p.cover?.id === coverThumbnailRoute[1]);
         const item = available();
         if (!item) return fail(404, 'NOT_FOUND');
-        return await serveCoverThumbnail(req, res, mediaDirectory, item.cover, () => {
+        return await serveImageVariant(req, res, mediaDirectory, item.cover, { variant: coverThumbnailRoute[2], publicCache: true, preflight: () => {
           if (available()) return true;
           fail(404, 'NOT_FOUND'); return false;
-        });
+        } });
       }
       const publicCover = /^\/v1\/covers\/([a-f0-9-]{36})$/.exec(path);
       if (req.method === 'GET' && publicCover) {
@@ -385,7 +387,7 @@ export function app(store, { adminToken = '', adminUsername = '', adminPassword 
         const item = store.get(decodeURIComponent(path.slice('/v1/packages/'.length)));
         return visiblePackage(item) ? send(200, publicPackage(item)) : fail(404, 'NOT_FOUND');
       }
-      if(path.startsWith('/admin/') && await orderRoute({req,res,url,store,send,fail,readJson,mediaDirectory})) return;
+      if(path.startsWith('/admin/') && await orderRoute({req,res,url,store,send,fail,readJson,mediaDirectory,authorized:adminAuthorized})) return;
       if (req.method === 'GET' && path === '/admin/packages') return send(200, { items: store.list() });
       if (req.method === 'GET' && path === '/admin/customization-orders') return send(200, { items: store.listCustomizationOrders() });
       if (path.startsWith('/admin/creators') && await creatorRoute({ req, url, store, send, fail, readJson,
@@ -426,6 +428,15 @@ export function app(store, { adminToken = '', adminUsername = '', adminPassword 
       if (req.method === 'GET' && adminCover) {
         const item = store.list().find(p => p.cover?.id === adminCover[1]);
         if (!item) return fail(404, 'NOT_FOUND');
+        if (url.searchParams.has('variant')) {
+          const variant = url.searchParams.get('variant');
+          if (!['thumbnail', 'preview'].includes(variant)) return fail(400, 'INVALID_IMAGE_VARIANT');
+          return await serveImageVariant(req, res, mediaDirectory, item.cover, { variant, preflight: () => {
+            if (!adminAuthorized()) { fail(401, 'UNAUTHORIZED'); return false; }
+            if (!store.list().some(p => p.cover?.id === item.cover.id)) { fail(404, 'NOT_FOUND'); return false; }
+            return true;
+          } });
+        }
         return await serveImage(res, mediaDirectory, item.cover);
       }
       const upload = /^\/admin\/packages\/([^/]+)\/clips\/([^/]+)\/media$/.exec(path);

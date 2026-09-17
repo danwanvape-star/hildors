@@ -5,7 +5,15 @@ import { readFile } from 'node:fs/promises';
 
 const source=await readFile(new URL('../public/orders.js',import.meta.url),'utf8');
 
-
+test('order gallery loads thumbnails and offers preview separately from original',()=>{
+  const h=harness(async()=>{});
+  h.run("renderOrderDetail({id:'one',version:1,status:'free_review',materials:[{id:'photo',contentType:'image/png',name:'reference.png',bytes:1250000}]})");
+  const flatten=node=>[node,...node.children.flatMap(flatten)];
+  const nodes=flatten(h.$('order-detail-body'));
+  assert.equal(nodes.find(node=>node.tag==='img').src,'/admin/customization-orders/one/materials/photo?variant=thumbnail');
+  assert(nodes.some(node=>node.tag==='a'&&node.href==='/admin/customization-orders/one/materials/photo?variant=preview'));
+  assert(nodes.some(node=>node.tag==='a'&&node.textContent==='查看原图'&&node.href==='/admin/customization-orders/one/materials/photo'));
+});
 
 test('legacy unassigned production offers recovery and recovered order explains required upload',()=>{
   const h=harness(async()=>{});

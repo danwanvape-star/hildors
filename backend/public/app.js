@@ -128,7 +128,7 @@ function render() {
     const media = item.clips.find(x => x.media?.inspection?.status === 'checked')?.media;
     if (item.cover || media) {
       const image = document.createElement('img'); image.loading = 'lazy'; image.alt = `${item.title}封面`;
-      image.src = item.cover ? `/admin/covers/${encodeURIComponent(item.cover.id)}` : `/admin/media/${encodeURIComponent(media.id)}/thumbnail`;
+      image.src = item.cover ? `/admin/covers/${encodeURIComponent(item.cover.id)}?variant=thumbnail` : `/admin/media/${encodeURIComponent(media.id)}/thumbnail`;
       cover.append(image);
     } else cover.append(text('span', item.format === 'package' ? '角色包' : '视频'));
     const info = text('div', '', 'content-info');
@@ -183,7 +183,7 @@ function renderDetail(item) {
     card.classList.add(item.format === 'package' ? 'package-card' : 'single-card');
     if (item.format === 'package') {
       const cover = document.createElement('div'); cover.className = 'package-cover';
-      if (item.cover) { const image = document.createElement('img'); image.src = `/admin/covers/${item.cover.id}`; image.alt = `${item.title}角色主图`; cover.append(image); }
+      if (item.cover) { const image = document.createElement('img'); image.src = `/admin/covers/${encodeURIComponent(item.cover.id)}?variant=preview`; image.alt = `${item.title}角色主图`; cover.append(image); }
       else cover.append(text('span', '角色主图待上传'));
       card.append(cover);
     }
