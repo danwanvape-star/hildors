@@ -219,7 +219,11 @@ void main() {
     expect(find.text('2/8 photos · Add more'), findsOneWidget);
     position.jumpTo(position.maxScrollExtent / 2);
     await tester.pumpAndSettle();
-    expect(tester.widget<TextField>(find.byType(TextField)).controller!.text,
+    expect(
+        tester
+            .widget<TextField>(find.byKey(const Key('review-character-name')))
+            .controller!
+            .text,
         _order.characterName);
     position.jumpTo(position.maxScrollExtent);
     await tester.pumpAndSettle();

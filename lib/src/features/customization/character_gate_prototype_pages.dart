@@ -11,6 +11,10 @@ import 'character_gate_quality_review.dart';
 import 'customization_order_repository.dart';
 import 'creator_profile_repository.dart';
 import 'cloud_business_intake.dart';
+import 'cloud_order_submission.dart';
+import 'cloud_orders_page.dart';
+import '../community/creator_content_page.dart';
+import '../community/creator_content_repository.dart';
 import '../video/character_video_package.dart';
 import '../video/character_package_page.dart';
 import '../video/character_package_picker.dart';
@@ -427,6 +431,9 @@ class _MyCharactersPageState extends State<MyCharactersPage>
           picking: false,
           repository: repository,
           orderRepository: orderRepository);
+    }
+    if (widget.ordersOnly && CloudBusinessIntake.instance.isConfigured) {
+      return const CloudOrdersPage();
     }
     final characters = characterGateCatalog
         .where((character) =>
@@ -1629,6 +1636,9 @@ class _CreatorHubPageState extends State<CreatorHubPage>
           body: GateLoadPanel(failed: gateLoadFailed, onRetry: _reload));
     }
     if (profile?.status == '已认证') {
+      if (CloudBusinessIntake.instance.isConfigured) {
+        return const CloudOrdersPage(creator: true);
+      }
       return CreatorTaskBoardPage(
         orderRepository: widget.orderRepository,
         creatorSkills: profile!.skillTags.toSet(),
@@ -4917,6 +4927,25 @@ class _CreatorTaskBoardPageState extends State<CreatorTaskBoardPage>
                             '已核验结算币种：${widget.creatorSettlementCurrency}',
                             style: const TextStyle(color: GateDesign.muted))),
                     Card(
+                      child: ListTile(
+                        key: const Key('open-creator-content'),
+                        leading: const Icon(Icons.video_call_outlined),
+                        title: const Text('原创内容投稿'),
+                        subtitle: const Text('创建角色视频或视频包，上传检查后提交平台审核。'),
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: () => Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                            builder: (_) => CreatorContentPage(
+                              repository: RemoteCreatorContentRepository(
+                                CloudCreatorContentTransport(),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Card(
                       key: const Key('creator-earnings-summary'),
                       child: Padding(
                         padding: const EdgeInsets.all(16),
@@ -5463,6 +5492,10 @@ class _PrototypeReviewPageState extends State<PrototypeReviewPage> {
   late final CustomizationOrderRepository repository =
       widget.orderRepository ?? const LocalCustomizationOrderRepository();
   final characterNameController = TextEditingController();
+  final requirementsController = TextEditingController();
+  final cloudMaterials = <CloudOrderMaterial>[];
+  final cloudSubmission = CloudOrderSubmission();
+  String? cloudError;
   var rightsConfirmed = false;
   var privacyConfirmed = false;
   String? marketRegion;
@@ -5513,17 +5546,30 @@ class _PrototypeReviewPageState extends State<PrototypeReviewPage> {
     }
     setState(() => pickingMaterials = true);
     try {
-      final names = widget.materialPicker != null
-          ? await widget.materialPicker!()
-          : (await FilePicker.pickFiles(
-              type: FileType.custom,
-              allowedExtensions: ['jpg', 'jpeg', 'png', 'webp', 'heic', 'heif'],
-            ))
-              .map((file) => file.name)
-              .toList();
+      final List<String> names;
+      final pickedMaterials = <CloudOrderMaterial>[];
+      if (widget.materialPicker != null) {
+        names = await widget.materialPicker!();
+      } else {
+        final files = await FilePicker.pickFiles(
+          type: FileType.custom,
+          allowedExtensions: ['jpg', 'jpeg', 'png', 'webp', 'heic', 'heif'],
+        );
+        for (final file in files.take(8 - materialFileNames.length)) {
+          if (await file.length() > 8 * 1024 * 1024) {
+            throw const FormatException('每张图片不能超过 8 MB');
+          }
+          final material = CloudOrderMaterial(
+              name: file.name, bytes: await file.readAsBytes());
+          material.validate();
+          pickedMaterials.add(material);
+        }
+        names = pickedMaterials.map((m) => m.name).toList();
+      }
       if (!mounted || names.isEmpty) return;
       setState(() {
         materialFileNames.addAll(names.take(8 - materialFileNames.length));
+        cloudMaterials.addAll(pickedMaterials);
       });
     } catch (_) {
       if (mounted) {
@@ -5539,6 +5585,7 @@ class _PrototypeReviewPageState extends State<PrototypeReviewPage> {
   @override
   void dispose() {
     characterNameController.dispose();
+    requirementsController.dispose();
     super.dispose();
   }
 
@@ -5555,6 +5602,35 @@ class _PrototypeReviewPageState extends State<PrototypeReviewPage> {
     if (materialFileNames.length < minimumMaterials) return;
     setState(() => submitting = true);
     try {
+      if (CloudBusinessIntake.instance.isConfigured) {
+        if (cloudMaterials.length != materialFileNames.length) {
+          throw const FormatException('请选择真实图片文件后上传');
+        }
+        await cloudSubmission.submit({
+          'characterName': name,
+          'sourceType': widget.type,
+          'requestedFeatures': requestedFeatures.toList(),
+          'privacyConsentVersion': 'customization-privacy-${marketRegion!}-v1',
+          'materialCount': cloudMaterials.length,
+          'marketRegion': marketRegion!,
+          'requirements': requirementsController.text.trim(),
+        }, cloudMaterials);
+        if (!mounted) return;
+        await showGateDialog<void>(
+            context: context,
+            builder: (context) => AlertDialog(
+                  title: const Text('需求和素材已上传'),
+                  content:
+                      Text('订单 ${cloudSubmission.orderId} 已提交，可在定制订单中查看处理进度。'),
+                  actions: [
+                    FilledButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: const Text('知道了'))
+                  ],
+                ));
+        if (mounted) Navigator.pop(context);
+        return;
+      }
       final submitted = await repository.submitReview(
         characterName: name,
         sourceType: widget.type,
@@ -5584,20 +5660,6 @@ class _PrototypeReviewPageState extends State<PrototypeReviewPage> {
         );
         return;
       }
-      final cloudSaved =
-          await CloudBusinessIntake.instance.submitCustomizationOrder(
-        characterName: name,
-        sourceType: widget.type,
-        requestedFeatures: requestedFeatures.toList(),
-        privacyConsentVersion: 'customization-privacy-${marketRegion!}-v1',
-        materialCount: materialFileNames.length,
-        marketRegion: marketRegion!,
-      );
-      if (!cloudSaved && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('需求已保存在本机，云端同步失败，请稍后重新提交。'),
-        ));
-      }
       if (!mounted) return;
       await showGateDialog<void>(
         context: context,
@@ -5614,8 +5676,11 @@ class _PrototypeReviewPageState extends State<PrototypeReviewPage> {
         ),
       );
       if (mounted) Navigator.of(context).pop();
-    } catch (_) {
-      if (mounted) showGateActionError(context);
+    } catch (error) {
+      if (mounted) {
+        setState(() => cloudError = error.toString());
+        showGateActionError(context);
+      }
     } finally {
       if (mounted) setState(() => submitting = false);
     }
@@ -5624,198 +5689,241 @@ class _PrototypeReviewPageState extends State<PrototypeReviewPage> {
   @override
   Widget build(BuildContext context) => GateScaffold(
         appBar: AppBar(title: Text(GateCopy.text(context, 'freeReviewTitle'))),
-        body: ListView(
-          scrollCacheExtent: const ScrollCacheExtent.pixels(600),
-          padding: const EdgeInsets.all(20),
-          children: [
-            if (widget.initialOrder != null) ...[
-              Card(
-                color: GateDesign.theme().colorScheme.secondaryContainer,
-                child: Padding(
-                  padding: const EdgeInsets.all(14),
-                  child: Text(GateCopy.text(context, 'supplementReview',
-                      {'id': widget.initialOrder!.id})),
-                ),
-              ),
-              const SizedBox(height: 12),
-            ],
-            Icon(Icons.fact_check_outlined,
-                size: 54, color: GateDesign.theme().colorScheme.primary),
-            const SizedBox(height: 20),
-            Text(GateCopy.text(context, 'reviewHero'),
-                style: GateDesign.theme().textTheme.headlineSmall),
-            const SizedBox(height: 10),
-            Text(GateCopy.text(
-                context, 'selectedType', {'type': _typeLabel(context)})),
-            const SizedBox(height: 10),
-            Text(GateCopy.text(context, 'reviewFreeIntro')),
-            const SizedBox(height: 20),
-            Text(GateCopy.text(context, 'materialsHeading'),
-                style: GateDesign.theme().textTheme.titleMedium),
-            const SizedBox(height: 6),
-            Text(GateCopy.text(
-                context,
-                widget.type == '原创手办'
-                    ? 'originalMaterialHelp'
-                    : 'otherMaterialHelp')),
-            const SizedBox(height: 10),
-            OutlinedButton.icon(
-              onPressed: submitting ||
-                      pickingMaterials ||
-                      materialFileNames.length >= 8
-                  ? null
-                  : _pickMaterials,
-              icon: const Icon(Icons.add_photo_alternate_outlined),
-              label: Text(pickingMaterials
-                  ? GateCopy.text(context, 'pickingPhotos')
-                  : materialFileNames.length >= 8
-                      ? GateCopy.text(context, 'photoSelectionFull')
-                      : materialFileNames.isEmpty
-                          ? GateCopy.text(context, 'choosePhotos')
-                          : GateCopy.text(context, 'reselectPhotos',
-                              {'count': materialFileNames.length})),
-            ),
-            Text(GateCopy.text(context, 'photoSelectionHelp'),
-                style: GateDesign.theme().textTheme.bodySmall),
-            if (materialFileNames.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.only(top: 8),
-                child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(materialFileNames.join('、')),
-                      const SizedBox(height: 8),
-                      Wrap(spacing: 8, runSpacing: 8, children: [
-                        for (var index = 0;
-                            index < materialFileNames.length;
-                            index++)
-                          InputChip(
-                            key: ValueKey('review-material-$index'),
-                            label: Text(
-                                '${GateCopy.text(context, 'photo')} ${index + 1}'),
-                            tooltip: materialFileNames[index],
-                            deleteButtonTooltipMessage:
-                                '${GateCopy.text(context, 'removePhoto')} ${index + 1}',
-                            onDeleted: submitting || pickingMaterials
-                                ? null
-                                : () => setState(
-                                    () => materialFileNames.removeAt(index)),
-                          ),
-                      ]),
-                    ]),
-              ),
-            const SizedBox(height: 8),
-            Text(GateCopy.text(context, 'materialPolicy')),
-            const SizedBox(height: 20),
-            TextField(
-              controller: characterNameController,
-              enabled: !submitting,
-              textInputAction: TextInputAction.done,
-              decoration: InputDecoration(
-                labelText: GateCopy.text(context, 'characterName'),
-                hintText: GateCopy.text(context, 'characterNameHint'),
-              ),
-              onChanged: (_) => setState(() {}),
-            ),
-            const SizedBox(height: 12),
-            Text(GateCopy.text(context, 'featuresQuestion'),
-                style: GateDesign.theme().textTheme.titleMedium),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: ['待机动作', '唱跳表演', '音乐联动', '角色记忆']
-                  .map(
-                    (feature) => FilterChip(
-                      label: Text(GateCopy.text(
-                          context, _featureCopyKeys[feature] ?? feature)),
-                      selected: requestedFeatures.contains(feature),
-                      onSelected: submitting
+        body: cloudSubmission.started
+            ? ListView(padding: const EdgeInsets.all(20), children: [
+                Text(characterNameController.text,
+                    style: Theme.of(context).textTheme.titleLarge),
+                Text('素材：${materialFileNames.join('、')}'),
+                if (cloudSubmission.orderId != null)
+                  Text('订单：${cloudSubmission.orderId}'),
+                const SizedBox(height: 16),
+                Text(submitting
+                    ? '正在上传需求和素材…'
+                    : '上传尚未完成。请保留此页面并重试，已完成的素材不会重复上传。'),
+                if (cloudError != null) Text(cloudError!),
+                FilledButton(
+                    onPressed: submitting ? null : _submit,
+                    child: Text(submitting ? '上传中…' : '重试上传')),
+                if (cloudSubmission.orderId != null)
+                  TextButton(
+                      onPressed: submitting
                           ? null
-                          : (selected) => setState(() {
-                                if (selected) {
-                                  requestedFeatures.add(feature);
-                                } else {
-                                  requestedFeatures.remove(feature);
-                                }
-                              }),
+                          : () => Navigator.of(context).pushReplacement(
+                              MaterialPageRoute<void>(
+                                  builder: (_) => const CloudOrdersPage())),
+                      child: const Text('查看订单并补传资料')),
+              ])
+            : ListView(
+                scrollCacheExtent: const ScrollCacheExtent.pixels(600),
+                padding: const EdgeInsets.all(20),
+                children: [
+                  if (widget.initialOrder != null) ...[
+                    Card(
+                      color: GateDesign.theme().colorScheme.secondaryContainer,
+                      child: Padding(
+                        padding: const EdgeInsets.all(14),
+                        child: Text(GateCopy.text(context, 'supplementReview',
+                            {'id': widget.initialOrder!.id})),
+                      ),
                     ),
-                  )
-                  .toList(),
-            ),
-            const SizedBox(height: 12),
-            DropdownButtonFormField<String>(
-              isExpanded: true,
-              key: const Key('market-region'),
-              initialValue: marketRegion,
-              decoration: InputDecoration(
-                  labelText: GateCopy.text(context, 'regionLabel')),
-              hint: Text(GateCopy.text(context, 'regionHint')),
-              items: _regionCopyKeys.entries
-                  .map((entry) => DropdownMenuItem(
-                      value: entry.key,
-                      child: Text(GateCopy.text(context, entry.value))))
-                  .toList(),
-              onChanged: submitting
-                  ? null
-                  : (value) => setState(() {
-                        marketRegion = value;
-                        privacyConfirmed = false;
-                      }),
-            ),
-            const SizedBox(height: 12),
-            CheckboxListTile(
-              contentPadding: EdgeInsets.zero,
-              value: rightsConfirmed,
-              onChanged: submitting
-                  ? null
-                  : (value) => setState(() => rightsConfirmed = value ?? false),
-              title: Text(GateCopy.text(context, 'rightsTitle')),
-              subtitle: Text(GateCopy.text(context, 'rightsHelp')),
-            ),
-            CheckboxListTile(
-              contentPadding: EdgeInsets.zero,
-              value: privacyConfirmed,
-              onChanged: submitting
-                  ? null
-                  : (value) =>
-                      setState(() => privacyConfirmed = value ?? false),
-              title: Text(GateCopy.text(context, 'privacyTitle')),
-              subtitle: Text(GateCopy.text(context, 'privacyHelp')),
-            ),
-            const SizedBox(height: 20),
-            FilledButton(
-              onPressed: characterNameController.text.trim().isNotEmpty &&
-                      rightsConfirmed &&
-                      privacyConfirmed &&
-                      marketRegion != null &&
-                      requestedFeatures.isNotEmpty &&
-                      materialFileNames.length >= minimumMaterials &&
-                      !pickingMaterials &&
-                      !submitting
-                  ? _submit
-                  : null,
-              child: Text(submitting
-                  ? GateCopy.text(context, 'submitting')
-                  : GateCopy.text(context, 'submitReview')),
-            ),
-            if (missingFields.isNotEmpty && !submitting)
-              Padding(
-                padding: const EdgeInsets.only(top: 12),
-                child: Semantics(
-                    liveRegion: true,
-                    child: Text(
-                      '${GateCopy.text(context, 'reviewMissing')} ${missingFields.map((key) => GateCopy.text(context, key, {
-                                'count': minimumMaterials
-                              })).join(' · ')}',
-                      key: const Key('review-missing-fields'),
-                      style: const TextStyle(color: GateDesign.muted),
-                    )),
+                    const SizedBox(height: 12),
+                  ],
+                  Icon(Icons.fact_check_outlined,
+                      size: 54, color: GateDesign.theme().colorScheme.primary),
+                  const SizedBox(height: 20),
+                  Text(GateCopy.text(context, 'reviewHero'),
+                      style: GateDesign.theme().textTheme.headlineSmall),
+                  const SizedBox(height: 10),
+                  Text(GateCopy.text(
+                      context, 'selectedType', {'type': _typeLabel(context)})),
+                  const SizedBox(height: 10),
+                  Text(GateCopy.text(context, 'reviewFreeIntro')),
+                  const SizedBox(height: 20),
+                  Text(GateCopy.text(context, 'materialsHeading'),
+                      style: GateDesign.theme().textTheme.titleMedium),
+                  const SizedBox(height: 6),
+                  Text(GateCopy.text(
+                      context,
+                      widget.type == '原创手办'
+                          ? 'originalMaterialHelp'
+                          : 'otherMaterialHelp')),
+                  const SizedBox(height: 10),
+                  OutlinedButton.icon(
+                    onPressed: submitting ||
+                            pickingMaterials ||
+                            materialFileNames.length >= 8
+                        ? null
+                        : _pickMaterials,
+                    icon: const Icon(Icons.add_photo_alternate_outlined),
+                    label: Text(pickingMaterials
+                        ? GateCopy.text(context, 'pickingPhotos')
+                        : materialFileNames.length >= 8
+                            ? GateCopy.text(context, 'photoSelectionFull')
+                            : materialFileNames.isEmpty
+                                ? GateCopy.text(context, 'choosePhotos')
+                                : GateCopy.text(context, 'reselectPhotos',
+                                    {'count': materialFileNames.length})),
+                  ),
+                  Text(GateCopy.text(context, 'photoSelectionHelp'),
+                      style: GateDesign.theme().textTheme.bodySmall),
+                  if (materialFileNames.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(materialFileNames.join('、')),
+                            const SizedBox(height: 8),
+                            Wrap(spacing: 8, runSpacing: 8, children: [
+                              for (var index = 0;
+                                  index < materialFileNames.length;
+                                  index++)
+                                InputChip(
+                                  key: ValueKey('review-material-$index'),
+                                  label: Text(
+                                      '${GateCopy.text(context, 'photo')} ${index + 1}'),
+                                  tooltip: materialFileNames[index],
+                                  deleteButtonTooltipMessage:
+                                      '${GateCopy.text(context, 'removePhoto')} ${index + 1}',
+                                  onDeleted: submitting || pickingMaterials
+                                      ? null
+                                      : () => setState(() {
+                                            materialFileNames.removeAt(index);
+                                            if (index < cloudMaterials.length) {
+                                              cloudMaterials.removeAt(index);
+                                            }
+                                          }),
+                                ),
+                            ]),
+                          ]),
+                    ),
+                  const SizedBox(height: 8),
+                  Text(GateCopy.text(context, 'materialPolicy')),
+                  const SizedBox(height: 20),
+                  TextField(
+                    key: const Key('review-character-name'),
+                    controller: characterNameController,
+                    maxLength: 120,
+                    enabled: !submitting,
+                    textInputAction: TextInputAction.done,
+                    decoration: InputDecoration(
+                      labelText: GateCopy.text(context, 'characterName'),
+                      hintText: GateCopy.text(context, 'characterNameHint'),
+                    ),
+                    onChanged: (_) => setState(() {}),
+                  ),
+                  TextField(
+                    key: const Key('review-requirements'),
+                    controller: requirementsController,
+                    enabled: !submitting,
+                    minLines: 3,
+                    maxLines: 6,
+                    maxLength: 10000,
+                    decoration: InputDecoration(
+                        labelText: GateCopy.text(context, 'reviewRequirements'),
+                        hintText:
+                            GateCopy.text(context, 'reviewRequirementsHint')),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(GateCopy.text(context, 'featuresQuestion'),
+                      style: GateDesign.theme().textTheme.titleMedium),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: ['待机动作', '唱跳表演', '音乐联动', '角色记忆']
+                        .map(
+                          (feature) => FilterChip(
+                            label: Text(GateCopy.text(
+                                context, _featureCopyKeys[feature] ?? feature)),
+                            selected: requestedFeatures.contains(feature),
+                            onSelected: submitting
+                                ? null
+                                : (selected) => setState(() {
+                                      if (selected) {
+                                        requestedFeatures.add(feature);
+                                      } else {
+                                        requestedFeatures.remove(feature);
+                                      }
+                                    }),
+                          ),
+                        )
+                        .toList(),
+                  ),
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<String>(
+                    isExpanded: true,
+                    key: const Key('market-region'),
+                    initialValue: marketRegion,
+                    decoration: InputDecoration(
+                        labelText: GateCopy.text(context, 'regionLabel')),
+                    hint: Text(GateCopy.text(context, 'regionHint')),
+                    items: _regionCopyKeys.entries
+                        .map((entry) => DropdownMenuItem(
+                            value: entry.key,
+                            child: Text(GateCopy.text(context, entry.value))))
+                        .toList(),
+                    onChanged: submitting
+                        ? null
+                        : (value) => setState(() {
+                              marketRegion = value;
+                              privacyConfirmed = false;
+                            }),
+                  ),
+                  const SizedBox(height: 12),
+                  CheckboxListTile(
+                    contentPadding: EdgeInsets.zero,
+                    value: rightsConfirmed,
+                    onChanged: submitting
+                        ? null
+                        : (value) =>
+                            setState(() => rightsConfirmed = value ?? false),
+                    title: Text(GateCopy.text(context, 'rightsTitle')),
+                    subtitle: Text(GateCopy.text(context, 'rightsHelp')),
+                  ),
+                  CheckboxListTile(
+                    contentPadding: EdgeInsets.zero,
+                    value: privacyConfirmed,
+                    onChanged: submitting
+                        ? null
+                        : (value) =>
+                            setState(() => privacyConfirmed = value ?? false),
+                    title: Text(GateCopy.text(context, 'privacyTitle')),
+                    subtitle: Text(GateCopy.text(context, 'privacyHelp')),
+                  ),
+                  const SizedBox(height: 20),
+                  FilledButton(
+                    onPressed: characterNameController.text.trim().isNotEmpty &&
+                            rightsConfirmed &&
+                            privacyConfirmed &&
+                            marketRegion != null &&
+                            requestedFeatures.isNotEmpty &&
+                            materialFileNames.length >= minimumMaterials &&
+                            !pickingMaterials &&
+                            !submitting
+                        ? _submit
+                        : null,
+                    child: Text(submitting
+                        ? GateCopy.text(context, 'submitting')
+                        : GateCopy.text(context, 'submitReview')),
+                  ),
+                  if (missingFields.isNotEmpty && !submitting)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 12),
+                      child: Semantics(
+                          liveRegion: true,
+                          child: Text(
+                            '${GateCopy.text(context, 'reviewMissing')} ${missingFields.map((key) => GateCopy.text(context, key, {
+                                      'count': minimumMaterials
+                                    })).join(' · ')}',
+                            key: const Key('review-missing-fields'),
+                            style: const TextStyle(color: GateDesign.muted),
+                          )),
+                    ),
+                  const SizedBox(height: 8),
+                  Center(child: Text(GateCopy.text(context, 'noCharge'))),
+                ],
               ),
-            const SizedBox(height: 8),
-            Center(child: Text(GateCopy.text(context, 'noCharge'))),
-          ],
-        ),
       );
 }
 

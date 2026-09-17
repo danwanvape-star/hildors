@@ -197,6 +197,7 @@ void main() {
     final profiles = _Profiles(_certified);
     await _open(tester, profiles);
     expect(find.byType(CreatorTaskBoardPage), findsOneWidget);
+    expect(find.text('原创内容投稿'), findsOneWidget);
     expect(find.text('设置创作者收款账户'), findsNothing);
     expect(profiles.payouts, 0);
   });

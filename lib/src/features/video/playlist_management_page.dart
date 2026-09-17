@@ -13,6 +13,11 @@ import 'character_package_picker.dart';
 import 'fan_framing_page.dart';
 import 'pending_playlist_store.dart';
 
+bool _isNetworkVideoSource(String source) {
+  final scheme = Uri.tryParse(source)?.scheme.toLowerCase();
+  return scheme == 'http' || scheme == 'https';
+}
+
 class PlaylistManagementPage extends StatefulWidget {
   const PlaylistManagementPage({
     required this.client,
@@ -85,6 +90,12 @@ class _PlaylistManagementPageState extends State<PlaylistManagementPage> {
           }
         });
         await _savePending(target);
+        if (videos.length == 1 && mounted) {
+          final video = videos.single.video;
+          await Navigator.of(context).push(MaterialPageRoute<void>(
+              builder: (_) =>
+                  FanFramingPage(source: video.source, asset: true)));
+        }
       } else {
         final picked = await FilePicker.pickFile(
             type: FileType.custom,
@@ -140,7 +151,9 @@ class _PlaylistManagementPageState extends State<PlaylistManagementPage> {
   Future<void> _openPending(
       DevicePlaylistKind kind, String key, PendingVideo video) async {
     try {
-      if (!video.asset && !await File(video.source).exists()) {
+      if (!video.asset &&
+          !_isNetworkVideoSource(video.source) &&
+          !await File(video.source).exists()) {
         if (!mounted) return;
         final reselect = await showDialog<bool>(
             context: context,
@@ -174,6 +187,45 @@ class _PlaylistManagementPageState extends State<PlaylistManagementPage> {
       if (mounted) {
         ScaffoldMessenger.of(context)
             .showSnackBar(const SnackBar(content: Text('无法读取视频，请稍后重试')));
+      }
+    }
+  }
+
+  Future<void> _adjustDeviceVideo(String fileName) async {
+    final kind = _kind;
+    final selectSource = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+              title: const Text('需要原始视频'),
+              content: const Text(
+                  '设备中的文件只有文件名，无法直接恢复原始画面。请从手机选择对应的原始视频，再调整画面。保存只记录取景参数，不会转码、上传或覆盖设备文件。'),
+              actions: [
+                TextButton(
+                    onPressed: () => Navigator.pop(context, false),
+                    child: const Text('取消')),
+                FilledButton(
+                    onPressed: () => Navigator.pop(context, true),
+                    child: const Text('选择原始视频')),
+              ],
+            ));
+    if (selectSource != true || !mounted) return;
+    try {
+      final picked = await FilePicker.pickFile(
+          type: FileType.custom,
+          allowedExtensions: const ['mp4', 'mov', 'm4v']);
+      if (!mounted || picked?.path == null) return;
+      final video =
+          (title: '$fileName · 原始视频取景', source: picked!.path!, asset: false);
+      final key = 'device-source:${kind.name}:$fileName';
+      setState(() => _pending[kind]![key] = video);
+      await _savePending(kind);
+      if (!mounted) return;
+      await Navigator.of(context).push(MaterialPageRoute<void>(
+          builder: (_) => FanFramingPage(source: video.source)));
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('无法读取原始视频，请稍后重试')));
       }
     }
   }
@@ -500,7 +552,16 @@ class _PlaylistManagementPageState extends State<PlaylistManagementPage> {
                     child: ListTile(
                   leading: const Icon(Icons.hourglass_empty),
                   title: Text(entry.value.title),
-                  subtitle: const Text('待转码 · 点击调整展示范围'),
+                  subtitle: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('待转码 · 尚未上传设备'),
+                        TextButton.icon(
+                            onPressed: () =>
+                                _openPending(_kind, entry.key, entry.value),
+                            icon: const Icon(Icons.crop, size: 18),
+                            label: const Text('调整画面')),
+                      ]),
                   trailing: IconButton(
                       tooltip: '移除待处理视频',
                       icon: const Icon(Icons.close),
@@ -523,7 +584,18 @@ class _PlaylistManagementPageState extends State<PlaylistManagementPage> {
                     onPlay: () => _playOnDevice(_draft.videoNames[index]),
                   ),
                   title: Text(_draft.videoNames[index]),
-                  subtitle: index == 0 ? const Text('默认首条') : null,
+                  subtitle: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (index == 0) const Text('默认首条'),
+                      TextButton.icon(
+                        onPressed: () =>
+                            _adjustDeviceVideo(_draft.videoNames[index]),
+                        icon: const Icon(Icons.crop, size: 18),
+                        label: const Text('调整画面'),
+                      ),
+                    ],
+                  ),
                   trailing: Wrap(
                     children: [
                       IconButton(

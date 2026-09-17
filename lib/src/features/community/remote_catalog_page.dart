@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'content_preview_player.dart';
+import 'remote_package_detail_page.dart';
 import 'remote_catalog_repository.dart';
 import 'remote_layout_repository.dart';
 
@@ -86,7 +86,7 @@ class _RemoteCatalogPageState extends State<RemoteCatalogPage> {
                   (source == '全部' || p.source == source) &&
                   (format == '全部' || p.format == format) &&
                   (topic == '全部' || p.tags.contains(topic)) &&
-                  '${p.title} ${p.tags.join(' ')}'
+                  '${p.title} ${p.credit} ${p.tags.join(' ')}'
                       .toLowerCase()
                       .contains(query.trim().toLowerCase()))
               .toList(growable: false);
@@ -151,12 +151,14 @@ class _RemoteCatalogPageState extends State<RemoteCatalogPage> {
                         }),
                     child: const Text('清除筛选')),
               ]),
-              if (items.isNotEmpty) _grid(items, 3),
+              if (items.isNotEmpty) _grid(items, 3, data.packages),
             ] else
               for (final block in data.layout) ...[
                 if (_itemsFor(block, items).isNotEmpty) ...[
-                  _SectionTitle(block.title),
-                  _grid(_itemsFor(block, items), block.columns),
+                  if (!const {'HILDORS 出品', 'HILDORS出品', '创作者作品', ''}
+                      .contains(block.title.trim()))
+                    _SectionTitle(block.title),
+                  _grid(_itemsFor(block, items), block.columns, data.packages),
                 ],
               ],
           ]);
@@ -201,24 +203,27 @@ class _RemoteCatalogPageState extends State<RemoteCatalogPage> {
     };
   }
 
-  Widget _grid(List<RemoteCatalogPackage> items, int requestedColumns) =>
+  Widget _grid(List<RemoteCatalogPackage> items, int requestedColumns,
+          List<RemoteCatalogPackage> catalog) =>
       LayoutBuilder(builder: (context, constraints) {
         final accessible = constraints.maxWidth < 340 ||
             MediaQuery.textScalerOf(context).scale(1) > 1.3;
         final columns = accessible ? 2 : requestedColumns.clamp(1, 3);
         final width = (constraints.maxWidth - (columns - 1) * 10) / columns;
         return Wrap(spacing: 10, runSpacing: 12, children: [
-          for (final item in items) _tile(item, width),
+          for (final item in items) _tile(item, width, catalog),
         ]);
       });
 
-  Widget _tile(RemoteCatalogPackage item, double width) => SizedBox(
+  Widget _tile(RemoteCatalogPackage item, double width,
+          List<RemoteCatalogPackage> catalog) =>
+      SizedBox(
         width: width,
         child: Card(
             clipBehavior: Clip.antiAlias,
             margin: EdgeInsets.zero,
             child: InkWell(
-                onTap: () => _details(item),
+                onTap: () => _details(item, catalog),
                 child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -251,6 +256,12 @@ class _RemoteCatalogPageState extends State<RemoteCatalogPage> {
                                     maxLines: 2,
                                     overflow: TextOverflow.ellipsis),
                                 const SizedBox(height: 6),
+                                Text(item.credit,
+                                    key: ValueKey('credit-${item.id}'),
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(fontSize: 12)),
+                                const SizedBox(height: 6),
                                 Text(
                                     '${item.format == 'single' ? '单条视频' : '角色视频包'} · ${item.clips.length}条',
                                     style: const TextStyle(fontSize: 11)),
@@ -258,75 +269,10 @@ class _RemoteCatalogPageState extends State<RemoteCatalogPage> {
                     ]))),
       );
 
-  void _details(RemoteCatalogPackage item) {
+  void _details(RemoteCatalogPackage item, List<RemoteCatalogPackage> catalog) {
     Navigator.of(context).push(MaterialPageRoute<void>(
-        builder: (_) => Scaffold(
-              appBar: AppBar(title: Text(item.title)),
-              body: ListView(padding: const EdgeInsets.all(16), children: [
-                if (item.format == 'package')
-                  AspectRatio(
-                    aspectRatio: 1,
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(18),
-                      child: ColoredBox(
-                        color: const Color(0xff101d2c),
-                        child: item.coverUrl == null
-                            ? const Center(
-                                child:
-                                    Icon(Icons.folder_copy_outlined, size: 52))
-                            : Image.network(item.coverUrl!,
-                                key:
-                                    ValueKey('package-detail-cover-${item.id}'),
-                                fit: BoxFit.contain,
-                                errorBuilder: (_, __, ___) => const Center(
-                                    child: Icon(Icons.broken_image_outlined,
-                                        size: 52))),
-                      ),
-                    ),
-                  ),
-                if (item.format == 'package') const SizedBox(height: 16),
-                Text(item.source == 'hildors' ? 'HILDORS 出品' : '创作者作品'),
-                const SizedBox(height: 12),
-                Text(item.tags.join(' / ')),
-                const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 16),
-                    child: Text('包内视频')),
-                for (final clip in item.clips)
-                  Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        if (clip.previewUrl != null)
-                          Padding(
-                            padding: const EdgeInsets.only(bottom: 10),
-                            child: ContentPreviewPlayer(
-                                assetPath: null, networkUrl: clip.previewUrl),
-                          ),
-                        ListTile(
-                            leading: clip.thumbnailUrl == null
-                                ? const Icon(Icons.movie_outlined)
-                                : ClipRRect(
-                                    borderRadius: BorderRadius.circular(8),
-                                    child: SizedBox.square(
-                                      dimension: 56,
-                                      child: Image.network(clip.thumbnailUrl!,
-                                          fit: BoxFit.contain,
-                                          errorBuilder: (_, __, ___) =>
-                                              const Icon(
-                                                  Icons.broken_image_outlined)),
-                                    )),
-                            title: Text(clip.title),
-                            subtitle: Text(clip.durationSeconds == null
-                                ? '时长待确认'
-                                : '${clip.durationSeconds!.toStringAsFixed(1)} 秒')),
-                        if (widget.clipActions != null)
-                          widget.clipActions!(item, clip),
-                      ]),
-                const SizedBox(height: 16),
-                Text(widget.clipActions == null
-                    ? '当前仅支持浏览视频清单。下载与设备交付开放后，可选择包内视频加入播放列表。'
-                    : '下载仅保存到App本地，不代表已发送到硬件。'),
-              ]),
-            )));
+        builder: (_) => RemotePackageDetailPage(
+            item: item, catalog: catalog, clipActions: widget.clipActions)));
   }
 }
 

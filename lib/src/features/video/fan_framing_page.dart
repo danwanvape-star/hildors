@@ -33,6 +33,49 @@ class FanFraming {
   }
 }
 
+class FanFramingDraftStore {
+  static Future<File> _file(String source, bool asset) async {
+    final root = await getApplicationSupportDirectory();
+    final directory = Directory('${root.path}/fan_framing');
+    await directory.create(recursive: true);
+    // Keep filenames short while storing the full source identity in JSON.
+    final bytes = utf8.encode('$asset:$source');
+    var hash = 2166136261;
+    for (final byte in bytes) {
+      hash = ((hash ^ byte) * 16777619) & 0xffffffff;
+    }
+    return File('${directory.path}/${hash.toRadixString(16)}.json');
+  }
+
+  static Future<FanFraming?> load(
+      {required String source, required bool asset}) async {
+    final file = await _file(source, asset);
+    if (!await file.exists()) return null;
+    final data = jsonDecode(await file.readAsString()) as Map<String, dynamic>;
+    if (data['source'] != source || data['asset'] != asset) return null;
+    return FanFraming.fromJson(data);
+  }
+
+  static Future<void> save({
+    required String source,
+    required bool asset,
+    required FanFraming framing,
+    required Size sourceSize,
+  }) async {
+    final file = await _file(source, asset);
+    await file.writeAsString(
+        jsonEncode({
+          ...framing.toJson(),
+          'source': source,
+          'asset': asset,
+          'sourceWidth': sourceSize.width,
+          'sourceHeight': sourceSize.height,
+          'status': 'framingOnly',
+        }),
+        flush: true);
+  }
+}
+
 class FanFramingPage extends StatefulWidget {
   const FanFramingPage({required this.source, this.asset = false, super.key});
   final String source;
@@ -56,19 +99,6 @@ class _FanFramingPageState extends State<FanFramingPage> {
     _initialize();
   }
 
-  Future<File> _draftFile() async {
-    final root = await getApplicationSupportDirectory();
-    final directory = Directory('${root.path}/fan_framing');
-    await directory.create(recursive: true);
-    // Keep filenames short while storing the full source identity in JSON.
-    final bytes = utf8.encode('${widget.asset}:${widget.source}');
-    var hash = 2166136261;
-    for (final byte in bytes) {
-      hash = ((hash ^ byte) * 16777619) & 0xffffffff;
-    }
-    return File('${directory.path}/${hash.toRadixString(16)}.json');
-  }
-
   Future<void> _initialize() async {
     VideoPlayerController? player;
     try {
@@ -87,15 +117,9 @@ class _FanFramingPageState extends State<FanFramingPage> {
       var frame =
           FanFraming(scale: FanFraming.fullScale(player.value.aspectRatio));
       try {
-        final file = await _draftFile();
-        if (await file.exists()) {
-          final data =
-              jsonDecode(await file.readAsString()) as Map<String, dynamic>;
-          if (data['source'] == widget.source &&
-              data['asset'] == widget.asset) {
-            frame = FanFraming.fromJson(data);
-          }
-        }
+        final restored = await FanFramingDraftStore.load(
+            source: widget.source, asset: widget.asset);
+        if (restored != null) frame = restored;
       } catch (_) {
         _restoreFailed = true;
       }
@@ -116,17 +140,11 @@ class _FanFramingPageState extends State<FanFramingPage> {
   Future<void> _save() async {
     setState(() => _saving = true);
     try {
-      final file = await _draftFile();
-      await file.writeAsString(
-          jsonEncode({
-            ..._frame.toJson(),
-            'source': widget.source,
-            'asset': widget.asset,
-            'sourceWidth': _player!.value.size.width,
-            'sourceHeight': _player!.value.size.height,
-            'status': 'framingOnly',
-          }),
-          flush: true);
+      await FanFramingDraftStore.save(
+          source: widget.source,
+          asset: widget.asset,
+          framing: _frame,
+          sourceSize: _player!.value.size);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
         content: Text('取景已保存。原视频未修改，尚未转码或上传。'),

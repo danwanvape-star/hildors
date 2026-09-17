@@ -27,7 +27,7 @@ try {
     return response.json();
   };
   let item = await call('/admin/packages', 'POST', JSON.stringify({
-    title: 'Isolated App E2E', source: 'hildors', format: 'single', tags: [],
+    title: 'Isolated App E2E', description: 'Isolated download integration fixture', source: 'hildors', format: 'single', tags: [],
     clips: [{ id: 'clip', title: 'Real showcase video' }],
   }));
   const path = `/admin/packages/${item.id}`;

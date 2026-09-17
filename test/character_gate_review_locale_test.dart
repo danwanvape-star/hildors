@@ -73,11 +73,17 @@ void main() {
         findsOneWidget);
     expect(find.text('Selected: Original figure'), findsOneWidget);
     expect(find.text('Choose photos'), findsOneWidget);
-    await tester.scrollUntilVisible(find.byType(TextField), 180,
+    await tester.scrollUntilVisible(
+        find.byKey(const Key('review-character-name')), 180,
         scrollable: find.byType(Scrollable).first);
     await tester.pumpAndSettle();
     expect(find.text('Character name'), findsOneWidget);
     expect(find.text('角色名称'), findsNothing);
+    await tester.scrollUntilVisible(
+        find.byKey(const Key('review-requirements')), 180,
+        scrollable: find.byType(Scrollable).first);
+    expect(find.text('Customization requirements'), findsOneWidget);
+    expect(find.text('定制要求'), findsNothing);
   });
 
   testWidgets('free review entry renders its Japanese catalog', (tester) async {
@@ -90,11 +96,17 @@ void main() {
     expect(find.text('安全かつ安定して制作できるか、まず確認します'), findsOneWidget);
     expect(find.text('選択済み：オリジナルキャラクター'), findsOneWidget);
     expect(find.text('写真を選択'), findsOneWidget);
-    await tester.scrollUntilVisible(find.byType(TextField), 180,
+    await tester.scrollUntilVisible(
+        find.byKey(const Key('review-character-name')), 180,
         scrollable: find.byType(Scrollable).first);
     await tester.pumpAndSettle();
     expect(find.text('キャラクター名'), findsOneWidget);
     expect(find.text('免费预审'), findsNothing);
+    await tester.scrollUntilVisible(
+        find.byKey(const Key('review-requirements')), 180,
+        scrollable: find.byType(Scrollable).first);
+    expect(find.text('カスタマイズのご要望'), findsOneWidget);
+    expect(find.text('定制要求'), findsNothing);
   });
 
   testWidgets('character source and rights diversion render in English',

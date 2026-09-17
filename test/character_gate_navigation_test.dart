@@ -2360,7 +2360,11 @@ void main() {
         tester.state<ScrollableState>(find.byType(Scrollable).first).position;
     reviewPosition.jumpTo(reviewPosition.maxScrollExtent / 2);
     await tester.pumpAndSettle();
-    expect(tester.widget<TextField>(find.byType(TextField)).controller!.text,
+    expect(
+        tester
+            .widget<TextField>(find.byKey(const Key('review-character-name')))
+            .controller!
+            .text,
         '权利不清的角色');
     final memoryChip = tester.widget<FilterChip>(
       find.widgetWithText(FilterChip, 'Character memory'),
@@ -2670,7 +2674,8 @@ void main() {
     reviewPosition
         .jumpTo(600.0.clamp(0.0, reviewPosition.maxScrollExtent).toDouble());
     await tester.pumpAndSettle();
-    await tester.enterText(find.byType(TextField), '星际狐狸');
+    await tester.enterText(
+        find.byKey(const Key('review-character-name')), '星际狐狸');
     await tester.ensureVisible(find.text('Idle motion'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Idle motion'));

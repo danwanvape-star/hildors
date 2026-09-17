@@ -5,10 +5,14 @@ import '../../media/bundled_video_controller.dart';
 
 class ContentPreviewPlayer extends StatefulWidget {
   const ContentPreviewPlayer(
-      {required this.assetPath, this.networkUrl, super.key});
+      {required this.assetPath,
+      this.networkUrl,
+      this.autoPlay = false,
+      super.key});
 
   final String? assetPath;
   final String? networkUrl;
+  final bool autoPlay;
 
   @override
   State<ContentPreviewPlayer> createState() => _ContentPreviewPlayerState();
@@ -16,6 +20,7 @@ class ContentPreviewPlayer extends StatefulWidget {
 
 class _ContentPreviewPlayerState extends State<ContentPreviewPlayer> {
   VideoPlayerController? _controller;
+  bool _routeIsCurrent = true;
   String? _error;
   String? _technicalError;
   final _transformationController = TransformationController();
@@ -24,6 +29,16 @@ class _ContentPreviewPlayerState extends State<ContentPreviewPlayer> {
   void initState() {
     super.initState();
     _initialize();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _routeIsCurrent = ModalRoute.of(context)?.isCurrent ?? true;
+    final controller = _controller;
+    if (!_routeIsCurrent && controller?.value.isPlaying == true) {
+      controller!.pause();
+    }
   }
 
   Future<void> _initialize() async {
@@ -47,6 +62,10 @@ class _ContentPreviewPlayerState extends State<ContentPreviewPlayer> {
         return;
       }
       setState(() => _controller = controller);
+      if (widget.autoPlay && _routeIsCurrent) {
+        await controller.play();
+        if (mounted) setState(() {});
+      }
     } catch (error, stackTrace) {
       debugPrint('Preview video failed: $error');
       debugPrintStack(stackTrace: stackTrace);
