@@ -28,7 +28,8 @@ export async function receiveMedia(req, directory, limit = 256 * 1024 * 1024) {
 
 export async function receiveImage(req, directory, contentType, limit = 8 * 1024 * 1024) {
   await mkdir(directory, { recursive: true });
-  const extension = contentType === 'image/png' ? 'png' : 'jpg';
+  const extension = ({'image/png':'png','image/jpeg':'jpg','image/webp':'webp','image/heic':'heic','image/heif':'heif'})[contentType];
+  if (!extension) throw new Error('INVALID_IMAGE');
   const id = randomUUID(); const path = resolve(directory, `${id}.${extension}`);
   const temporary = `${path}.part`; let handle; let bytes = 0; let header = Buffer.alloc(0);
   try {
@@ -42,7 +43,9 @@ export async function receiveImage(req, directory, contentType, limit = 8 * 1024
     }
     const jpeg = header[0] === 0xff && header[1] === 0xd8 && header[2] === 0xff;
     const png = header.subarray(0, 8).equals(Buffer.from([137,80,78,71,13,10,26,10]));
-    if (bytes < 32 || (extension === 'jpg' ? !jpeg : !png)) throw new Error('INVALID_IMAGE');
+    const webp = header.toString('ascii',0,4)==='RIFF' && header.toString('ascii',8,12)==='WEBP';
+    const heif = header.toString('ascii',4,8)==='ftyp' && ['heic','heix','hevc','hevx','mif1','msf1'].includes(header.toString('ascii',8,12));
+    if (bytes < 32 || !({jpg:jpeg,png,webp,heic:heif,heif})[extension]) throw new Error('INVALID_IMAGE');
     await handle.close(); handle = undefined; await rename(temporary, path);
     return { id, bytes, extension, contentType, uploadedAt: new Date().toISOString() };
   } catch (error) { await handle?.close(); await unlink(temporary).catch(() => {}); throw error; }

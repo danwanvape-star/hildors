@@ -2,7 +2,12 @@ const $ = id => document.getElementById(id);
 let items = [], epoch = 0;
 let orders = [], creators = [], activeView = 'content';
 let layoutState = null, layoutPage = 'collection', draggedLayoutIndex = null, layoutSavedSnapshot = '';
-let reviewing = null;
+let reviewing = null, reviewingClip = null, metadataItem = null, selectedItemId = null;
+const uploadedClips = item => item.clips.filter(c => c.media || c.bundledAsset);
+const liveClips = item => item.status === 'published' ? uploadedClips(item).filter(c => !c.visibility || c.visibility === 'published') : [];
+function contentNotice(message) { $('notice').textContent = message; const progress = $('content-progress'); if (progress) progress.textContent = message; }
+let contentTags = [], contentPage = 1;
+const contentPageSize = 20;
 const previews = new Set();
 function showConnection(connected) {
   $('login').hidden = connected;
@@ -10,6 +15,7 @@ function showConnection(connected) {
 }
 function clearPreviews() { for (const url of previews) URL.revokeObjectURL(url); previews.clear(); }
 const messages = { UNAUTHORIZED: '登录已过期，请重新登录。', INVALID_CREDENTIALS: '用户名或密码错误。', VERSION_OR_STATE_CONFLICT: '内容已被更新，请刷新后重试。', INVALID_ORDER_TRANSITION: '不能跳过必要步骤，请按流程推进订单。', ORDER_QUOTE_REQUIRED: '报价时必须填写金额、币种和预计工期。', ORDER_PRODUCTION_REQUIRED: '进入制作前必须指定负责人和截止日期。', ORDER_DELIVERABLE_REQUIRED: '提交质检前必须填写成品文件或任务地址。', ORDER_QC_REQUIRED: '平台质检全部通过后才能提交用户验收。', ORDER_DELIVERY_REQUIRED: '完成交付前必须填写最终交付记录。', MEDIA_REVIEW_REQUIRED: '需要先完成素材处理和审核。', PACKAGE_COVER_REQUIRED: '角色视频包必须先上传角色主图。', INVALID_PACKAGE: '请检查名称、视频数量和标签。' };
+Object.assign(messages, { ORDER_USER_CONFIRMATION_REQUIRED:'请等待用户在 App 中亲自确认。', ORDER_CREATOR_INELIGIBLE:'该创作者未认证或没有接单权限，请重新选择。', ORDER_SELF_ASSIGNMENT:'不能将订单分配给下单用户本人。', ORDER_APPLICATION_REQUIRED:'请从已报名创作者中选择制作人。', ORDER_DISPATCH_STAGE:'当前订单状态不允许派单，请重新加载详情。', ORDER_CREATOR_REQUIRED:'请先选择具备接单资格的创作者。', ORDER_NOTE_REQUIRED:'请填写本次处理说明。', ORDER_QUOTE_PROPOSAL_REQUIRED:'请等待创作者提交建议报价。', ORDER_ALREADY_ASSIGNED:'订单已有制作人，请重新加载详情。' });
 async function api(path, body) {
   const response = await fetch(path, { method: body === undefined ? 'GET' : 'POST',
     headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin',
@@ -38,6 +44,10 @@ function orderFields(next, order) {
 }
 function showView(view) {
   activeView = view;
+  $('console-main').classList.toggle('orders-mode', view === 'orders');
+  const titles = { content: ['内容管理', '管理角色内容、创作者投稿与上架进度。'], orders: ['定制订单', '审核需求、分配创作者并跟进制作交付。'], creators: ['创作者管理', '审核创作者资格与管理接单权限。'], layout: ['页面装修', '管理 App 页面模块与发布版本。'] };
+  $('view-title').textContent = titles[view][0];
+  $('view-subtitle').textContent = titles[view][1];
   document.querySelectorAll('[data-panel]').forEach(panel => panel.hidden = panel.dataset.panel !== view);
   document.querySelectorAll('[data-view]').forEach(button => button.classList.toggle('active', button.dataset.view === view));
   $('notice').textContent = view === 'content' ? '管理 App 内容目录。' : view === 'orders' ? '管理角色定制业务订单。' : view === 'creators' ? '审核和管理创作者资格。' : '拖拽管理 App 的运营模块。';
@@ -47,69 +57,6 @@ function actionSelect(options, selected) {
   for (const [value, label] of Object.entries(options)) { const option = document.createElement('option'); option.value = value; option.textContent = label; option.selected = value === selected; select.append(option); }
   return select;
 }
-function renderOrders() {
-  $('orders-total').textContent = orders.length;
-  $('orders-review').textContent = orders.filter(x => x.status === 'free_review').length;
-  $('orders-production').textContent = orders.filter(x => x.status === 'in_production').length;
-  const visible = orders.filter(x => !$('order-status').value || x.status === $('order-status').value);
-  $('order-cards').replaceChildren();
-  for (const order of visible) {
-    const card = text('article', '', 'card order-card');
-    card.append(text('span', orderLabels[order.status] || order.status, 'status'), text('h2', order.characterName),
-      text('div', `${order.sourceType} · ${order.marketRegion} · ${order.materialCount}份素材`, 'meta'),
-      text('p', `需求：${(order.requestedFeatures || []).join(' / ') || '未填写'}`),
-      text('p', `订单号：${order.id}`),
-      text('p', order.materialsUploaded ? '私有素材已上传' : '仅同步需求元数据，原始素材未上传'));
-    const progress = text('div', '', 'order-progress'), activeIndex = orderSteps.indexOf(order.status);
-    orderSteps.forEach((step, index) => { const node = text('div', '', `order-step${index < activeIndex ? ' done' : index === activeIndex ? ' current' : ''}`); node.append(text('span', index < activeIndex ? '✓' : String(index + 1)), text('small', orderLabels[step])); progress.append(node); });
-    card.append(progress);
-    const note = document.createElement('textarea'); note.rows = 2; note.maxLength = 1000; note.placeholder = '填写本次处理说明，用户端后续可同步查看';
-    const actions = text('div', '', 'order-actions');
-    for (const next of orderTransitions[order.status] || []) {
-      const button = text('button', orderLabels[next], next === 'rejected' || next === 'withdrawn' ? 'danger' : next === 'needs_info' ? 'secondary' : '');
-      button.onclick = async () => {
-        if ((next === 'needs_info' || next === 'rejected') && !note.value.trim()) { $('notice').textContent = '退回或拒绝时必须填写处理说明。'; note.focus(); return; }
-        const fieldsNode = orderFields(next, order); if (fieldsNode.children.length) { actions.replaceChildren(fieldsNode); const confirmButton = text('button', `确认：${orderLabels[next]}`); actions.append(confirmButton); confirmButton.onclick = () => submit(confirmButton); return; }
-        await submit(button);
-        async function submit(trigger) { const fields = {}; for (const input of actions.querySelectorAll('[name]')) fields[input.name] = input.type === 'checkbox' ? input.checked : input.value; trigger.disabled = true; try { await api(`/admin/customization-orders/${encodeURIComponent(order.id)}`, { version: order.version, status: next, note: note.value, fields }); await refreshOrders(); $('notice').textContent = `订单已更新为“${orderLabels[next]}”。`; } catch (error) { $('notice').textContent = error.message; trigger.disabled = false; } }
-      };
-      actions.append(button);
-    }
-    if (order.workflow && Object.keys(order.workflow).length) { const overview = text('div', '', 'workflow-overview'); overview.append(text('h3', '履约信息')); for (const [key, value] of Object.entries(order.workflow)) overview.append(text('span', `${key}：${value === true ? '已完成' : value}`)); card.append(overview); }
-    card.append(text('h3', '下一步处理'), note, actions);
-    const history = text('details', '', 'order-history'); history.append(text('summary', `处理记录（${(order.workflowHistory || []).length}）`));
-    for (const item of [...(order.workflowHistory || [])].reverse()) history.append(text('p', `${new Date(item.at).toLocaleString()}　${orderLabels[item.from] || item.from} → ${orderLabels[item.to] || item.to}${item.note ? `｜${item.note}` : ''}`));
-    card.append(history); $('order-cards').append(card);
-  }
-  if (!visible.length) $('order-cards').append(text('p', '当前没有定制订单。App 更新并提交新需求后会显示在这里。', 'empty'));
-}
-function renderCreators() {
-  $('creators-total').textContent = creators.length;
-  $('creators-pending').textContent = creators.filter(x => x.status === 'pending').length;
-  $('creators-approved').textContent = creators.filter(x => x.status === 'approved').length;
-  const visible = creators.filter(x => !$('creator-status').value || x.status === $('creator-status').value);
-  $('creator-cards').replaceChildren();
-  for (const creator of visible) {
-    const card = text('article', '', 'card');
-    card.append(text('span', creatorLabels[creator.status] || creator.status, 'status'), text('h2', creator.displayName),
-      text('div', `${creator.marketRegion} · ${(creator.skillTags || []).join(' / ') || '未填写技能'}`, 'meta'),
-      text('p', `邮箱：${creator.email || '旧申请待补充'}`),
-      text('p', `作品集：${creator.portfolioUrl || '未填写'}`), text('p', `申请编号：${creator.id}`));
-    const management = creator.management || {}, form = text('div', '', 'creator-management');
-    const select = actionSelect(creatorLabels, creator.status); select.name = 'status';
-    const tier = actionSelect({ standard: '标准创作者', verified: '认证创作者', partner: '签约伙伴' }, management.tier || 'standard'); tier.name = 'tier';
-    form.append(text('label', '账号状态'), select, text('label', '创作者等级'), tier,
-      inputField('平台分成比例（%）', 'commissionRate', management.commissionRate ?? 0, 'number'), inputField('运营负责人', 'manager', management.manager));
-    for (const [name, labelText] of [['identityVerified','身份已核验'],['agreementSigned','协议已签署'],['payoutReady','收款资料已完善'],['canPublish','允许提交内容']]) { const label = text('label', ` ${labelText}`); const check = document.createElement('input'); check.type = 'checkbox'; check.name = name; check.checked = management[name] === true; label.prepend(check); form.append(label); }
-    const note = document.createElement('textarea'); note.name = 'note'; note.rows = 2; note.placeholder = '审核与运营备注'; note.value = management.note || '';
-    const save = text('button', '保存创作者档案', 'secondary');
-    save.onclick = async () => { const body = { version: creator.version }; for (const input of form.querySelectorAll('[name]')) body[input.name] = input.type === 'checkbox' ? input.checked : input.value; body.note = note.value; save.disabled = true; try { await api(`/admin/creators/${encodeURIComponent(creator.id)}`, body); await refreshCreators(); $('notice').textContent = '创作者档案与权限已更新。'; } catch (error) { $('notice').textContent = error.message; save.disabled = false; } };
-    form.append(note, save); card.append(form); $('creator-cards').append(card);
-  }
-  if (!visible.length) $('creator-cards').append(text('p', '当前没有创作者申请。App 更新并提交申请后会显示在这里。', 'empty'));
-}
-async function refreshOrders() { orders = (await api('/admin/customization-orders')).items; renderOrders(); }
-async function refreshCreators() { creators = (await api('/admin/creators')).items; renderCreators(); }
 function renderLayout() {
   if (!layoutState) return;
   $('layout-version').textContent = `草稿版本 ${layoutState.version}`;
@@ -153,15 +100,85 @@ function renderLayoutPreview() {
   }
 }
 async function refreshLayout() { layoutState = await api('/admin/layout'); layoutSavedSnapshot = JSON.stringify(layoutState.draft); renderLayout(); }
+function contentState(item) {
+  if (item.status !== 'draft') return item.status;
+  return item.submissionStatus || (item.review?.decision === 'approved' ? 'approved' : item.review?.decision === 'rejected' ? 'rejected' : 'draft');
+}
+const contentStateLabels = {draft:'草稿', pending:'待审核', approved:'已入库待上架', rejected:'已退回', published:'已上架', withdrawn:'已下架'};
+function resetPage() { contentPage = 1; render(); }
 function render() {
-  clearPreviews();
   $('total').textContent = items.length;
   $('published').textContent = items.filter(x => x.status === 'published').length;
   $('drafts').textContent = items.filter(x => x.status === 'draft').length;
-  const visible = items.filter(x => (! $('status').value || x.status === $('status').value)
-    && `${x.title} ${x.tags.join(' ')}`.toLowerCase().includes($('search').value.trim().toLowerCase()));
+  const query = $('search').value.trim().toLowerCase();
+  const visible = items.filter(x => (!$('status').value || contentState(x) === $('status').value)
+    && (!$('source-filter').value || x.source === $('source-filter').value)
+    && (!$('format-filter').value || x.format === $('format-filter').value)
+    && (!$('tag-filter').value || x.tags.includes($('tag-filter').value))
+    && `${x.title} ${x.creator?.name || ''} ${x.tags.join(' ')}`.toLowerCase().includes(query));
+  const pages = Math.max(1, Math.ceil(visible.length / contentPageSize));
+  contentPage = Math.min(contentPage, pages);
+  $('result-count').textContent = `共 ${visible.length} 条内容`;
+  $('page-info').textContent = `第 ${contentPage} / ${pages} 页 · 每页 ${contentPageSize} 条`;
+  $('prev-page').disabled = contentPage <= 1; $('next-page').disabled = contentPage >= pages;
   $('cards').replaceChildren();
-  for (const item of visible) {
+  for (const item of visible.slice((contentPage - 1) * contentPageSize, contentPage * contentPageSize)) {
+    const row = text('article', '', 'content-row');
+    const cover = text('div', '', 'content-thumb');
+    const media = item.clips.find(x => x.media?.inspection?.status === 'checked')?.media;
+    if (item.cover || media) {
+      const image = document.createElement('img'); image.loading = 'lazy'; image.alt = `${item.title}封面`;
+      image.src = item.cover ? `/admin/covers/${encodeURIComponent(item.cover.id)}` : `/admin/media/${encodeURIComponent(media.id)}/thumbnail`;
+      cover.append(image);
+    } else cover.append(text('span', item.format === 'package' ? '角色包' : '视频'));
+    const info = text('div', '', 'content-info');
+    info.append(text('h2', item.title), text('p', item.tags.join(' · ') || '题材待补充'));
+    const attribution = text('div', '', 'content-attribution');
+    attribution.append(text('strong', item.source === 'hildors' ? 'HILDORS 出品' : '创作者出品'), text('small', item.source === 'creator' ? item.creator?.name || '历史创作者' : '官方内容'));
+    const format = text('div', '', 'content-format');
+    format.append(text('span', item.format === 'package' ? '角色视频包' : '单视频'), text('small', `${uploadedClips(item).length} 个视频 · ${liveClips(item).length} 已上架`));
+    const status = text('span', contentStateLabels[contentState(item)] || '草稿', `content-status ${contentState(item)}`);
+    const open = text('button', '查看详情', 'secondary');
+    open.onclick = () => { selectedItemId = item.id; renderDetail(item); $('content-detail').showModal(); };
+    row.append(cover, info, attribution, format, status, open); $('cards').append(row);
+  }
+  if (!visible.length) $('cards').append(text('p', '暂无符合条件的内容。', 'empty'));
+}
+function refreshTagFilter() {
+  const selected = $('tag-filter').value;
+  const all = new Set([...contentTags.map(t => t.name), ...items.flatMap(x => x.tags)]);
+  const first = text('option', '全部题材'); first.value = ''; $('tag-filter').replaceChildren(first);
+  for (const name of all) { const option = text('option', name); option.value = name; $('tag-filter').append(option); }
+  $('tag-filter').value = all.has(selected) ? selected : '';
+}
+function renderTagOptions(id, selected = []) {
+  const target = $(id); target.replaceChildren();
+  const choices = contentTags.filter(t => t.active || selected.includes(t.name));
+  for (const name of selected) if (!choices.some(t => t.name === name)) choices.push({ name, active:false });
+  for (const tag of choices) {
+    const label = text('label', `${tag.name}${tag.active ? '' : '（历史标签）'}`, 'tag-choice');
+    const input = document.createElement('input'); input.type = 'checkbox'; input.value = tag.name; input.checked = selected.includes(tag.name);
+    label.prepend(input); target.append(label);
+  }
+  if (!choices.length) target.append(text('p', '暂无可用标签，请先在标签库中添加。'));
+}
+function selectedTags(id) { return [...$(id).querySelectorAll('input:checked')].map(x => x.value); }
+function openMetadata(item) {
+  metadataItem = item;
+  $('metadata-form').elements.title.value = item.title;
+  $('metadata-form').elements.description.value = item.description || '';
+  renderTagOptions('metadata-tags', item.tags); $('metadata-error').textContent = ''; $('metadata-dialog').showModal();
+}
+function addTagRow(tag = {id:crypto.randomUUID(),name:'',active:true}) {
+  const row = text('div', '', 'tag-management-row'); row.dataset.id = tag.id;
+  const name = document.createElement('input'); name.value = tag.name; name.maxLength = 32; name.required = true; name.setAttribute('aria-label', '标签名称');
+  const label = text('label', '启用'); const active = document.createElement('input'); active.type = 'checkbox'; active.checked = tag.active; label.prepend(active);
+  row.append(name, label); $('tag-rows').append(row); name.focus?.();
+}
+Object.assign(messages, { CONTENT_TAG_REQUIRED: '请至少选择一个题材标签。', INVALID_CONTENT_TAGS: '标签无效或已停用，请刷新标签库后重选。', INVALID_PACKAGE: '请检查名称、背景介绍、视频清单和题材标签。' });
+function renderDetail(item) {
+  clearPreviews();
+  const canEditMedia = item.status === 'draft' && !item.ownerId;
     const card = text('article', '', 'card');
     card.classList.add(item.format === 'package' ? 'package-card' : 'single-card');
     if (item.format === 'package') {
@@ -170,20 +187,46 @@ function render() {
       else cover.append(text('span', '角色主图待上传'));
       card.append(cover);
     }
-    card.append(text('span', { published: '已发布', draft: '草稿', withdrawn: '已下架' }[item.status], 'status'),
-      text('h2', item.title), text('div', `${item.source === 'hildors' ? 'HILDORS出品' : '创作者作品'} · ${item.format === 'single' ? '独立视频' : '角色视频包'} · ${item.clips.length}个视频`, 'meta'),
+    card.append(text('span', contentStateLabels[contentState(item)], 'status'),
+      text('h2', item.title), text('div', `${item.source === 'hildors' ? 'HILDORS 出品' : '创作者出品'} · ${item.format === 'single' ? '独立视频' : '角色视频包'} · ${uploadedClips(item).length} 个视频 · ${liveClips(item).length} 已上架`, 'meta'),
       text('p', item.tags.join(' / ') || '未设置题材标签'));
-    if (item.status === 'draft' && item.format === 'package') {
+    card.append(text('p', `内容编号：${item.contentCode || item.id}`, 'content-code'));
+    const progress = text('p', '', 'upload-progress'); progress.id = 'content-progress'; progress.setAttribute('role','status'); card.append(progress);
+    if (canEditMedia && item.format === 'package') {
       const coverLabel = text('label', item.cover ? '替换角色主图' : '上传角色主图（必需）'); const coverInput = document.createElement('input'); coverInput.type = 'file'; coverInput.accept = 'image/jpeg,image/png';
       coverInput.onchange = async () => { const file = coverInput.files[0]; if (!file) return; coverInput.disabled = true; try { const response = await fetch(`/admin/packages/${encodeURIComponent(item.id)}/cover`, { method: 'PUT', credentials: 'same-origin', headers: { 'Content-Type': file.type, 'If-Match': String(item.version) }, body: file }); const result = await response.json(); if (!response.ok) throw new Error(messages[result.code] || '主图上传失败。'); await refresh(); $('notice').textContent = '角色主图已保存。'; } catch (error) { $('notice').textContent = error.message; coverInput.disabled = false; } }; coverLabel.append(coverInput); card.append(coverLabel);
     }
-    const folderTitle = item.format === 'package' ? text('h3', `包内视频（${item.clips.length}）`) : null; if (folderTitle) card.append(folderTitle);
+    const folderTitle = item.format === 'package' ? text('h3', `包内视频（${uploadedClips(item).length}）`) : null; if (folderTitle) card.append(folderTitle);
+    if (item.format === 'package' && !item.ownerId && ['draft','published'].includes(item.status)) {
+      const label = text('label', '上传 / 追加视频（可多选 MP4）');
+      const input = document.createElement('input'); input.type = 'file'; input.accept = '.mp4,video/mp4'; input.multiple = true;
+      input.onchange = async () => {
+        const files = Array.from(input.files || []); if (!files.length) return;
+        if (files.some(f => f.size > 256 * 1024 * 1024)) { $('notice').textContent = '每个视频不能超过 256MB。'; return; }
+        input.disabled = true; let current = item, completed = 0, failed = 0, uploadMessage = '';
+        try {
+          for (const file of files) {
+            contentNotice(`正在上传并自动生成缩略图 ${completed + 1}/${files.length}：${file.name}，请保持页面打开。`);
+            const response = await fetch(`/admin/packages/${encodeURIComponent(item.id)}/clips?filename=${encodeURIComponent(file.name)}&process=auto`, {
+              method: 'PUT', credentials: 'same-origin', headers: { 'Content-Type': 'video/mp4', 'If-Match': String(current.version) }, body: file });
+            const result = await response.json(); if (!response.ok) throw new Error(messages[result.code] || '上传失败');
+            current = result; completed++; if (result.clips.at(-1)?.media?.inspection?.status !== 'checked') failed++;
+          }
+          uploadMessage = failed ? `已上传 ${completed} 个视频，其中 ${failed} 个处理失败，请查看对应视频后重试。` : `已上传 ${completed} 个视频，缩略图已自动生成，可继续审核。`;
+        } catch (error) { uploadMessage = `已成功上传 ${completed} 个，后续上传已停止：${error.message}`; }
+        finally { input.disabled = false; await refresh().catch(() => {}); contentNotice(uploadMessage); }
+      };
+      label.append(input); card.append(label);
+    }
     const list = document.createElement('ul');
     for (const clip of item.clips) {
-      const row = text('li', clip.title);
-      row.append(createClipPricingEditor(item, clip, { save: api, onSaved: async () => { await refresh(); $('notice').textContent = '单条视频价格已保存。'; } }));
+      if (item.format === 'package' && !clip.media) continue;
+      const canEditClip = !item.ownerId && (canEditMedia || (item.status === 'published' && ['draft','withdrawn'].includes(clip.visibility)));
+      const row = text('li', '', 'clip-row'); row.append(text('h4',clip.title));
+      row.append(createClipPricingEditor(item, clip, { save: api, onSaved: async () => { await refresh(); contentNotice('单条视频价格已保存。'); } }));
+      row.append(text('p', clip.visibility === 'withdrawn' ? '已下架' : item.status === 'published' && clip.visibility !== 'draft' ? '已上架' : clip.media?.inspection?.status === 'checked' ? '缩略图已生成 · 待审核上架' : clip.media ? '待自动处理 / 处理失败' : '待上传'));
       if (clip.media) {
-        row.append(text('p', `${(clip.media.bytes / 1024 / 1024).toFixed(1)} MB · 待审核 · 待设备适配`));
+        row.append(text('p', `${(clip.media.bytes / 1024 / 1024).toFixed(1)} MB · 视频素材`));
         const inspection = clip.media.inspection;
         if (inspection?.status === 'checked') {
           row.append(text('p', `${inspection.width}×${inspection.height} · ${inspection.durationSeconds.toFixed(1)}秒 · ${inspection.videoCodec} · 编码检查通过`));
@@ -200,16 +243,16 @@ function render() {
         } else if (inspection?.status === 'failed') {
           row.append(text('p', ({ TOOLS_UNAVAILABLE: '视频工具尚未就绪，请配置后重试。', PROCESSING_LIMIT: '超过本地处理范围：最长10分钟、最大4096像素。', PROCESSING_TIMEOUT: '处理超时，可稍后重试。', INVALID_VIDEO: '无法完整解码，请检查视频或重新上传。' })[inspection.code] || '视频检查失败，请重试。'));
         }
-        if (item.status === 'draft') {
-          const check = text('button', inspection ? '重新检查素材' : '检查并生成缩略图', 'secondary');
+        if (canEditClip && inspection?.status !== 'checked') {
+          const check = text('button', inspection?.status === 'failed' ? '重试生成缩略图' : '继续处理素材', 'secondary');
           check.onclick = async () => {
             check.disabled = true; check.textContent = '正在检查…';
             try {
               const result = await api(`/admin/packages/${encodeURIComponent(item.id)}/clips/${encodeURIComponent(clip.id)}/inspect`, {});
               await refresh();
               const checked = result.clips.find(c => c.id === clip.id)?.media?.inspection;
-              $('notice').textContent = checked?.status === 'checked' ? '编码检查和缩略图已完成，仍需内容审核及设备适配。' : '检查未通过，请查看素材提示后重试。';
-            } catch (error) { $('notice').textContent = error.message; check.disabled = false; check.textContent = '重试检查'; }
+              contentNotice(checked?.status === 'checked' ? '缩略图已生成，可继续审核。' : '处理失败，请查看素材提示后重试。');
+            } catch (error) { contentNotice(error.message); check.disabled = false; check.textContent = '重试生成缩略图'; }
           };
           row.append(check);
         }
@@ -229,40 +272,64 @@ function render() {
         };
         row.append(play);
       }
-      if (item.status === 'draft') {
+      if (canEditClip) {
         const label = text('label', clip.media ? '替换MP4素材' : '上传MP4素材');
         const input = document.createElement('input'); input.type = 'file'; input.accept = '.mp4,video/mp4';
         input.onchange = async () => {
           const file = input.files[0]; if (!file) return;
           if (file.size > 256 * 1024 * 1024) { $('notice').textContent = '本地原型单次上传限制为256MB。'; input.value = ''; return; }
-          input.disabled = true; $('notice').textContent = '正在上传素材，请保持页面打开…';
+          input.disabled = true; contentNotice('正在上传并自动生成缩略图，请保持页面打开…');
           try {
-            const response = await fetch(`/admin/packages/${encodeURIComponent(item.id)}/clips/${encodeURIComponent(clip.id)}/media`, {
+            const response = await fetch(`/admin/packages/${encodeURIComponent(item.id)}/clips/${encodeURIComponent(clip.id)}/media?process=auto`, {
               method: 'PUT', credentials: 'same-origin', headers: { 'Content-Type': 'video/mp4', 'If-Match': String(item.version) }, body: file });
             const result = await response.json();
             if (!response.ok) throw new Error(messages[result.code] || '上传失败，请确认是有效的MP4文件后重试。');
-            await refresh(); $('notice').textContent = '素材已保存，等待编码检查、审核和设备适配。';
-          } catch (error) { $('notice').textContent = error.message; input.disabled = false; }
+            await refresh(); contentNotice(result.clips.find(c => c.id === clip.id)?.media?.inspection?.status === 'checked' ? '视频已保存，缩略图已自动生成。' : '视频已保存，但自动处理失败，请查看提示后重试。');
+          } catch (error) { contentNotice(error.message); input.disabled = false; }
         };
-        label.append(input); row.append(label);
+        label.append(input);
+        if (clip.media) { const replacement = document.createElement('details'); replacement.append(text('summary','替换视频'),label); row.append(replacement); }
+        else row.append(label);
+      }
+      if (item.format === 'package' && clip.media && ['draft','published'].includes(item.status) && (!item.ownerId || item.status === 'published')) {
+        if (clip.visibility !== 'withdrawn') {
+          const withdraw = text('button', '单独下架此视频', 'secondary');
+          withdraw.onclick = async () => {
+            if (!confirm(`确认下架“${clip.title}”？包内其他视频不受影响。`)) return;
+            withdraw.disabled = true;
+            try { await api(`/admin/packages/${encodeURIComponent(item.id)}/clips/${encodeURIComponent(clip.id)}/withdraw`, { version: item.version }); await refresh(); $('notice').textContent = '该视频已下架。'; }
+            catch (error) { $('notice').textContent = error.message; withdraw.disabled = false; }
+          }; row.append(withdraw);
+        }
+        if (item.status === 'draft' && clip.visibility === 'withdrawn') {
+          const restore = text('button', '恢复至草稿', 'secondary');
+          restore.onclick = async () => { restore.disabled = true; try { await api(`/admin/packages/${encodeURIComponent(item.id)}/clips/${encodeURIComponent(clip.id)}/restore`, {version:item.version}); await refresh(); } catch(error) { $('notice').textContent = error.message; restore.disabled = false; } };
+          row.append(restore);
+        }
+        if (item.status === 'published' && ['draft','withdrawn'].includes(clip.visibility) && clip.media.inspection?.status === 'checked') {
+          const publish = text('button', '审核并上架此视频');
+          publish.onclick = () => { reviewingClip = { item, clip }; $('clip-review-form').reset(); $('clip-review-title').textContent = clip.title; $('clip-review-error').textContent = ''; $('clip-review-dialog').showModal(); };
+          row.append(publish);
+        }
       }
       list.append(row);
     }
-    const allMedia = item.clips.every(c => c.media);
-    const allChecked = item.clips.every(c => c.media?.inspection?.status === 'checked');
+    const active = item.clips.filter(c => c.visibility !== 'withdrawn' && (item.format !== 'package' || c.media));
+    const allMedia = active.length > 0 && active.every(c => c.media);
+    const allChecked = active.length > 0 && active.every(c => c.media?.inspection?.status === 'checked');
     const coverReady = item.format === 'single' || Boolean(item.cover) || item.demo;
-    card.append(list, text('p', item.demo ? '内置演示素材 · 厂家转码待接入' : item.status === 'published' ? '已发布到 App 内容目录' : !coverReady ? '下一步：上传角色主图' : !allMedia ? '下一步：为包内每个视频上传 MP4 素材' : !allChecked ? '下一步：检查全部素材并生成缩略图' : item.review?.decision === 'approved' ? '审核已通过，可发布到 App' : '素材已就绪，可审核并发布到 App', 'workflow-hint'));
+    card.append(list, text('p', item.demo ? '内置演示素材' : item.status === 'published' ? '已发布到 App 内容目录' : !coverReady ? '下一步：上传角色主图' : !allMedia ? '下一步：上传视频，可一次选择多个文件' : !allChecked ? '视频正在处理或处理失败，请查看各条视频的状态' : item.review?.decision === 'approved' ? '审核已通过，可发布到 App' : '素材已就绪，可审核入库', 'workflow-hint'));
     if (item.review) card.append(text('p', `审核：${item.review.decision === 'approved' ? '已通过' : '退回修改'} · ${item.review.note}`));
-    if (item.status === 'draft' && coverReady && allChecked && item.review?.decision !== 'approved') {
-      const reviewButton = text('button', '审核并发布到 App', 'publish-action');
+    if (item.status === 'draft' && (item.ownerId ? item.submissionStatus === 'pending' : coverReady && allChecked && item.review?.decision !== 'approved')) {
+      const reviewButton = text('button', '审核内容', 'publish-action');
       reviewButton.onclick = () => {
-        reviewing = item; $('review-form').reset(); $('review-error').textContent = '';
-        $('review-title').textContent = item.title; $('review-dialog').showModal();
+        reviewing = item; $('review-form').reset(); syncReviewDecision(); $('review-error').textContent = '';
+        $('review-title').textContent = `${item.title} · ${item.contentCode || item.id}`; $('review-dialog').showModal();
       };
       card.append(reviewButton);
     }
-    if (item.status === 'draft' && !allChecked) {
-      const unavailable = text('button', allMedia ? '完成素材检查后可发布' : '上传全部素材后可发布', 'publish-action');
+    if (canEditMedia && !allChecked) {
+      const unavailable = text('button', allMedia ? '视频处理完成后可审核' : '上传视频后可审核', 'publish-action');
       unavailable.disabled = true; card.append(unavailable);
     }
     if (item.status === 'draft' && item.review?.decision === 'approved') {
@@ -285,15 +352,20 @@ function render() {
       };
       card.append(button);
     }
-    $('cards').append(card);
+
+  card.append(text('h3', '角色背景介绍'), text('p', item.description || '背景介绍待补充', 'story-text'));
+  if (!item.ownerId || (item.status === 'draft' && ['draft','rejected'].includes(item.submissionStatus))) {
+    const edit = text('button', '编辑名称、题材与介绍', 'secondary');
+    edit.onclick = () => openMetadata(item); card.append(edit);
   }
-  if (!visible.length) $('cards').append(text('p', '暂无符合条件的内容。', 'empty'));
+  $('detail-body').replaceChildren(card);
 }
 async function refresh() {
   const current = epoch;
-  const result = await api('/admin/packages');
+  const [result, tagsResult] = await Promise.all([api('/admin/packages'), api('/admin/content-tags')]);
   if (current !== epoch) return;
-  items = result.items; render(); showView(activeView);
+  items = result.items; contentTags = tagsResult.items; refreshTagFilter(); render(); showView(activeView);
+  if (selectedItemId && $('content-detail').open) { const selected = items.find(x => x.id === selectedItemId); if (selected) renderDetail(selected); }
 }
 $('login').onsubmit = async event => {
   event.preventDefault(); epoch++;
@@ -301,10 +373,10 @@ $('login').onsubmit = async event => {
   try { await api('/admin/login', { username: $('username').value.trim(), password: $('password').value }); $('password').value = ''; await refresh(); showConnection(true); $('notice').textContent = '后台已登录。'; }
   catch (error) { $('password').value = ''; showConnection(false); $('notice').textContent = error.message; }
 };
-$('logout').onclick = async () => { epoch++; await api('/admin/logout', {}).catch(() => {}); clearPreviews(); items = []; orders = []; creators = []; layoutState = null; reviewing = null; showConnection(false); document.querySelectorAll('[data-panel]').forEach(x => x.hidden = true); $('cards').replaceChildren(); $('editor').close(); $('review-dialog').close(); $('notice').textContent = '已安全退出后台。'; };
+$('logout').onclick = async () => { epoch++; clearOrderDetail(); clearCreatorManagement(); await api('/admin/logout', {}).catch(() => {}); clearPreviews(); items = []; orders = []; creators = []; layoutState = null; reviewing = null; showConnection(false); document.querySelectorAll('[data-panel]').forEach(x => x.hidden = true); $('cards').replaceChildren(); for (const id of ['editor','review-dialog','content-detail','metadata-dialog','tags-dialog']) $(id).close(); selectedItemId = null; $('notice').textContent = '已安全退出后台。'; };
 $('refresh').onclick = async () => { try { await refresh(); $('notice').textContent = '内容已刷新。'; } catch (error) { $('notice').textContent = error.message; } };
-$('search').oninput = render; $('status').onchange = render;
-$('order-status').onchange = renderOrders; $('creator-status').onchange = renderCreators;
+$('search').oninput = resetPage; for (const id of ['status','source-filter','format-filter','tag-filter']) $(id).onchange = resetPage;
+$('order-status').onchange = resetOrderPage;
 $('orders-refresh').onclick = () => refreshOrders().catch(error => $('notice').textContent = error.message);
 $('creators-refresh').onclick = () => refreshCreators().catch(error => $('notice').textContent = error.message);
 document.querySelectorAll('[data-view]').forEach(button => button.onclick = async () => {
@@ -316,41 +388,99 @@ $('layout-save').onclick = async () => { try { layoutState = await api('/admin/l
 $('layout-publish').onclick = async () => { if (JSON.stringify(layoutState.draft) !== layoutSavedSnapshot) { $('notice').textContent = '请先保存草稿，再发布到 App。'; return; } const visible = Object.values(layoutState.draft.pages).flat().filter(x => x.visible).length; if (!confirm(`确认发布预览中的布局？\n本次共显示 ${visible} 个模块，用户下次刷新后生效。`)) return; try { layoutState = await api('/admin/layout/publish', { version: layoutState.version }); layoutSavedSnapshot = JSON.stringify(layoutState.draft); renderLayout(); $('layout-dirty').textContent = '已发布'; $('layout-dirty').className = 'layout-dirty published'; $('notice').textContent = '新版布局已发布到 App。'; } catch (error) { $('notice').textContent = error.message; } };
 $('layout-rollback').onclick = async () => { if (JSON.stringify(layoutState.draft) !== layoutSavedSnapshot && !confirm('当前有未保存修改，回滚将丢弃这些修改。是否继续？')) return; if (!confirm('确认恢复上一版已发布布局？恢复后会立即影响 App。')) return; try { layoutState = await api('/admin/layout/rollback', { version: layoutState.version }); layoutSavedSnapshot = JSON.stringify(layoutState.draft); renderLayout(); $('notice').textContent = '已恢复上一版布局。'; } catch (error) { $('notice').textContent = error.message; } };
 window.addEventListener('beforeunload', event => { if (layoutState && JSON.stringify(layoutState.draft) !== layoutSavedSnapshot) { event.preventDefault(); event.returnValue = ''; } });
-$('new').onclick = () => { $('create').reset(); $('form-error').textContent = ''; $('editor').showModal(); };
+function syncCreateFormat() {
+  const packaged = $('format').value === 'package';
+  $('clip-names-field').hidden = packaged;
+  $('clip-names').required = !packaged;
+  $('clip-names').disabled = packaged;
+  $('package-upload-hint').hidden = !packaged;
+}
+$('format').onchange = syncCreateFormat;
+$('new').onclick = () => { $('create').reset(); syncCreateFormat(); renderTagOptions('create-tags'); $('form-error').textContent = ''; $('editor').showModal(); };
 $('close').onclick = () => $('editor').close();
 $('review-close').onclick = () => $('review-dialog').close();
+function syncReviewDecision() {
+  const rejected = $('review-decision').value === 'rejected';
+  $('review-reason-field').hidden = !rejected; $('review-reason').required = rejected; $('review-reason').disabled = !rejected;
+}
+$('review-decision').onchange = syncReviewDecision;
+$('clip-review-close').onclick = () => { reviewingClip = null; $('clip-review-dialog').close(); };
+$('clip-review-form').onsubmit = async event => {
+  event.preventDefault(); if (!reviewingClip) return;
+  const {item,clip} = reviewingClip;
+  $('clip-review-save').disabled = true;
+  try {
+    await api(`/admin/packages/${encodeURIComponent(item.id)}/clips/${encodeURIComponent(clip.id)}/publish`, {
+      version:item.version });
+    $('clip-review-dialog').close(); reviewingClip = null; await refresh(); $('notice').textContent = '该视频已审核上架，其他视频保持不变。';
+  } catch(error) { $('clip-review-error').textContent = error.message; }
+  finally { $('clip-review-save').disabled = false; }
+};
 $('review-form').onsubmit = async event => {
   event.preventDefault(); if (!reviewing) return;
   const data = new FormData(event.target);
-  if (data.get('decision') === 'approved' && (!data.has('rightsConfirmed') || !data.get('rightsReference').trim())) {
-    $('review-error').textContent = '通过审核前，请核对授权并填写材料记录。'; return;
+  if (data.get('decision') === 'rejected' && !data.get('note')?.trim()) {
+    $('review-error').textContent = '请填写退回原因。'; return;
   }
   $('review-save').disabled = true;
   try {
-    const reviewed = await api(`/admin/packages/${reviewing.id}/review`, { version: reviewing.version,
-      decision: data.get('decision'), note: data.get('note'), rightsReference: data.get('rightsReference'), rightsConfirmed: data.has('rightsConfirmed') });
-    if (data.get('decision') === 'approved') {
-      await api(`/admin/packages/${reviewing.id}/publish`, { version: reviewed.version });
-      $('notice').textContent = '审核通过，内容已发布到 App 目录。';
-    } else { $('notice').textContent = '内容已退回修改，未发布。'; }
+    await api(`/admin/packages/${reviewing.id}/review`, { version: reviewing.version,
+      decision: data.get('decision'), ...(data.get('decision') === 'rejected' ? {note:data.get('note')} : {}) });
     $('review-dialog').close(); await refresh();
+    $('notice').textContent = data.get('decision') === 'approved' ? '审核通过，已入库，等待运营上架。' : '内容已退回修改，未发布。';
   } catch (error) { $('review-error').textContent = error.message; }
   finally { $('review-save').disabled = false; }
 };
 $('create').onsubmit = async event => {
   event.preventDefault(); const form = new FormData(event.target);
-  const names = form.get('clips').split('\n').map(x => x.trim()).filter(Boolean);
+  const packaged = form.get('format') === 'package';
+  const tags = selectedTags('create-tags');
+  if (!tags.length) { $('form-error').textContent = '请至少选择一个题材标签。'; return; }
+  const names = packaged ? []
+    : (form.get('clips') || '').split('\n').map(x => x.trim()).filter(Boolean);
   if (form.get('format') === 'single' && names.length !== 1) { $('form-error').textContent = '独立视频只能填写一条；多条请选择角色视频包。'; return; }
   $('save').disabled = true;
   try {
-    await api('/admin/packages', { title: form.get('title'), source: form.get('source'), format: form.get('format'),
-      tags: [...new Set(form.get('tags').split(/[,，]/).map(x => x.trim()).filter(Boolean))],
+    const created = await api('/admin/packages', { title: form.get('title'), description: form.get('description'), format: form.get('format'),
+      tags,
       clips: names.map(name => ({ id: crypto.randomUUID(), title: name })) });
-    $('editor').close(); await refresh(); $('notice').textContent = '草稿已保存。下一步需要补充素材并审核。';
+    $('editor').close(); await refresh(); selectedItemId = created.id; renderDetail(created); $('content-detail').showModal();
+    contentNotice(packaged ? '角色包已创建，请上传角色主图和视频。' : '内容已创建，请上传视频，系统会自动生成缩略图。');
   } catch (error) { $('form-error').textContent = error.message; }
   finally { $('save').disabled = false; }
 };
 
+$('prev-page').onclick = () => { contentPage--; render(); };
+$('next-page').onclick = () => { contentPage++; render(); };
+$('detail-close').onclick = () => $('content-detail').close();
+$('content-detail').addEventListener('close', () => { selectedItemId = null; clearPreviews(); $('detail-body').replaceChildren(); });
+$('metadata-close').onclick = () => $('metadata-dialog').close();
+$('metadata-form').onsubmit = async event => {
+  event.preventDefault(); if (!metadataItem) return;
+  const data = new FormData(event.target); $('metadata-save').disabled = true;
+  try {
+    await api(`/admin/packages/${encodeURIComponent(metadataItem.id)}/metadata`, { version: metadataItem.version,
+      title: data.get('title'), description: data.get('description'), tags: selectedTags('metadata-tags') });
+    $('metadata-dialog').close(); await refresh(); $('notice').textContent = '内容介绍已更新。';
+  } catch (error) { $('metadata-error').textContent = error.message; }
+  finally { $('metadata-save').disabled = false; }
+};
+$('manage-tags').onclick = async () => {
+  try { contentTags = (await api('/admin/content-tags')).items; $('tag-rows').replaceChildren(); contentTags.forEach(addTagRow); $('tags-error').textContent = ''; $('tags-dialog').showModal(); }
+  catch (error) { $('notice').textContent = error.message; }
+};
+$('tags-close').onclick = () => $('tags-dialog').close();
+$('tag-add').onclick = () => addTagRow();
+$('tags-form').onsubmit = async event => {
+  event.preventDefault(); $('tags-save').disabled = true;
+  const tags = [...$('tag-rows').children].map(row => ({id:row.dataset.id, name:row.querySelector('input:not([type=checkbox])').value.trim(), active:row.querySelector('[type=checkbox]').checked}));
+  try {
+    contentTags = (await api('/admin/content-tags', {items:tags})).items;
+    $('tags-dialog').close(); refreshTagFilter(); $('notice').textContent = '题材标签库已更新。';
+  } catch (error) { $('tags-error').textContent = error.message; }
+  finally { $('tags-save').disabled = false; }
+};
+initCreatorManagement();
 $('notice').textContent = '正在检查登录状态…';
 refresh().then(() => { showConnection(true); $('notice').textContent = '后台已登录。'; })
   .catch(() => { showConnection(false); $('workspace').hidden = true; $('notice').textContent = '请使用管理员账号登录。'; });

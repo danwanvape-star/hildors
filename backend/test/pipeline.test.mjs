@@ -29,10 +29,10 @@ test('four real demos: upload, decode, thumbnail, review and metadata publicatio
         const draft = store.create({ title: `验收 ${name}`, source: 'hildors', format: 'single', tags: [],
           clips: [{ id: 'clip', title: '演示视频', hardwareReady: false }] });
         const path = `/admin/packages/${draft.id}`;
-        const upload = await fetch(base + path + '/clips/clip/media', { method: 'PUT',
+        const upload = await fetch(base + path + '/clips/clip/media?process=auto', { method: 'PUT',
           headers: { ...headers, 'Content-Type': 'video/mp4', 'If-Match': '1' }, body: data });
         assert.equal(upload.status, 200);
-        let item = await post(path + '/clips/clip/inspect', {});
+        let item = await upload.json();
         const media = item.clips[0].media;
         assert.equal(media.inspection.status, 'checked', JSON.stringify(media.inspection));
         const image = await fetch(base + `/admin/media/${media.id}/thumbnail`, { headers });

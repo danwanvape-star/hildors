@@ -22,7 +22,7 @@ test('catalog, access control, draft gating and withdrawal', async t => {
   assert.equal(consoleScript.status, 200);
   const scriptText = await consoleScript.text();
   assert.match(scriptText, /admin\/login/);
-  assert.match(scriptText, /审核并发布到 App/);
+  assert.match(scriptText, /发布到 App/);
   assert.equal((await fetch(base + '/console/style.css')).status, 200);
   assert.equal((await fetch(base + '/console/connection.css')).status, 200);
   assert.equal((await fetch(base + '/console/secret.env')).status, 404);
@@ -47,7 +47,8 @@ test('catalog, access control, draft gating and withdrawal', async t => {
     assert.equal(p.clips[0].hardwareReady, false);
     assert.ok(existsSync(new URL('../../' + p.clips[0].bundledAsset, import.meta.url)));
   }
-  const draft = await call('/admin/packages', { title: '测试角色包', source: 'creator', format: 'package', tags: ['神话'], clips: [{ id: 'clip-1', title: '待机' }], demo: true });
+  await call('/admin/content-tags', { items: [{ name: '神话', active: true }] });
+  const draft = await call('/admin/packages', { title: '测试角色包', description: '角色的背景故事', source: 'creator', format: 'package', tags: ['神话'], clips: [{ id: 'clip-1', title: '待机' }], demo: true });
   assert.equal(draft.status, 201);
   assert.equal(draft.data.demo, false);
   assert.equal((await call('/v1/packages/' + draft.data.id)).status, 404);
