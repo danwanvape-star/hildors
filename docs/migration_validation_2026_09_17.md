@@ -128,3 +128,11 @@ flutter build apk --release --no-pub --dart-define=HILDORS_API_BASE_URL=https://
 在 app-restore-check 独立目录安全解包，使用当前本机后台代码、team-staging 模式、随机临时管理员凭据和仅监听 127.0.0.1 的随机端口启动。health、ready、catalog、console 均返回 200；未认证 admin/packages 返回 401；临时认证后 admin/packages 和 admin/audit 返回 200。测试服务已停止，临时凭据未输出或写入 Git，结果保存在 app-restore-verification.json。未访问或修改线上数据库。
 
 此次覆盖异机传输完整性和恢复副本的后台启动、目录读取及管理接口鉴权。未覆盖恢复环境的浏览器登录、媒体播放、上传审核写入或完整灾难切换。当前电脑副本不等同于受管异地备份；自动备份、保留周期、备份加密与恢复演练计划仍待配置。本轮仅更新文档，未修改产品代码。
+
+## 恢复副本登录与媒体业务续验
+
+在 D 盘已有 app-restore-check 副本启动隔离后台，使用内存生成的临时管理员凭据，通过 HTTP 接口验证错误密码拒绝、正确登录、HttpOnly/SameSite 会话属性、登录后管理读取、退出后原会话被拒绝。未使用或读取线上管理员密码。
+
+恢复副本中 3 个被引用视频的完整读取均返回 200，字节数及 SHA-256 与数据库记录一致；3 个 Range 请求返回 206 且内容与对应视频字节一致；3 张已检查缩略图和 1 张封面可读取。隔离媒体目录中的 3 个 MP4 均通过 FFmpeg 完整解码（-xerror），没有仅以容器识别代替解码。未认证媒体请求均被拒绝。
+
+结果保存于 D:\HildorsBackups\20260917T074954Z\business-restore-verification.json，测试服务已停止。验证为 HTTP 接口和解码层，不等同于浏览器视觉播放或 P20 硬件验收；尚未覆盖恢复副本上的上传/审核/发布写入、自动备份与完整灾难切换。本轮未修改业务代码或线上数据，仅更新交接记录。
