@@ -27,6 +27,10 @@ flutter test
 flutter run
 ```
 
+换电脑、切换 Codex/GitHub 账号或接手云端测试环境时，先阅读
+[`docs/development_handoff.md`](docs/development_handoff.md)。该文档包含环境初始化、权限交接、
+SSH 隧道、密钥安全、APK 交接和迁移验收清单。
+
 `flutter create` 只用于补齐 `android/`、`ios/` 等平台目录；现有 `lib/` 不应被覆盖。
 
 ## iOS 局域网权限
