@@ -26,6 +26,76 @@ class CloudBusinessIntake {
   final String _configuredBaseUrl;
   final File? _sessionFile;
   Future<String>? _sessionFlight;
+  Future<void> _sessionMutation = Future<void>.value();
+
+  Future<T> _withSessionLock<T>(Future<T> Function() action) {
+    final next = _sessionMutation.then((_) => action());
+    _sessionMutation = next.then<void>((_) {}, onError: (Object _) {});
+    return next;
+  }
+
+  Uri? get baseUri => _baseUri;
+
+  bool _validAccountId(dynamic value) =>
+      value is String && RegExp(r'^[A-Za-z0-9_-]{1,128}$').hasMatch(value);
+
+  Future<String?> cachedDownloadAccountId() async {
+    final base = _baseUri;
+    if (base == null) return null;
+    try {
+      return await _withSessionLock(() async {
+        final saved = await _storedSession();
+        return saved?['origin'] == base.origin &&
+                _validAccountId(saved?['accountId'])
+            ? saved!['accountId'] as String
+            : null;
+      });
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<({String accountId, String token})> downloadIdentity() async {
+    final base = _baseUri;
+    if (base == null) throw const HttpException('尚未配置云端服务');
+    final client = HttpClient()..connectionTimeout = const Duration(seconds: 8);
+    try {
+      return await (() async {
+        for (var attempt = 0; attempt < 2; attempt++) {
+          final token = await _session(client, base);
+          final request = await client.getUrl(base.resolve('/v1/me'));
+          request.followRedirects = false;
+          request.headers.set(HttpHeaders.authorizationHeader, 'Bearer $token');
+          final response = await request.close();
+          final value = await _readJson(response);
+          if (response.statusCode == 401 && attempt == 0) {
+            await _session(client, base, rejectedToken: token);
+            continue;
+          }
+          if (response.statusCode != 200 || !_validAccountId(value['id'])) {
+            throw const HttpException('无法验证下载账户，请稍后重试');
+          }
+          final accountId = value['id'] as String;
+          await _withSessionLock(() async {
+            // Re-read under the same lock used by refresh; never restore an old token.
+            final current = await _storedSession();
+            if (current == null ||
+                current['origin'] != base.origin ||
+                (current['accountId'] != null &&
+                    current['accountId'] != accountId)) {
+              throw const CloudSessionRecoveryRequired('下载账户不一致，请联系平台恢复账户');
+            }
+            await _saveSession({...current, 'accountId': accountId});
+          });
+          return (accountId: accountId, token: await _session(client, base));
+        }
+        throw const HttpException('无法验证下载账户');
+      })()
+          .timeout(const Duration(seconds: 20));
+    } finally {
+      client.close(force: true);
+    }
+  }
 
   bool get isConfigured => _baseUri != null;
 
@@ -90,7 +160,8 @@ class CloudBusinessIntake {
       {String? rejectedToken}) async {
     final flight = _sessionFlight;
     if (flight != null) return flight;
-    final next = _resolveSession(client, baseUri, rejectedToken: rejectedToken);
+    final next = _withSessionLock(
+        () => _resolveSession(client, baseUri, rejectedToken: rejectedToken));
     _sessionFlight = next;
     try {
       return await next;
@@ -102,6 +173,13 @@ class CloudBusinessIntake {
   Future<String> _resolveSession(HttpClient client, Uri baseUri,
       {String? rejectedToken}) async {
     final existing = await _storedSession();
+    if (existing?['origin'] != null && existing!['origin'] != baseUri.origin) {
+      throw const CloudSessionRecoveryRequired('云端账户所属服务已变更，请恢复原服务配置');
+    }
+    if (existing != null && existing['origin'] == null) {
+      existing['origin'] = baseUri.origin;
+      await _saveSession(existing);
+    }
     final token = existing?['token'] as String?;
     final refresh = existing?['refreshToken'] as String?;
     final expiry = existing?['expiresAt'];
@@ -140,6 +218,8 @@ class CloudBusinessIntake {
     }
     await _saveSession({
       ...value,
+      'origin': baseUri.origin,
+      if (existing?['accountId'] != null) 'accountId': existing!['accountId'],
       'expiresAt': DateTime.now().millisecondsSinceEpoch +
           ((value['expiresIn'] as num) * 1000).toInt()
     });

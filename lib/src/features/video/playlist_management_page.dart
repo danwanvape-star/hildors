@@ -85,7 +85,7 @@ class _PlaylistManagementPageState extends State<PlaylistManagementPage> {
             _pending[target]![entry.key] = (
               title: '${entry.package.title} · ${entry.video.title}',
               source: entry.video.source,
-              asset: true
+              asset: entry.video.asset
             );
           }
         });
@@ -94,7 +94,7 @@ class _PlaylistManagementPageState extends State<PlaylistManagementPage> {
           final video = videos.single.video;
           await Navigator.of(context).push(MaterialPageRoute<void>(
               builder: (_) =>
-                  FanFramingPage(source: video.source, asset: true)));
+                  FanFramingPage(source: video.source, asset: video.asset)));
         }
       } else {
         final picked = await FilePicker.pickFile(

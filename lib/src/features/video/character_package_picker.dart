@@ -1,4 +1,6 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import '../community/downloaded_character_store.dart';
 import '../community/collection_catalog_page.dart';
 import '../customization/character_entitlement_repository.dart';
 import '../customization/customization_order_repository.dart';
@@ -14,12 +16,16 @@ import 'device_playlist_draft.dart';
 class CharacterPackagePicker extends StatefulWidget {
   const CharacterPackagePicker(
       {this.repository,
+      this.downloadedStore,
+      this.loadDownloaded,
       this.saveToPlaylist,
       this.orderRepository,
       this.picking = true,
       this.embedded = false,
       super.key});
   final CharacterEntitlementRepository? repository;
+  final DownloadedCharacterStore? downloadedStore;
+  final Future<List<CharacterVideoPackage>> Function()? loadDownloaded;
   final CustomizationOrderRepository? orderRepository;
   final bool picking;
   final bool embedded;
@@ -32,6 +38,7 @@ class CharacterPackagePicker extends StatefulWidget {
 class _CharacterPackagePickerState extends State<CharacterPackagePicker> {
   late Future<List<CharacterVideoPackage>> _packages = _load();
   bool _opening = false;
+  DownloadedCharacterStore? _store;
   Future<List<CharacterVideoPackage>> _load() async {
     final claimed =
         await (widget.repository ?? const LocalCharacterEntitlementRepository())
@@ -39,7 +46,12 @@ class _CharacterPackagePickerState extends State<CharacterPackagePicker> {
     final orders = await (widget.orderRepository ??
             const LocalCustomizationOrderRepository())
         .loadOrders();
+    _store = widget.downloadedStore ?? await DownloadedCharacterStore.current();
+    final downloaded = await (widget.loadDownloaded?.call() ??
+        _store?.load() ??
+        Future.value(<CharacterVideoPackage>[]));
     return [
+      ...downloaded,
       for (final package in officialVideoPackages)
         if (claimed.contains(package.id)) package,
       for (final character in characterGateCatalog)
@@ -64,8 +76,15 @@ class _CharacterPackagePickerState extends State<CharacterPackagePicker> {
     try {
       final videos = await Navigator.of(context)
           .push<List<PackageVideoSelection>>(MaterialPageRoute(
-              builder: (_) =>
-                  CharacterPackagePage(package: package, picking: true)));
+              builder: (_) => CharacterPackagePage(
+                  package: package,
+                  picking: true,
+                  removeDownload: package.downloaded && _store != null
+                      ? () async {
+                          await _store!.remove(package.id);
+                          if (mounted) setState(() => _packages = _load());
+                        }
+                      : null)));
       if (!mounted || videos == null || videos.isEmpty) return;
       if (widget.picking) {
         Navigator.pop(context, videos);
@@ -94,7 +113,7 @@ class _CharacterPackagePickerState extends State<CharacterPackagePicker> {
           selection.key: (
             title: '${selection.package.title} · ${selection.video.title}',
             source: selection.video.source,
-            asset: true
+            asset: selection.video.asset
           )
       });
       if (mounted) {
@@ -216,8 +235,18 @@ class _CharacterPackagePickerState extends State<CharacterPackagePicker> {
                                                             Icons
                                                                 .person_outline,
                                                             size: 44))
-                                                    : Image.asset(cover,
-                                                        fit: BoxFit.contain))),
+                                                    : package.downloaded
+                                                        ? Image.file(
+                                                            File(cover),
+                                                            fit: BoxFit.contain,
+                                                            errorBuilder: (context,
+                                                                    error,
+                                                                    stack) =>
+                                                                const Icon(Icons
+                                                                    .person_outline))
+                                                        : Image.asset(cover,
+                                                            fit: BoxFit
+                                                                .contain))),
                                         Padding(
                                             padding: const EdgeInsets.fromLTRB(
                                                 8, 8, 8, 0),
@@ -234,7 +263,9 @@ class _CharacterPackagePickerState extends State<CharacterPackagePicker> {
                                             child: Text(
                                                 package.videos.isEmpty
                                                     ? '暂无可用视频'
-                                                    : '${package.videos.length} 个视频',
+                                                    : package.downloaded
+                                                        ? '已下载 ${package.videos.length}/${package.totalVideos ?? package.videos.length} 个视频'
+                                                        : '${package.videos.length} 个视频',
                                                 style: const TextStyle(
                                                     fontSize: 11))),
                                         const Spacer(),

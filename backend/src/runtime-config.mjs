@@ -3,6 +3,8 @@ import { isAbsolute, resolve } from 'node:path';
 
 export function runtimeConfig(env, defaultDirectory) {
   const mode = env.HILDORS_MODE || 'local';
+  const downloads = env.HILDORS_ENABLE_DOWNLOADS ?? '0';
+  if (!['0', '1'].includes(downloads)) throw new Error('Invalid download enablement');
   if (!['local', 'team-staging'].includes(mode)) throw new Error('Unsupported runtime mode');
   const port = Number(env.HILDORS_PORT || 8787);
   if (!Number.isInteger(port) || port < 1024 || port > 65535) throw new Error('Invalid port');
@@ -19,6 +21,6 @@ export function runtimeConfig(env, defaultDirectory) {
       throw new Error('Staging requires strong admin username/password credentials');
     }
   }
-  return { mode, port, host: '127.0.0.1', adminToken, adminUsername, adminPassword,
+  return { mode, port, host: '127.0.0.1', adminToken, adminUsername, adminPassword, enableDownloads: downloads === '1',
     directory: resolve(env.HILDORS_DATA_DIR || defaultDirectory), seedDemos: mode === 'local' };
 }

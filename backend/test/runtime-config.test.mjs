@@ -7,6 +7,30 @@ import { runtimeConfig } from '../src/runtime-config.mjs';
 import { createStore } from '../src/store.mjs';
 import { app } from '../src/server.mjs';
 
+test('downloads require explicit opt-in and retain entitlement enforcement', async () => {
+  const directory = join(tmpdir(), 'hildors-download-config-test');
+  assert.equal(runtimeConfig({}, directory).enableDownloads, false);
+  assert.equal(runtimeConfig({HILDORS_ENABLE_DOWNLOADS:'0'}, directory).enableDownloads, false);
+  assert.throws(() => runtimeConfig({HILDORS_ENABLE_DOWNLOADS:'true'}, directory));
+  const config = runtimeConfig({HILDORS_ENABLE_DOWNLOADS:'1'}, directory);
+  assert.equal(config.enableDownloads, true);
+  const store = createStore();
+  const server = app(store, {enableDownloads:config.enableDownloads});
+  await new Promise(r => server.listen(0, '127.0.0.1', r));
+  try {
+    const base = `http://127.0.0.1:${server.address().port}`;
+    assert.equal((await (await fetch(base+'/v1/bootstrap')).json()).capabilities.cloudDownload, true);
+    const token = store.createSession(store.createUser());
+    const response = await fetch(base+'/v1/me/packages/not-owned/clips/clip/access',
+      {headers:{Authorization:`Bearer ${token}`}});
+    const access = await response.json();
+    assert.equal(access.canDownload, false);
+    assert.equal(access.reason, 'CONTENT_UNAVAILABLE');
+    assert.equal((await fetch(base+'/v1/me/packages/not-owned/clips/clip/download',
+      {headers:{Authorization:`Bearer ${token}`}})).status, 404);
+  } finally { await new Promise(r => server.close(r)); store.close(); }
+});
+
 test('runtime is loopback-only and staging fails closed without explicit storage/credential', () => {
   const directory = join(tmpdir(), 'hildors-config-test');
   assert.equal(runtimeConfig({}, directory).seedDemos, true);

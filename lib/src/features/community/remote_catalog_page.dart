@@ -10,12 +10,14 @@ class RemoteCatalogPage extends StatefulWidget {
     required this.load,
     this.loadLayout,
     this.clipActions,
+    this.packageActions,
   });
 
   final Future<List<RemoteCatalogPackage>> Function() load;
   final Future<List<RemoteLayoutBlock>> Function()? loadLayout;
   final Widget Function(RemoteCatalogPackage package, RemoteCatalogClip clip)?
       clipActions;
+  final Widget Function(RemoteCatalogPackage)? packageActions;
 
   @override
   State<RemoteCatalogPage> createState() => _RemoteCatalogPageState();
@@ -108,9 +110,11 @@ class _RemoteCatalogPageState extends State<RemoteCatalogPage> {
                   icon: const Icon(Icons.refresh))
             ]),
             Text(
-                widget.clipActions == null
-                    ? '内容同步预览 · 下载与设备交付尚未开放'
-                    : '包内视频可分别管理 · 设备交付尚未开放',
+                widget.packageActions != null
+                    ? '已领取或购买的内容可下载至“我的角色”'
+                    : widget.clipActions == null
+                        ? '内容同步预览 · 下载与设备交付尚未开放'
+                        : '包内视频可分别管理 · 设备交付尚未开放',
                 style: const TextStyle(fontSize: 12)),
             const SizedBox(height: 12),
             TextField(
@@ -272,7 +276,10 @@ class _RemoteCatalogPageState extends State<RemoteCatalogPage> {
   void _details(RemoteCatalogPackage item, List<RemoteCatalogPackage> catalog) {
     Navigator.of(context).push(MaterialPageRoute<void>(
         builder: (_) => RemotePackageDetailPage(
-            item: item, catalog: catalog, clipActions: widget.clipActions)));
+            item: item,
+            catalog: catalog,
+            clipActions: widget.clipActions,
+            packageActions: widget.packageActions)));
   }
 }
 

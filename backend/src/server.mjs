@@ -391,7 +391,7 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   const store = createStore(resolve(directory, 'catalog.sqlite'));
   if (config.seedDemos) seedDemos(store);
   const server = app(store, { adminToken: config.adminToken, adminUsername: config.adminUsername,
-    adminPassword: config.adminPassword, mediaDirectory: resolve(directory, 'media'), mode: config.mode });
+    adminPassword: config.adminPassword, mediaDirectory: resolve(directory, 'media'), mode: config.mode, enableDownloads: config.enableDownloads });
   server.listen(config.port, config.host, () => console.log(`HILDORS ${config.mode}: http://${config.host}:${config.port}/health`));
   const stop = () => server.close(() => { store.close(); process.exit(0); });
   process.on('SIGINT', stop); process.on('SIGTERM', stop);

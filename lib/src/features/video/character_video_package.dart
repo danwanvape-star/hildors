@@ -6,7 +6,9 @@ class PackageVideo {
       required this.title,
       required this.source,
       required this.durationSeconds,
-      this.thumbnail});
+      this.thumbnail,
+      this.asset = true});
+  final bool asset;
   final String id, title, source;
   final int durationSeconds;
   final String? thumbnail;
@@ -17,7 +19,14 @@ class CharacterVideoPackage {
       {required this.id,
       required this.title,
       required this.videos,
-      this.cover});
+      this.cover,
+      this.description = '',
+      this.credit = '',
+      this.totalVideos,
+      this.downloaded = false});
+  final String description, credit;
+  final int? totalVideos;
+  final bool downloaded;
   final String id, title;
   final List<PackageVideo> videos;
   final String? cover;
@@ -41,5 +50,6 @@ class PackageVideoSelection {
   const PackageVideoSelection(this.package, this.video);
   final CharacterVideoPackage package;
   final PackageVideo video;
-  String get key => '${package.id}/${video.id}';
+  String get key =>
+      '${package.downloaded ? 'local/' : ''}${package.id}/${video.id}';
 }

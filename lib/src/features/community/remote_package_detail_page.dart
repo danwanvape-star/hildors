@@ -7,10 +7,15 @@ typedef CatalogClipActions = Widget Function(
 
 class RemotePackageDetailPage extends StatelessWidget {
   const RemotePackageDetailPage(
-      {super.key, required this.item, required this.catalog, this.clipActions});
+      {super.key,
+      required this.item,
+      required this.catalog,
+      this.clipActions,
+      this.packageActions});
   final RemoteCatalogPackage item;
   final List<RemoteCatalogPackage> catalog;
   final CatalogClipActions? clipActions;
+  final Widget Function(RemoteCatalogPackage)? packageActions;
 
   Widget _credit(BuildContext context) => item.hasPublicCreator
       ? TextButton.icon(
@@ -18,7 +23,10 @@ class RemotePackageDetailPage extends StatelessWidget {
               padding: EdgeInsets.zero, alignment: Alignment.centerLeft),
           onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(
               builder: (_) => _CreatorWorksPage(
-                  creator: item, catalog: catalog, clipActions: clipActions))),
+                  creator: item,
+                  catalog: catalog,
+                  clipActions: clipActions,
+                  packageActions: packageActions))),
           icon: const Icon(Icons.person_outline, size: 18),
           label: Text(item.credit))
       : Text(item.credit);
@@ -69,6 +77,7 @@ class RemotePackageDetailPage extends StatelessWidget {
             ]);
           }),
           const SizedBox(height: 24),
+          if (packageActions != null) packageActions!(item),
           Text(item.format == 'package' ? '包内视频' : '视频',
               style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 12),
@@ -193,8 +202,7 @@ class _ExpandableStoryState extends State<_ExpandableStory> {
               story,
               key: const Key('content-story'),
               maxLines: expanded ? null : 4,
-              overflow:
-                  expanded ? TextOverflow.visible : TextOverflow.ellipsis,
+              overflow: expanded ? TextOverflow.visible : TextOverflow.ellipsis,
             ),
             const SizedBox(height: 4),
             TextButton(
@@ -210,10 +218,14 @@ class _ExpandableStoryState extends State<_ExpandableStory> {
 
 class _CreatorWorksPage extends StatelessWidget {
   const _CreatorWorksPage(
-      {required this.creator, required this.catalog, this.clipActions});
+      {required this.creator,
+      required this.catalog,
+      this.clipActions,
+      this.packageActions});
   final RemoteCatalogPackage creator;
   final List<RemoteCatalogPackage> catalog;
   final CatalogClipActions? clipActions;
+  final Widget Function(RemoteCatalogPackage)? packageActions;
   @override
   Widget build(BuildContext context) {
     final works = catalog
@@ -246,7 +258,9 @@ class _CreatorWorksPage extends StatelessWidget {
                                               RemotePackageDetailPage(
                                                   item: item,
                                                   catalog: catalog,
-                                                  clipActions: clipActions))),
+                                                  clipActions: clipActions,
+                                                  packageActions:
+                                                      packageActions))),
                                   child: Column(
                                       crossAxisAlignment:
                                           CrossAxisAlignment.start,

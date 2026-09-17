@@ -3,12 +3,11 @@ import '../customization/character_gate_prototype_pages.dart';
 import '../customization/character_entitlement_repository.dart';
 import '../video/character_package_page.dart';
 import '../video/character_video_package.dart';
-import '../video/device_playlist_draft.dart';
-import '../video/fan_framing_page.dart';
-import '../video/pending_playlist_store.dart';
+
 import 'remote_catalog_page.dart';
 import 'remote_catalog_repository.dart';
 import 'remote_layout_repository.dart';
+import 'owned_download_page.dart';
 
 class CollectionCatalogItem {
   const CollectionCatalogItem(
@@ -108,12 +107,9 @@ class _CollectionCatalogPageState extends State<CollectionCatalogPage> {
         load: () => RemoteCatalogRepository(backendUrl).load(),
         loadLayout: () =>
             RemoteLayoutRepository(backendUrl).loadPage('collection'),
-        clipActions: (package, clip) => _RemotePlaylistAction(
-          packageId: package.id,
-          clipId: clip.id,
-          title: clip.title,
-          source: clip.previewUrl,
-        ),
+        packageActions: (package) => OwnedDownloadButton(package: package),
+        clipActions: (package, clip) =>
+            OwnedDownloadButton(package: package, clip: clip),
       );
     }
     final items = filterCollectionCatalog(
@@ -354,101 +350,5 @@ class _CollectionCatalogPageState extends State<CollectionCatalogPage> {
                               style: const TextStyle(
                                   fontSize: 10, color: Color(0xff9aabc0)))),
                     ]))),
-      );
-}
-
-class _RemotePlaylistAction extends StatefulWidget {
-  const _RemotePlaylistAction({
-    required this.packageId,
-    required this.clipId,
-    required this.title,
-    required this.source,
-  });
-
-  final String packageId, clipId, title;
-  final String? source;
-
-  @override
-  State<_RemotePlaylistAction> createState() => _RemotePlaylistActionState();
-}
-
-class _RemotePlaylistActionState extends State<_RemotePlaylistAction> {
-  bool _saving = false;
-
-  Future<void> _add(BuildContext sheetContext, DevicePlaylistKind kind) async {
-    if (_saving) return;
-    final url = widget.source;
-    if (url == null || url.isEmpty) return;
-    setState(() => _saving = true);
-    try {
-      await PendingPlaylistStore.merge(kind, {
-        'cloud:${widget.packageId}:${widget.clipId}': (
-          title: widget.title,
-          source: url,
-          asset: false
-        ),
-      });
-      if (!mounted) return;
-      if (sheetContext.mounted) Navigator.of(sheetContext).pop();
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(
-            '已加入${kind == DevicePlaylistKind.startup ? '日常展示' : '音乐联动'}待处理区，接下来调整画面'),
-      ));
-      await Navigator.of(context).push(
-          MaterialPageRoute<void>(builder: (_) => FanFramingPage(source: url)));
-    } catch (_) {
-      if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text('播放列表保存失败，请重试')));
-      }
-    } finally {
-      if (mounted) setState(() => _saving = false);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.only(bottom: 14),
-        child: FilledButton.tonalIcon(
-          onPressed: widget.source == null || _saving
-              ? null
-              : () => showModalBottomSheet<void>(
-                    context: context,
-                    builder: (sheetContext) => SafeArea(
-                      child: Padding(
-                        padding: const EdgeInsets.all(18),
-                        child:
-                            Column(mainAxisSize: MainAxisSize.min, children: [
-                          const Text('加入播放列表',
-                              style: TextStyle(
-                                  fontSize: 18, fontWeight: FontWeight.w700)),
-                          const SizedBox(height: 12),
-                          ListTile(
-                            leading: const Icon(Icons.wb_sunny_outlined),
-                            title: const Text('日常展示'),
-                            onTap: _saving
-                                ? null
-                                : () => _add(
-                                    sheetContext, DevicePlaylistKind.startup),
-                          ),
-                          ListTile(
-                            leading: const Icon(Icons.graphic_eq),
-                            title: const Text('音乐联动'),
-                            onTap: _saving
-                                ? null
-                                : () => _add(
-                                    sheetContext, DevicePlaylistKind.bluetooth),
-                          ),
-                        ]),
-                      ),
-                    ),
-                  ),
-          icon: const Icon(Icons.playlist_add),
-          label: Text(widget.source == null
-              ? '暂无可用视频'
-              : _saving
-                  ? '保存中…'
-                  : '加入播放列表'),
-        ),
       );
 }

@@ -26,8 +26,9 @@ try {
     if (!response.ok) throw new Error('FIXTURE_REQUEST_FAILED');
     return response.json();
   };
+  await call('/admin/content-tags', 'POST', JSON.stringify({ items: [{ name: 'Integration', active: true }] }));
   let item = await call('/admin/packages', 'POST', JSON.stringify({
-    title: 'Isolated App E2E', description: 'Isolated download integration fixture', source: 'hildors', format: 'single', tags: [],
+    title: 'Isolated App E2E', description: 'Isolated download integration fixture', source: 'hildors', format: 'single', tags: ['Integration'],
     clips: [{ id: 'clip', title: 'Real showcase video' }],
   }));
   const path = `/admin/packages/${item.id}`;
