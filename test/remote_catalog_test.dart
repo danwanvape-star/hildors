@@ -73,6 +73,8 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('测试角色 a'));
     await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.text('待机'), 300);
+    await tester.pumpAndSettle();
     expect(find.text('包内视频'), findsOneWidget);
     expect(find.text('待机'), findsOneWidget);
     expect(find.text('下载到手机'), findsNothing);

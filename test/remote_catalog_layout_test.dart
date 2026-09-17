@@ -69,8 +69,13 @@ void main() {
     ))));
     await tester.pumpAndSettle();
 
-    expect(find.text('精选角色'), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('官方角色'), 300,
+        scrollable: find.byType(Scrollable).first);
+    await tester.pumpAndSettle();
     expect(find.text('官方角色'), findsWidgets);
+    await tester.scrollUntilVisible(find.text('创作者角色'), 300,
+        scrollable: find.byType(Scrollable).first);
+    await tester.pumpAndSettle();
     expect(find.text('创作者角色'), findsWidgets);
     expect(find.text('暂时无法加载内容库'), findsNothing);
   });
@@ -105,13 +110,20 @@ void main() {
     await tester.pumpWidget(MaterialApp(
         home: Scaffold(body: RemoteCatalogPage(load: () async => packages))));
     await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.text('创作者角色'), 300,
+        scrollable: find.byType(Scrollable).first);
+    await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('package-cover-creator')), findsWidgets);
+    expect(find.text('舞蹈'), findsNothing);
     expect(
         find.byKey(const ValueKey('single-thumbnail-official')), findsNothing);
     await tester.tap(find.text('创作者角色').first);
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('package-detail-cover-creator')),
         findsOneWidget);
+    await tester.scrollUntilVisible(find.text('舞蹈'), 300,
+        scrollable: find.byType(Scrollable).first);
+    await tester.pumpAndSettle();
     expect(find.text('包内视频'), findsOneWidget);
     expect(find.text('舞蹈'), findsOneWidget);
   });

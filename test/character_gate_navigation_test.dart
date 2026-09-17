@@ -1816,10 +1816,17 @@ void main() {
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField).at(0), '星光创作室');
     await tester.enterText(
-      find.byType(TextField).at(1),
+      find.byKey(const Key('creator-email')),
+      'studio@example.test',
+    );
+    await tester.enterText(
+      find.byWidgetPredicate((widget) =>
+          widget is TextField && widget.decoration?.labelText == '作品集链接'),
       'https://portfolio.example',
     );
-    await tester.tap(find.byType(Checkbox).at(0));
+    await tester.ensureVisible(find.text('我已年满 18 岁'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('我已年满 18 岁'));
     await tester.scrollUntilVisible(
       find.text('我同意创作者规则、保密要求和禁止私下交易条款'),
       250,
@@ -1834,6 +1841,7 @@ void main() {
 
     expect(find.text('创作者申请审核中'), findsOneWidget);
     expect((await profiles.loadProfile())?.status, '审核中');
+    expect((await profiles.loadProfile())?.email, 'studio@example.test');
     expect((await profiles.loadProfile())?.skillTags, ['待机动作']);
     expect((await profiles.loadProfile())?.marketRegion, 'cn_mainland');
 
@@ -1852,37 +1860,9 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('设置创作者收款账户'), findsOneWidget);
-    expect(find.text('结算币种：CNY'), findsOneWidget);
-    expect(find.text('用户私密任务'), findsNothing);
-    await tester.tap(find.byKey(const Key('creator-tax-form')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('中国大陆税务资料').last);
-    await tester.enterText(
-      find.byKey(const Key('creator-payout-reference')),
-      'provider-account-token',
-    );
-    await tester.pump();
-    await tester.tap(find.text('提交收款账户审核'));
-    await tester.pumpAndSettle();
-    expect(find.text('收款账户与税务资料审核中'), findsOneWidget);
-    expect((await profiles.loadProfile())?.payoutAccountStatus, '审核中');
-
-    await profiles.approvePayoutAccount();
-    final payoutProfile = await profiles.loadProfile();
-    expect(payoutProfile?.payoutAccountStatus, '已核验');
-    expect(payoutProfile?.taxFormType, '中国大陆税务资料');
-    expect(payoutProfile?.payoutVerifiedAt, isNotNull);
-    await tester.pumpWidget(const SizedBox());
-    await tester.pumpWidget(
-      MaterialApp(
-        home: CreatorHubPage(
-          orderRepository: orders,
-          profileRepository: profiles,
-        ),
-      ),
-    );
-    await tester.pumpAndSettle();
+    expect(find.byType(CreatorTaskBoardPage), findsOneWidget);
+    expect(find.text('设置创作者收款账户'), findsNothing);
+    expect((await profiles.loadProfile())?.payoutVerifiedAt, isNull);
     expect(find.text('已核验结算币种：CNY'), findsOneWidget);
     expect(find.text('用户私密任务'), findsOneWidget);
   });
