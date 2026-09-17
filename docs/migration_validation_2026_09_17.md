@@ -15,7 +15,7 @@
 | --- | --- |
 | Flutter stable / Dart | 3.47.4 / 3.13.3；`D:\HildorsTools\flutter` |
 | Java | Temurin 21.0.12.1+1；`D:\HildorsTools\java` |
-| Android SDK | Platform 36、Build Tools 36.0.0、Platform Tools、Command-line Tools；`D:\HildorsTools\android-sdk` |
+| Android SDK | Platform 35/36、Build Tools 36.0.0、Platform Tools、Command-line Tools、NDK 28.2.13676358、CMake 3.22.1；`D:\HildorsTools\android-sdk` |
 | FFmpeg / ffprobe | 9.0.1 essentials；`D:\HildorsTools\ffmpeg` |
 | Node | 24.19.0，沿用 Codex 已有运行时 |
 | Pub / Gradle 缓存 | `D:\HildorsTools\pub-cache` / `D:\HildorsTools\gradle-cache` |
@@ -44,7 +44,7 @@ Flutter 的 Android SDK/JDK 路径已配置。环境脚本提供 Git、Node、FF
 | 公开 API，只读 GET | `https://api.hildors.com` 的 health、ready、catalog 返回 200；console、admin 返回 404 |
 | Web 构建 | `flutter build web --no-pub --dart-define=HILDORS_API_BASE_URL=https://api.hildors.com` 通过 |
 | Web 启动 | 本地 HTTP 返回 200；独立无头 Chrome 加载首页，存在 Flutter 视图、标题 Hildors Cockpit，未捕获 pageerror；已检查 390×844 首页截图 |
-| Android release APK | **未完成**：Gradle/NDK 外部下载长时间等待，独立下载测速也出现超时；停止本次等待，保留下载缓存，未取得编译结果或 APK |
+| Android release APK | **通过**：续传并校验 Gradle 9.3.1 / NDK 后，release 构建退出码 0，生成 129,270,656 字节 APK；签名和复制后的 SHA-256 验证通过 |
 | 真机 / P20 | **未验收**：ADB 未发现连接的 Android 真机；未执行设备控制或上传 |
 | SSH 隧道 / 管理账号 / 服务器备份恢复 | **未验收**：本次未接管服务器管理凭据、未部署或修改持久数据 |
 
@@ -75,13 +75,24 @@ flutter test --no-pub
 node --test backend/test/*.test.mjs
 ```
 
-网络条件恢复后继续安装未完成的 NDK，并重试 APK 构建：
+Gradle 9.3.1 与 NDK 已完成下载和整包校验，首次构建还自动补齐了 SDK 35 与 CMake。后续可直接重新构建：
 
 ```powershell
-sdkmanager.bat --sdk_root=D:\HildorsTools\android-sdk 'ndk;28.2.13676358'
 flutter build apk --release --no-pub --dart-define=HILDORS_API_BASE_URL=https://api.hildors.com
 ```
 
 此处为构建验证，不是发布新版本。正式发布前按交接文档递增版本、核对签名和完成真机回归；构建 APK 不提交 Git。
 
 仍需真机安装、手机视频预览、P20 局域网连接和两套播放列表验收，以及经安全渠道完成 SSH/管理权限交接。厂家上传/转码协议依赖仍然存在，测试通过不代表普通 MP4 已满足硬件播放要求。
+
+## Android 构建续验结果
+
+- 源码提交：`7b5413a`。本轮未修改 App 或后台代码；沿用此前已通过的 308 项 Flutter 和 18 项后台测试结果。
+- Gradle 9.3.1 整包已核对官方 SHA-256，NDK r28c 已核对 Google 发布元数据中的 SHA-1。下载超时通过保留分段数据并续传解决。
+- 构建命令与上文一致，首次构建耗时约 1661 秒，退出码 0。构建期间出现 SDK XML 兼容提示和部分依赖的 Java 8 source/target 弃用警告，未导致失败。
+- APK：`D:\HildorsTools\releases\hildors-0.1.33+34-migration.apk`；校验文件为同路径加 `.sha256` 后缀。两者均在仓库外。
+- 文件大小：129,270,656 字节（Flutter 报告 123.3 MB）。
+- 包名：`com.hildors.hildors_cockpit`；versionName `0.1.33`、versionCode `34`；最低 SDK 24、目标 SDK 36。
+- SHA-256：`f036785c029123f5884db618b31ed26b7320a7ae648ce04d07d08d595fa67ffa`。
+- `apksigner verify --verbose --print-certs` 通过，v2 签名有效；签发者为 Android Debug，符合当前 Gradle release 使用 debug signingConfig 的配置。这是本机迁移验证包，不是正式发布包；若旧手机安装包使用另一把签名密钥，不能直接覆盖安装，不应为了安装而自动卸载或清除用户数据。
+- 构建后再次检查 ADB，未发现已连接设备。真机安装、手机播放、P20 控制与两套列表、SSH 管理权限仍未验收。
