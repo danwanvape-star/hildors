@@ -4,6 +4,7 @@ import '../customization/character_entitlement_repository.dart';
 import '../video/character_package_page.dart';
 import '../video/character_video_package.dart';
 import '../video/device_playlist_draft.dart';
+import '../video/fan_framing_page.dart';
 import '../video/pending_playlist_store.dart';
 import 'remote_catalog_page.dart';
 import 'remote_catalog_repository.dart';
@@ -24,6 +25,7 @@ class CollectionCatalogItem {
   final CharacterVideoPackage? package;
   final int? creatorIndex;
   bool get isConcept => creatorIndex != null;
+  String get credit => source == 'HILDORS 出品' ? source : '匿名创作者';
 }
 
 // Browse metadata only: themes are not IP licences or verified author credits.
@@ -216,7 +218,7 @@ class _CollectionCatalogPageState extends State<CollectionCatalogPage> {
                               height: 1.4,
                               fontWeight: FontWeight.w600),
                           2) +
-                      measure(item.source, const TextStyle(fontSize: 10), 1) +
+                      measure(item.credit, const TextStyle(fontSize: 10), 1) +
                       measure(item.isConcept ? '视频包 · 概念示例' : '单条视频 · Demo',
                           const TextStyle(fontSize: 10), 2);
                   return total > largest ? total : largest;
@@ -338,7 +340,7 @@ class _CollectionCatalogPageState extends State<CollectionCatalogPage> {
                       const Spacer(),
                       Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 8),
-                          child: Text(item.source,
+                          child: Text(item.credit,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: const TextStyle(
@@ -355,7 +357,7 @@ class _CollectionCatalogPageState extends State<CollectionCatalogPage> {
       );
 }
 
-class _RemotePlaylistAction extends StatelessWidget {
+class _RemotePlaylistAction extends StatefulWidget {
   const _RemotePlaylistAction({
     required this.packageId,
     required this.clipId,
@@ -366,25 +368,49 @@ class _RemotePlaylistAction extends StatelessWidget {
   final String packageId, clipId, title;
   final String? source;
 
-  Future<void> _add(BuildContext context, DevicePlaylistKind kind) async {
-    final url = source;
+  @override
+  State<_RemotePlaylistAction> createState() => _RemotePlaylistActionState();
+}
+
+class _RemotePlaylistActionState extends State<_RemotePlaylistAction> {
+  bool _saving = false;
+
+  Future<void> _add(BuildContext sheetContext, DevicePlaylistKind kind) async {
+    if (_saving) return;
+    final url = widget.source;
     if (url == null || url.isEmpty) return;
-    await PendingPlaylistStore.merge(kind, {
-      'cloud:$packageId:$clipId': (title: title, source: url, asset: false),
-    });
-    if (!context.mounted) return;
-    Navigator.of(context).pop();
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(
-          '已加入${kind == DevicePlaylistKind.startup ? '日常展示' : '音乐联动'}播放列表'),
-    ));
+    setState(() => _saving = true);
+    try {
+      await PendingPlaylistStore.merge(kind, {
+        'cloud:${widget.packageId}:${widget.clipId}': (
+          title: widget.title,
+          source: url,
+          asset: false
+        ),
+      });
+      if (!mounted) return;
+      if (sheetContext.mounted) Navigator.of(sheetContext).pop();
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(
+            '已加入${kind == DevicePlaylistKind.startup ? '日常展示' : '音乐联动'}待处理区，接下来调整画面'),
+      ));
+      await Navigator.of(context).push(
+          MaterialPageRoute<void>(builder: (_) => FanFramingPage(source: url)));
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('播放列表保存失败，请重试')));
+      }
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
   }
 
   @override
   Widget build(BuildContext context) => Padding(
         padding: const EdgeInsets.only(bottom: 14),
         child: FilledButton.tonalIcon(
-          onPressed: source == null
+          onPressed: widget.source == null || _saving
               ? null
               : () => showModalBottomSheet<void>(
                     context: context,
@@ -400,21 +426,29 @@ class _RemotePlaylistAction extends StatelessWidget {
                           ListTile(
                             leading: const Icon(Icons.wb_sunny_outlined),
                             title: const Text('日常展示'),
-                            onTap: () =>
-                                _add(sheetContext, DevicePlaylistKind.startup),
+                            onTap: _saving
+                                ? null
+                                : () => _add(
+                                    sheetContext, DevicePlaylistKind.startup),
                           ),
                           ListTile(
                             leading: const Icon(Icons.graphic_eq),
                             title: const Text('音乐联动'),
-                            onTap: () => _add(
-                                sheetContext, DevicePlaylistKind.bluetooth),
+                            onTap: _saving
+                                ? null
+                                : () => _add(
+                                    sheetContext, DevicePlaylistKind.bluetooth),
                           ),
                         ]),
                       ),
                     ),
                   ),
           icon: const Icon(Icons.playlist_add),
-          label: Text(source == null ? '暂无可用视频' : '加入播放列表'),
+          label: Text(widget.source == null
+              ? '暂无可用视频'
+              : _saving
+                  ? '保存中…'
+                  : '加入播放列表'),
         ),
       );
 }

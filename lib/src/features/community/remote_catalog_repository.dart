@@ -18,9 +18,26 @@ class RemoteCatalogPackage {
       required this.format,
       required this.tags,
       this.coverUrl,
+      this.description = '',
+      this.creatorId,
+      this.creatorName,
+      this.anonymous = false,
       required this.clips});
   final String id, title, source, format;
   final String? coverUrl;
+  final String description;
+  final String? creatorId, creatorName;
+  final bool anonymous;
+  bool get hasPublicCreator =>
+      source == 'creator' &&
+      !anonymous &&
+      creatorId?.trim().isNotEmpty == true &&
+      creatorName?.trim().isNotEmpty == true;
+  String get credit => source == 'hildors'
+      ? 'HILDORS 出品'
+      : hasPublicCreator
+          ? creatorName!.trim()
+          : '匿名创作者';
   final List<String> tags;
   final List<RemoteCatalogClip> clips;
 
@@ -57,7 +74,21 @@ class RemoteCatalogPackage {
         (value['format'] == 'single' && clips.length != 1)) {
       throw const FormatException('视频清单无效');
     }
+    final rawCreator = value['creator'];
+    final creator = rawCreator is Map<String, dynamic>
+        ? rawCreator
+        : const <String, dynamic>{};
+    final anonymous = creator['anonymous'] != false;
+    String? creatorText(String key) => !anonymous && creator[key] is String
+        ? (creator[key] as String).trim()
+        : null;
     return RemoteCatalogPackage(
+        description: value['description'] is String
+            ? (value['description'] as String).trim()
+            : '',
+        creatorId: creatorText('id'),
+        creatorName: creatorText('name'),
+        anonymous: anonymous,
         id: requiredText(value, 'id'),
         title: requiredText(value, 'title'),
         source: value['source'] as String,
@@ -126,6 +157,10 @@ class RemoteCatalogRepository {
       source: package.source,
       format: package.format,
       coverUrl: absolute(package.coverUrl),
+      description: package.description,
+      creatorId: package.creatorId,
+      creatorName: package.creatorName,
+      anonymous: package.anonymous,
       tags: package.tags,
       clips: package.clips
           .map((clip) => RemoteCatalogClip(
