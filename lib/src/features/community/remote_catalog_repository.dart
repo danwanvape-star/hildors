@@ -42,13 +42,14 @@ class RemoteCatalogPackage {
       required this.format,
       required this.tags,
       this.coverUrl,
+      this.coverThumbnailUrl,
       this.description = '',
       this.creatorId,
       this.creatorName,
       this.anonymous = false,
       required this.clips});
   final String id, title, source, format;
-  final String? coverUrl;
+  final String? coverUrl, coverThumbnailUrl;
   final String description;
   final String? creatorId, creatorName;
   final bool anonymous;
@@ -122,6 +123,7 @@ class RemoteCatalogPackage {
         source: value['source'] as String,
         format: value['format'] as String,
         coverUrl: value['coverPath'] as String?,
+        coverThumbnailUrl: value['coverThumbnailPath'] as String?,
         tags: (value['tags'] as List).map((t) {
           if (t is! String) throw const FormatException('标签格式无效');
           return t;
@@ -185,6 +187,7 @@ class RemoteCatalogRepository {
       source: package.source,
       format: package.format,
       coverUrl: absolute(package.coverUrl),
+      coverThumbnailUrl: absolute(package.coverThumbnailUrl),
       description: package.description,
       creatorId: package.creatorId,
       creatorName: package.creatorName,

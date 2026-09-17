@@ -1,3 +1,4 @@
+import 'catalog_network_image.dart';
 import 'package:flutter/material.dart';
 
 import 'remote_package_detail_page.dart';
@@ -244,22 +245,23 @@ class _RemoteCatalogPageState extends State<RemoteCatalogPage> {
                           aspectRatio: 1,
                           child: ColoredBox(
                               color: const Color(0xff101d2c),
-                              child: (item.format == 'package'
-                                          ? item.coverUrl
-                                          : item.clips.first.thumbnailUrl) !=
-                                      null
-                                  ? Image.network(
-                                      (item.format == 'package'
-                                          ? item.coverUrl!
-                                          : item.clips.first.thumbnailUrl!),
-                                      key: ValueKey(item.format == 'package'
-                                          ? 'package-cover-${item.id}'
-                                          : 'single-thumbnail-${item.id}'),
-                                      fit: BoxFit.contain,
-                                      errorBuilder: (_, __, ___) => const Center(
-                                          child:
-                                              Icon(Icons.broken_image_outlined, size: 36)))
-                                  : Center(child: Icon(item.format == 'package' ? Icons.folder_copy_outlined : Icons.video_library_outlined, key: ValueKey(item.format == 'package' ? 'package-cover-placeholder-${item.id}' : 'single-thumbnail-placeholder-${item.id}'), size: 36)))),
+                              child: CatalogNetworkImage(
+                                  url: item.format == 'package'
+                                      ? (item.coverThumbnailUrl ??
+                                          item.coverUrl)
+                                      : item.clips.first.thumbnailUrl,
+                                  imageKey: ValueKey(item.format == 'package'
+                                      ? ((item.coverThumbnailUrl ??
+                                                  item.coverUrl) ==
+                                              null
+                                          ? 'package-cover-placeholder-${item.id}'
+                                          : 'package-cover-${item.id}')
+                                      : (item.clips.first.thumbnailUrl == null
+                                          ? 'single-thumbnail-placeholder-${item.id}'
+                                          : 'single-thumbnail-${item.id}')),
+                                  placeholder: item.format == 'package'
+                                      ? Icons.folder_copy_outlined
+                                      : Icons.video_library_outlined))),
                       Padding(
                           padding: const EdgeInsets.all(8),
                           child: Column(

@@ -1,3 +1,4 @@
+import { serveCoverThumbnail } from './cover-thumbnail.mjs';
 import { validPricing, publicPricing, publicFullPreview } from './clip-pricing.mjs';
 import { createServer } from 'node:http';
 import { randomBytes, randomUUID, timingSafeEqual } from 'node:crypto';
@@ -28,7 +29,7 @@ function validDocument(value) {
 function publicPackage(item) {
   return { id: item.id, title: item.title, version: item.version, status: item.status,
     source: item.source, format: item.format, tags: item.tags, demo: item.demo,
-    ...(item.cover ? { coverPath: `/v1/covers/${item.cover.id}` } : {}),
+    ...(item.cover ? { coverPath: `/v1/covers/${item.cover.id}`, coverThumbnailPath: `/v1/covers/${item.cover.id}/thumbnail` } : {}),
     clips: item.clips.map(c => ({ id: c.id, title: c.title, hardwareReady: false,
       ...(validPricing(c.pricing) ? { pricing: publicPricing(c.pricing) } : {}),
       durationSeconds: c.media?.inspection?.durationSeconds ?? c.durationSeconds,
@@ -247,6 +248,16 @@ export function app(store, { adminToken = '', adminUsername = '', adminPassword 
           }
           return true;
         } });
+      }
+      const coverThumbnailRoute = /^\/v1\/covers\/([a-f0-9-]{36})\/thumbnail$/.exec(path);
+      if (req.method === 'GET' && coverThumbnailRoute) {
+        const available = () => store.list().find(p => p.status === 'published' && p.cover?.id === coverThumbnailRoute[1]);
+        const item = available();
+        if (!item) return fail(404, 'NOT_FOUND');
+        return await serveCoverThumbnail(req, res, mediaDirectory, item.cover, () => {
+          if (available()) return true;
+          fail(404, 'NOT_FOUND'); return false;
+        });
       }
       const publicCover = /^\/v1\/covers\/([a-f0-9-]{36})$/.exec(path);
       if (req.method === 'GET' && publicCover) {

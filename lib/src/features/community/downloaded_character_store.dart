@@ -138,7 +138,8 @@ class DownloadedCharacterStore {
           'description': package.description,
           'credit': package.credit,
           'totalVideos': package.clips.length,
-          'cover': await _art(package.coverUrl) ?? previous?['cover'],
+          'cover': await _art(package.coverThumbnailUrl ?? package.coverUrl) ??
+              previous?['cover'],
           'clips': clips
         };
         final target = _metadata(package.id);

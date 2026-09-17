@@ -1,3 +1,4 @@
+import 'catalog_network_image.dart';
 import 'package:flutter/material.dart';
 import 'content_preview_player.dart';
 import 'remote_catalog_repository.dart';
@@ -269,7 +270,8 @@ class _CreatorWorksPage extends StatelessWidget {
                                             aspectRatio: 1,
                                             child: _CatalogImage(
                                                 url: item.format == 'package'
-                                                    ? item.coverUrl
+                                                    ? (item.coverThumbnailUrl ??
+                                                        item.coverUrl)
                                                     : item.clips.first
                                                         .thumbnailUrl)),
                                         Padding(
@@ -293,11 +295,5 @@ class _CatalogImage extends StatelessWidget {
       borderRadius: BorderRadius.circular(12),
       child: ColoredBox(
           color: const Color(0xff101d2c),
-          child: url == null
-              ? Icon(Icons.image_outlined, key: imageKey, size: 38)
-              : Image.network(url!,
-                  key: imageKey,
-                  fit: BoxFit.contain,
-                  errorBuilder: (_, __, ___) => const Center(
-                      child: Icon(Icons.broken_image_outlined, size: 38)))));
+          child: CatalogNetworkImage(url: url, imageKey: imageKey)));
 }
