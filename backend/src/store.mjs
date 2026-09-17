@@ -309,6 +309,20 @@ export function createStore(path = ':memory:') {
         audit(id, 'created'); return get(id);
       });
     },
+    updateMetadata(id, version, metadata) {
+      return transaction(() => {
+        const current = get(id);
+        if (!current || current.version !== version) throw new Error('CONFLICT');
+        if (metadata.description) current.description = metadata.description;
+        else delete current.description;
+        if (current.source === 'creator' && metadata.creator) current.creator = metadata.creator;
+        else delete current.creator;
+        delete current.id; delete current.status; delete current.version;
+        db.prepare('UPDATE packages SET document=?,version=version+1 WHERE id=?')
+          .run(JSON.stringify(current), id);
+        audit(id, 'metadata_updated'); return get(id);
+      });
+    },
     transition(id, version, next) {
       return transaction(() => {
         const current = get(id);

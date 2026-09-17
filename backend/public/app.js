@@ -9,7 +9,7 @@ function showConnection(connected) {
   $('connected').hidden = !connected;
 }
 function clearPreviews() { for (const url of previews) URL.revokeObjectURL(url); previews.clear(); }
-const messages = { UNAUTHORIZED: '登录已过期，请重新登录。', INVALID_CREDENTIALS: '用户名或密码错误。', VERSION_OR_STATE_CONFLICT: '内容已被更新，请刷新后重试。', INVALID_ORDER_TRANSITION: '不能跳过必要步骤，请按流程推进订单。', ORDER_QUOTE_REQUIRED: '报价时必须填写金额、币种和预计工期。', ORDER_PRODUCTION_REQUIRED: '进入制作前必须指定负责人和截止日期。', ORDER_DELIVERABLE_REQUIRED: '提交质检前必须填写成品文件或任务地址。', ORDER_QC_REQUIRED: '平台质检全部通过后才能提交用户验收。', ORDER_DELIVERY_REQUIRED: '完成交付前必须填写最终交付记录。', MEDIA_REVIEW_REQUIRED: '需要先完成素材处理和审核。', PACKAGE_COVER_REQUIRED: '角色视频包必须先上传角色主图。', INVALID_PACKAGE: '请检查名称、视频数量和标签。' };
+const messages = { UNAUTHORIZED: '登录已过期，请重新登录。', INVALID_CREDENTIALS: '用户名或密码错误。', VERSION_OR_STATE_CONFLICT: '内容已被更新，请刷新后重试。', INVALID_ORDER_TRANSITION: '不能跳过必要步骤，请按流程推进订单。', ORDER_QUOTE_REQUIRED: '报价时必须填写金额、币种和预计工期。', ORDER_PRODUCTION_REQUIRED: '进入制作前必须指定负责人和截止日期。', ORDER_DELIVERABLE_REQUIRED: '提交质检前必须填写成品文件或任务地址。', ORDER_QC_REQUIRED: '平台质检全部通过后才能提交用户验收。', ORDER_DELIVERY_REQUIRED: '完成交付前必须填写最终交付记录。', MEDIA_REVIEW_REQUIRED: '需要先完成素材处理和审核。', PACKAGE_COVER_REQUIRED: '角色视频包必须先上传角色主图。', INVALID_PACKAGE: '请检查名称、视频数量和标签。', INVALID_PACKAGE_METADATA: '请检查简介长度及创作者公开 ID、名称和匿名设置。' };
 async function api(path, body) {
   const response = await fetch(path, { method: body === undefined ? 'GET' : 'POST',
     headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin',
@@ -26,6 +26,55 @@ const creatorLabels = { pending: '待审核', approved: '已认证', rejected: '
 function inputField(label, name, value = '', type = 'text') {
   const wrap = text('label', label); const input = document.createElement('input');
   input.name = name; input.type = type; input.value = value ?? ''; wrap.append(input); return wrap;
+}
+
+function metadataFields(source, item = {}) {
+  const fields = text('div', '', 'content-metadata');
+  const descriptionLabel = text('label', '角色 / 视频简介');
+  const description = document.createElement('textarea'); description.name = 'description';
+  description.rows = 3; description.maxLength = 2000; description.value = item.description || '';
+  descriptionLabel.append(description); fields.append(descriptionLabel);
+  const credit = text('div', '', 'content-credit'); credit.dataset.creditFields = '';
+  const anonymousLabel = text('label', ' 匿名展示（不公开创作者身份）');
+  const anonymous = document.createElement('input'); anonymous.type = 'checkbox'; anonymous.name = 'anonymous';
+  anonymous.checked = item.creator?.anonymous !== false; anonymous.defaultChecked = anonymous.checked; anonymousLabel.prepend(anonymous);
+  const identity = text('div', '');
+  const idLabel = inputField('创作者公开 ID（同一创作者保持一致）', 'creatorId', item.creator?.id || '');
+  const nameLabel = inputField('创作者显示名称', 'creatorName', item.creator?.name || '');
+  const id = idLabel.querySelector('input'), name = nameLabel.querySelector('input');
+  id.maxLength = 100; name.maxLength = 120;
+  identity.append(idLabel, nameLabel, text('p', '请填写稳定的公开标识，不要使用邮箱、手机号或证件号码。'));
+  credit.append(anonymousLabel, identity); fields.append(credit);
+  fields.updateSource = value => {
+    credit.hidden = value !== 'creator'; identity.hidden = anonymous.checked;
+    id.required = name.required = value === 'creator' && !anonymous.checked;
+  };
+  anonymous.onchange = () => fields.updateSource(fields.dataset.source);
+  fields.dataset.source = source; fields.updateSource(source);
+  return fields;
+}
+function metadataValue(form, source) {
+  const data = new FormData(form);
+  return { description: data.get('description') || '',
+    ...(source === 'creator' ? { creator: data.has('anonymous') ? { anonymous: true } :
+      { id: (data.get('creatorId') || '').trim(), name: (data.get('creatorName') || '').trim(), anonymous: false } } : {}) };
+}
+function metadataEditor(item) {
+  const details = text('details', '', 'metadata-editor'); details.append(text('summary', '简介与署名'));
+  const form = document.createElement('form'); form.dataset.packageId = item.id;
+  form.append(metadataFields(item.source, item));
+  const error = text('p', ''); error.setAttribute('role', 'alert');
+  const save = text('button', '保存简介与署名', 'secondary'); save.type = 'submit'; form.append(error, save);
+  form.onsubmit = async event => {
+    event.preventDefault(); if (save.disabled) return;
+    save.disabled = true; error.textContent = '';
+    try {
+      await api(`/admin/packages/${encodeURIComponent(item.id)}/metadata`, { version: item.version, ...metadataValue(form, item.source) });
+      await refresh(); $('notice').textContent = '简介与署名已保存。';
+    } catch (failure) { error.textContent = failure.message; }
+    finally { save.disabled = false; }
+  };
+  details.append(form); return details;
 }
 function orderFields(next, order) {
   const fields = text('div', '', 'order-fields'), saved = order.workflow || {};
@@ -177,6 +226,7 @@ function render() {
       const coverLabel = text('label', item.cover ? '替换角色主图' : '上传角色主图（必需）'); const coverInput = document.createElement('input'); coverInput.type = 'file'; coverInput.accept = 'image/jpeg,image/png';
       coverInput.onchange = async () => { const file = coverInput.files[0]; if (!file) return; coverInput.disabled = true; try { const response = await fetch(`/admin/packages/${encodeURIComponent(item.id)}/cover`, { method: 'PUT', credentials: 'same-origin', headers: { 'Content-Type': file.type, 'If-Match': String(item.version) }, body: file }); const result = await response.json(); if (!response.ok) throw new Error(messages[result.code] || '主图上传失败。'); await refresh(); $('notice').textContent = '角色主图已保存。'; } catch (error) { $('notice').textContent = error.message; coverInput.disabled = false; } }; coverLabel.append(coverInput); card.append(coverLabel);
     }
+    card.append(metadataEditor(item));
     const folderTitle = item.format === 'package' ? text('h3', `包内视频（${item.clips.length}）`) : null; if (folderTitle) card.append(folderTitle);
     const list = document.createElement('ul');
     for (const clip of item.clips) {
@@ -336,6 +386,15 @@ $('review-form').onsubmit = async event => {
   } catch (error) { $('review-error').textContent = error.message; }
   finally { $('review-save').disabled = false; }
 };
+const createMetadata = metadataFields($('create').elements.source.value);
+$('create').insertBefore(createMetadata, $('form-error'));
+$('create').elements.source.addEventListener('change', event => {
+  createMetadata.dataset.source = event.target.value; createMetadata.updateSource(event.target.value);
+});
+$('create').addEventListener('reset', () => queueMicrotask(() => {
+  createMetadata.dataset.source = $('create').elements.source.value;
+  createMetadata.updateSource(createMetadata.dataset.source);
+}));
 $('create').onsubmit = async event => {
   event.preventDefault(); const form = new FormData(event.target);
   const names = form.get('clips').split('\n').map(x => x.trim()).filter(Boolean);
@@ -343,6 +402,7 @@ $('create').onsubmit = async event => {
   $('save').disabled = true;
   try {
     await api('/admin/packages', { title: form.get('title'), source: form.get('source'), format: form.get('format'),
+      ...metadataValue(event.target, form.get('source')),
       tags: [...new Set(form.get('tags').split(/[,，]/).map(x => x.trim()).filter(Boolean))],
       clips: names.map(name => ({ id: crypto.randomUUID(), title: name })) });
     $('editor').close(); await refresh(); $('notice').textContent = '草稿已保存。下一步需要补充素材并审核。';

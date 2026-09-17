@@ -11,6 +11,29 @@ import { authorizedClip } from './delivery.mjs';
 import { stat } from 'node:fs/promises';
 import { runtimeConfig } from './runtime-config.mjs';
 
+function validCreator(value) {
+  if (value === undefined) return true;
+  if (!value || Array.isArray(value) || typeof value !== 'object' || typeof value.anonymous !== 'boolean') return false;
+  if (value.anonymous) return true;
+  return typeof value.id === 'string' && /^[A-Za-z0-9][A-Za-z0-9_-]{0,99}$/.test(value.id.trim())
+    && typeof value.name === 'string' && value.name.trim().length > 0 && value.name.trim().length <= 120;
+}
+
+function validMetadata(source, value) {
+  return (value.description === undefined || (typeof value.description === 'string' && value.description.trim().length <= 2000))
+    && (source === 'hildors' || validCreator(value.creator));
+}
+
+function normalizeMetadata(source, value) {
+  const metadata = {};
+  const description = (value.description ?? '').trim();
+  if (description) metadata.description = description;
+  if (source === 'creator' && value.creator) metadata.creator = value.creator.anonymous
+    ? { anonymous: true }
+    : { id: value.creator.id.trim(), name: value.creator.name.trim(), anonymous: false };
+  return metadata;
+}
+
 function validDocument(value) {
   return value && typeof value.title === 'string' && value.title.trim().length > 0 && value.title.length <= 120
     && ['hildors', 'creator'].includes(value.source)
@@ -21,12 +44,25 @@ function validDocument(value) {
     && (value.format !== 'single' || value.clips.length === 1)
     && new Set(value.clips.map(c => c?.id)).size === value.clips.length
     && value.clips.every(c => c && typeof c.id === 'string' && c.id.length > 0 && c.id.length <= 100
-      && typeof c.title === 'string' && c.title.length > 0 && c.title.length <= 120);
+      && typeof c.title === 'string' && c.title.length > 0 && c.title.length <= 120)
+    && validMetadata(value.source, value);
+}
+
+function safeCreator(item) {
+  if (item.source !== 'creator') return undefined;
+  if (item.creator?.anonymous === false && validCreator(item.creator)) return {
+    id: item.creator.id.trim(), name: item.creator.name.trim(), anonymous: false,
+  };
+  return { anonymous: true };
 }
 
 function publicPackage(item) {
+  const description = typeof item.description === 'string' && item.description.trim().length <= 2000
+    ? item.description.trim() : '';
+  const creator = safeCreator(item);
   return { id: item.id, title: item.title, version: item.version, status: item.status,
     source: item.source, format: item.format, tags: item.tags, demo: item.demo,
+    ...(description ? { description } : {}), ...(creator ? { creator } : {}),
     ...(item.cover ? { coverPath: `/v1/covers/${item.cover.id}` } : {}),
     clips: item.clips.map(c => ({ id: c.id, title: c.title, hardwareReady: false,
       durationSeconds: c.media?.inspection?.durationSeconds ?? c.durationSeconds,
@@ -311,9 +347,17 @@ export function app(store, { adminToken = '', adminUsername = '', adminPassword 
         if (path === '/admin/packages') {
           if (!validDocument(value)) return fail(400, 'INVALID_PACKAGE');
           // Metadata-only drafts cannot claim playable assets or hardware readiness.
+          const metadata = normalizeMetadata(value.source, value);
           return send(201, store.create({ title: value.title.trim(), source: value.source,
-            format: value.format, tags: value.tags,
+            format: value.format, tags: value.tags, ...metadata,
             clips: value.clips.map(c => ({ id: c.id, title: c.title, hardwareReady: false })), demo: false }));
+        }
+        const metadata = /^\/admin\/packages\/([^/]+)\/metadata$/.exec(path);
+        if (metadata) {
+          const id = decodeURIComponent(metadata[1]), item = store.get(id);
+          if (!item) return fail(404, 'NOT_FOUND');
+          if (!Number.isInteger(value?.version) || !validMetadata(item.source, value)) return fail(400, 'INVALID_PACKAGE_METADATA');
+          return send(200, store.updateMetadata(id, value.version, normalizeMetadata(item.source, value)));
         }
         const review = /^\/admin\/packages\/([^/]+)\/review$/.exec(path);
         if (review) {
