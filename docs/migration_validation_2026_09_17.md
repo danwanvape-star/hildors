@@ -110,3 +110,13 @@ flutter build apk --release --no-pub --dart-define=HILDORS_API_BASE_URL=https://
 /opt/hildors/backups 下发现 20260916T140657Z 与 20260916T142735Z 两份代码目录备份，总计约 292KB，仅含 src/public，未见数据库与媒体备份。已检查的 systemd timers、系统 cron 目录与用户 crontab 未发现 HILDORS 数据备份任务；/var/backups 为系统包管理备份。这不证明所有位置均无备份，腾讯云快照及异地备份尚未核实。
 
 结论：代码回退材料存在，数据库与媒体恢复能力仍未验收。本轮没有停止服务、复制活跃数据库、恢复数据或修改服务器配置。下一步应在获准维护窗口内停止写入，完整备份数据库与媒体，并在隔离目录验证数据库完整性和媒体校验，再安排异机备份与周期性演练。
+
+## 获准维护窗口内的数据备份与隔离校验
+
+用户确认短暂停机后，停止 hildors-team-staging.service，归档完整 /var/lib/hildors-api（含数据库与媒体），随后恢复服务。备份保存在服务器 /opt/hildors/data-backups/20260917T074954Z/data.tar，大小 18,216,960 字节；同目录保留 SHA-256 文件、verification.json 和 restore-check 隔离解包目录。备份根目录及本次目录权限为 root:700；数据库和媒体未下载至仓库或提交 Git。
+
+归档 SHA-256 校验通过；隔离解包后的 8 个常规文件逐一与归档内容比对 SHA-256，全部一致；1 个 SQLite 数据库通过只读 PRAGMA integrity_check。未把恢复数据覆盖到线上目录，未以恢复数据启动业务服务，因此本次仅验证归档可读取、文件还原一致和数据库结构完整，不代表完整业务恢复验收。
+
+重启后复查服务 active、本机 health=ok、ready=ready；公网 health、ready、catalog 返回 200，console 返回 404。首次脚本末尾的 ready 请求因命令传递格式返回 curl 错误，已单独重跑并确认 ready 正常，不影响此前成功的备份与隔离校验。管理员会话可能因重启失效。
+
+当前为手动同机备份，不具备抵御整机或磁盘丢失的能力；异机/异地副本、定时备份、保留周期及完整业务恢复演练仍待实施。
