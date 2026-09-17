@@ -96,3 +96,9 @@ flutter build apk --release --no-pub --dart-define=HILDORS_API_BASE_URL=https://
 - SHA-256：`f036785c029123f5884db618b31ed26b7320a7ae648ce04d07d08d595fa67ffa`。
 - `apksigner verify --verbose --print-certs` 通过，v2 签名有效；签发者为 Android Debug，符合当前 Gradle release 使用 debug signingConfig 的配置。这是本机迁移验证包，不是正式发布包；若旧手机安装包使用另一把签名密钥，不能直接覆盖安装，不应为了安装而自动卸载或清除用户数据。
 - 构建后再次检查 ADB，未发现已连接设备。真机安装、手机播放、P20 控制与两套列表、SSH 管理权限仍未验收。
+
+## SSH 管理连接续验
+
+用户通过腾讯云网页终端为 ubuntu 追加本机专用公钥，并备份原授权文件。通过网页终端指纹核对服务器 ED25519 主机身份后，本机严格主机校验及 BatchMode SSH 登录成功；身份 ubuntu，hildors-team-staging.service 状态 active。
+
+本机已建立仅绑定 127.0.0.1:18787 的 SSH 隧道，转发至服务器 127.0.0.1:8787。实测 health、ready、console 返回 200，未认证 admin/packages 返回 401。管理账号登录、服务器备份恢复及真机/P20 验收仍待完成。隧道为当前本机进程，重启后需重新启动。未部署代码、重启服务或修改业务数据；私钥仅保存在仓库外，不纳入 Git。
