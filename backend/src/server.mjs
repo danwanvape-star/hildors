@@ -1,3 +1,4 @@
+import { validPricing, publicPricing, publicFullPreview } from './clip-pricing.mjs';
 import { createServer } from 'node:http';
 import { randomBytes, randomUUID, timingSafeEqual } from 'node:crypto';
 import { mkdirSync, readFileSync } from 'node:fs';
@@ -29,10 +30,11 @@ function publicPackage(item) {
     source: item.source, format: item.format, tags: item.tags, demo: item.demo,
     ...(item.cover ? { coverPath: `/v1/covers/${item.cover.id}` } : {}),
     clips: item.clips.map(c => ({ id: c.id, title: c.title, hardwareReady: false,
+      ...(validPricing(c.pricing) ? { pricing: publicPricing(c.pricing) } : {}),
       durationSeconds: c.media?.inspection?.durationSeconds ?? c.durationSeconds,
       ...(item.demo ? { bundledAsset: c.bundledAsset, thumbnail: c.thumbnail } : {}),
       ...(!item.demo && c.media?.inspection?.status === 'checked' ? {
-        previewPath: `/v1/media/${c.media.id}`,
+        ...(publicFullPreview(c) ? { previewPath: `/v1/media/${c.media.id}` } : {}),
         thumbnailPath: `/v1/media/${c.media.id}/thumbnail`,
       } : {}) })) };
 }
@@ -69,7 +71,7 @@ export function app(store, { adminToken = '', adminUsername = '', adminPassword 
     try {
       const url = new URL(req.url, 'http://localhost');
       const path = url.pathname;
-      const staticFiles = { '/console': ['index.html', 'text/html'], '/console/app.js': ['app.js', 'text/javascript'], '/console/style.css': ['style.css', 'text/css'], '/console/media.css': ['media.css', 'text/css'], '/console/connection.css': ['connection.css', 'text/css'], '/console/admin-nav.css': ['admin-nav.css', 'text/css'], '/console/layout.css': ['layout.css', 'text/css'], '/console/orders.css': ['orders.css', 'text/css'] };
+      const staticFiles = { '/console/clip-pricing.js': ['clip-pricing.js', 'text/javascript'], '/console': ['index.html', 'text/html'], '/console/app.js': ['app.js', 'text/javascript'], '/console/style.css': ['style.css', 'text/css'], '/console/media.css': ['media.css', 'text/css'], '/console/connection.css': ['connection.css', 'text/css'], '/console/admin-nav.css': ['admin-nav.css', 'text/css'], '/console/layout.css': ['layout.css', 'text/css'], '/console/orders.css': ['orders.css', 'text/css'] };
       if (req.method === 'GET' && Object.hasOwn(staticFiles, path)) {
         const [name, type] = staticFiles[path];
         res.writeHead(200, { 'Content-Type': `${type}; charset=utf-8`, 'Cache-Control': 'no-store',
@@ -188,7 +190,11 @@ export function app(store, { adminToken = '', adminUsername = '', adminPassword 
             downloadPath: `/v1/me/packages/${encodeURIComponent(packageId)}/clips/${encodeURIComponent(clipId)}/download`,
             authorizationRequired: true,
           });
-          return await serveMedia(req, res, mediaDirectory, media.id);
+          return await serveMedia(req, res, mediaDirectory, media.id, { preflight: () => {
+            if (store.authenticate(token) !== userId) { fail(401, 'USER_AUTH_REQUIRED'); return false; }
+            if (!authorizedClip(store, userId, packageId, clipId)) { fail(404, 'CONTENT_UNAVAILABLE'); return false; }
+            return true;
+          } });
         }
         if (req.method === 'GET' && path === '/v1/me/entitlements') {
           return send(200, { items: store.entitlements(userId).map(entry => {
@@ -223,13 +229,24 @@ export function app(store, { adminToken = '', adminUsername = '', adminPassword 
         const published = store.list().some(p => p.status === 'published' && p.clips.some(c =>
           c.media?.id === publicMedia[1] && c.media.inspection?.status === 'checked'));
         if (!published) return fail(404, 'NOT_FOUND');
+        // A shared media ID cannot make a paid video's full file public through another clip.
+        if (!publicMedia[2] && store.list().some(p => p.clips.some(c =>
+          c.media?.id === publicMedia[1] && !publicFullPreview(c)))) return fail(404, 'NOT_FOUND');
         if (publicMedia[2]) {
           const image = readFileSync(resolve(mediaDirectory, `${publicMedia[1]}.jpg`));
           res.writeHead(200, { 'Content-Type': 'image/jpeg', 'Cache-Control': 'public, max-age=3600',
             'X-Content-Type-Options': 'nosniff' });
           return res.end(image);
         }
-        return await serveMedia(req, res, mediaDirectory, publicMedia[1], { publicCache: true });
+        return await serveMedia(req, res, mediaDirectory, publicMedia[1], { preflight: () => {
+          const items = store.list();
+          const available = items.some(p => p.status === 'published' && p.clips.some(c =>
+            c.media?.id === publicMedia[1] && c.media.inspection?.status === 'checked'));
+          if (!available || items.some(p => p.clips.some(c => c.media?.id === publicMedia[1] && !publicFullPreview(c)))) {
+            fail(404, 'NOT_FOUND'); return false;
+          }
+          return true;
+        } });
       }
       const publicCover = /^\/v1\/covers\/([a-f0-9-]{36})$/.exec(path);
       if (req.method === 'GET' && publicCover) {
@@ -246,6 +263,19 @@ export function app(store, { adminToken = '', adminUsername = '', adminPassword 
       if (req.method === 'GET' && path === '/admin/creators') return send(200, { items: store.listCreatorProfiles() });
       if (req.method === 'GET' && path === '/admin/layout') return send(200, store.getLayout());
       if (req.method === 'GET' && path === '/admin/audit') return send(200, { items: store.auditLog() });
+      const pricingRoute = /^\/admin\/packages\/([^/]+)\/clips\/([^/]+)\/pricing$/.exec(path);
+      if (req.method === 'POST' && pricingRoute) {
+        const id = decodeURIComponent(pricingRoute[1]), clipId = decodeURIComponent(pricingRoute[2]);
+        if (!store.get(id)?.clips.some(c => c.id === clipId)) return fail(404, 'NOT_FOUND');
+        const chunks = []; let bytes = 0;
+        for await (const chunk of req) {
+          bytes += chunk.length; if (bytes > 65536) return fail(413, 'BODY_TOO_LARGE'); chunks.push(chunk);
+        }
+        let value;
+        try { value = JSON.parse(Buffer.concat(chunks).toString('utf8')); } catch { return fail(400, 'INVALID_JSON'); }
+        if (!Number.isSafeInteger(value?.version) || value.version < 1 || !validPricing(value?.pricing)) return fail(400, 'INVALID_PRICING');
+        return send(200, store.updateClipPricing(id, clipId, value.version, value.pricing));
+      }
       const inspect = /^\/admin\/packages\/([^/]+)\/clips\/([^/]+)\/inspect$/.exec(path);
       if (req.method === 'POST' && inspect) {
         const id = decodeURIComponent(inspect[1]), clipId = decodeURIComponent(inspect[2]);

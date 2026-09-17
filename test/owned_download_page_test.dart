@@ -38,7 +38,7 @@ void main() {
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
-    final task = PageController()..message = '领取或购买后才能下载';
+    final task = PageController()..message = '当前视频暂不可下载';
     await tester.pumpWidget(MaterialApp(
         builder: (context, child) => MediaQuery(
             data: MediaQuery.of(context)
@@ -46,14 +46,15 @@ void main() {
             child: child!),
         home: OwnedDownloadPage(package: package, controller: task)));
     await tester.pumpAndSettle();
-    final all =
-        tester.widget<FilledButton>(find.widgetWithText(FilledButton, '全部下载'));
+    final all = tester
+        .widget<FilledButton>(find.widgetWithText(FilledButton, '下载可用视频'));
     expect(all.onPressed, isNull);
     for (final button
         in tester.widgetList<OutlinedButton>(find.byType(OutlinedButton))) {
       expect(button.onPressed, isNull);
     }
-    expect(find.text('领取或购买后才能下载'), findsOneWidget);
+    expect(find.text('当前视频暂不可下载'), findsOneWidget);
+    expect(find.textContaining('领取'), findsNothing);
     expect(tester.takeException(), isNull);
   });
   testWidgets('whole package action selects only not-yet-downloaded clips',
@@ -65,8 +66,38 @@ void main() {
         home: OwnedDownloadPage(package: package, controller: task)));
     await tester.pumpAndSettle();
     expect(find.text('已下载 1/2'), findsOneWidget);
-    await tester.tap(find.widgetWithText(FilledButton, '全部下载'));
+    await tester.tap(find.widgetWithText(FilledButton, '下载可用视频'));
     expect(task.requested, ['b']);
     expect(find.text('查看我的角色'), findsOneWidget);
+  });
+  testWidgets('mixed bulk action selects allowed missing videos only',
+      (tester) async {
+    final task = PageController()..allowed.add('a');
+    await tester.pumpWidget(MaterialApp(
+        home: OwnedDownloadPage(package: package, controller: task)));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilledButton, '下载可用视频'));
+    expect(task.requested, ['a']);
+  });
+  testWidgets(
+      'paid entry explains unavailable purchase without opening download page',
+      (tester) async {
+    final paid = RemoteCatalogClip('paid', '付费', 3,
+        pricing: ClipPricing.fromJson(
+            {'mode': 'paid', 'currency': 'USD', 'amountMinor': 1299}));
+    await tester.pumpWidget(MaterialApp(
+        home: Scaffold(
+            body: OwnedDownloadButton(
+                package: RemoteCatalogPackage(
+                    id: 'paid',
+                    title: '付费',
+                    source: 'hildors',
+                    format: 'single',
+                    tags: [],
+                    clips: [paid])))));
+    await tester.tap(find.text('US\$ 12.99 · 购买下载'));
+    await tester.pumpAndSettle();
+    expect(find.text('暂未开放购买'), findsOneWidget);
+    expect(find.byType(OwnedDownloadPage), findsNothing);
   });
 }

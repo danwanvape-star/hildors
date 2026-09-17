@@ -111,7 +111,7 @@ class _RemoteCatalogPageState extends State<RemoteCatalogPage> {
             ]),
             Text(
                 widget.packageActions != null
-                    ? '已领取或购买的内容可下载至“我的角色”'
+                    ? '视频按条定价，免费内容可下载至“我的角色”，付费购买暂未开放'
                     : widget.clipActions == null
                         ? '内容同步预览 · 下载与设备交付尚未开放'
                         : '包内视频可分别管理 · 设备交付尚未开放',

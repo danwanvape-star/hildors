@@ -1,3 +1,4 @@
+import { validPricing, publicPricing } from './clip-pricing.mjs';
 import { DatabaseSync } from 'node:sqlite';
 import { randomUUID, randomBytes, createHash } from 'node:crypto';
 
@@ -76,6 +77,18 @@ export function createStore(path = ':memory:') {
   }
   return {
     get,
+    updateClipPricing(id, clipId, version, pricing) {
+      if (!validPricing(pricing)) throw new Error('INVALID_PRICING');
+      return transaction(() => {
+        const current = get(id), clip = current?.clips.find(c => c.id === clipId);
+        if (!clip || current.version !== version) throw new Error('CONFLICT');
+        clip.pricing = publicPricing(pricing);
+        delete current.id; delete current.version; delete current.status;
+        db.prepare('UPDATE packages SET document=?,version=version+1 WHERE id=?').run(JSON.stringify(current), id);
+        audit(id, 'clip_pricing_updated:' + clipId); return get(id);
+      });
+    },
+
     ready: () => db.prepare('SELECT 1 AS ok').get().ok === 1,
     // Internal provisioning only: never accept a client-supplied user ID as authentication.
     createUser(id = randomUUID()) {

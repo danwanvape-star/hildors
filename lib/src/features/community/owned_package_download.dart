@@ -54,7 +54,7 @@ class OwnedPackageDownloadController extends ChangeNotifier {
   String _denied(DownloadAccess access) => switch (access) {
         DownloadAccess.disabled => '下载暂未开放，请稍后重试',
         DownloadAccess.signInRequired => '请重新确认账号后下载',
-        _ => '领取或购买后才能下载；已拥有的内容请确认仍可用',
+        _ => '当前视频暂不可下载，请刷新权限后重试',
       };
 
   Future<void> prepare() async {
@@ -74,7 +74,9 @@ class OwnedPackageDownloadController extends ChangeNotifier {
         final access = await DownloadAccessRepository(baseUri)
             .check(package.id, clip.id, current.token);
         if (_disposed) return;
-        if (access == DownloadAccess.allowed) {
+        if (clip.pricing?.isPaid == true) {
+          message = '暂未开放购买';
+        } else if (access == DownloadAccess.allowed) {
           allowed.add(clip.id);
         } else {
           message = _denied(access);
@@ -99,6 +101,11 @@ class OwnedPackageDownloadController extends ChangeNotifier {
       for (final requested in clips) {
         cancellation.check();
         final clip = package.clips.firstWhere((c) => c.id == requested.id);
+        if (clip.pricing?.isPaid == true) {
+          allowed.remove(clip.id);
+          message = '暂未开放购买';
+          continue;
+        }
         final current = await _bind();
         cancellation.check();
         final access = await DownloadAccessRepository(baseUri)
@@ -107,7 +114,7 @@ class OwnedPackageDownloadController extends ChangeNotifier {
         if (access != DownloadAccess.allowed) {
           allowed.remove(clip.id);
           message = _denied(access);
-          break;
+          continue;
         }
         allowed.add(clip.id);
         activeTitle = clip.title;

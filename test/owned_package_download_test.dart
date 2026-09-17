@@ -14,6 +14,7 @@ void main() {
   late DownloadedCharacterStore store;
   var owned = false, corrupt = false;
   var transfers = 0;
+  final deniedClips = <String>{};
   final token = List.filled(43, 'a').join();
   final bytes = utf8.encode('verified local video');
   const package = RemoteCatalogPackage(
@@ -31,6 +32,7 @@ void main() {
     owned = false;
     corrupt = false;
     transfers = 0;
+    deniedClips.clear();
     directory = await Directory.systemTemp.createTemp('owned-download-test-');
     server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
     origin = Uri.parse('http://127.0.0.1:${server.port}');
@@ -39,9 +41,11 @@ void main() {
       if (req.headers.value('authorization') != 'Bearer $token') {
         req.response.statusCode = 401;
       } else if (req.uri.path.endsWith('/access')) {
+        final permitted =
+            owned && !deniedClips.contains(req.uri.pathSegments[5]);
         req.response.write(jsonEncode({
-          'canDownload': owned,
-          'reason': owned ? 'ALLOWED' : 'CONTENT_UNAVAILABLE'
+          'canDownload': permitted,
+          'reason': permitted ? 'ALLOWED' : 'CONTENT_UNAVAILABLE'
         }));
       } else if (!owned) {
         req.response.statusCode = 404;
@@ -81,7 +85,50 @@ void main() {
     expect(transfers, 0);
     expect(await store.load(), isEmpty);
     expect(task.completed, isEmpty);
-    expect(task.message, contains('领取'));
+    expect(task.message, '当前视频暂不可下载，请刷新权限后重试');
+  });
+  test('denied first clip does not block allowed later clip in batch',
+      () async {
+    owned = true;
+    deniedClips.add('one');
+    final task = controller();
+    addTearDown(task.dispose);
+    await task.prepare();
+    expect(task.allowed, {'two'});
+    await task.download(package.clips);
+    expect(task.completed, {'two'});
+    expect(transfers, 1);
+  });
+  test('paid clip cannot inherit package access while free clip downloads',
+      () async {
+    owned = true;
+    final mixed = RemoteCatalogPackage(
+        id: 'p',
+        title: '角色',
+        source: 'hildors',
+        format: 'package',
+        tags: [],
+        clips: [
+          RemoteCatalogClip('one', '付费', 3,
+              pricing: ClipPricing.fromJson(
+                  {'mode': 'paid', 'currency': 'USD', 'amountMinor': 99})),
+          RemoteCatalogClip('two', '免费', 5,
+              pricing: ClipPricing.fromJson(
+                  {'mode': 'free', 'currency': 'USD', 'amountMinor': 0})),
+        ]);
+    final task = OwnedPackageDownloadController(
+        package: mixed,
+        baseUri: origin,
+        identity: () async => (accountId: 'account', token: token),
+        storeForAccount: (_, __) async => store);
+    addTearDown(task.dispose);
+    await task.prepare();
+    expect(task.allowed, {'two'});
+    await task.download(mixed.clips);
+    expect(task.completed, {'two'});
+    expect(transfers, 1);
+    expect((await store.load()).single.videos.single.id, 'two');
+    expect(task.message, '暂未开放购买');
   });
   test(
       'owned package merges verified clips, restores offline and avoids repeats',

@@ -57,9 +57,10 @@ export async function serveImage(res, directory, image, { publicCache = false } 
   res.on('close', () => stream.destroy()); stream.pipe(res);
 }
 
-export async function serveMedia(req, res, directory, id, { publicCache = false } = {}) {
+export async function serveMedia(req, res, directory, id, { publicCache = false, preflight } = {}) {
   const path = resolve(directory, `${id}.mp4`);
   const info = await stat(path);
+  if (preflight && !preflight()) return;
   let start = 0, end = info.size - 1, status = 200;
   if (req.headers.range) {
     const match = /^bytes=(\d+)-(\d*)$/.exec(req.headers.range);

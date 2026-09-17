@@ -181,6 +181,7 @@ function render() {
     const list = document.createElement('ul');
     for (const clip of item.clips) {
       const row = text('li', clip.title);
+      row.append(createClipPricingEditor(item, clip, { save: api, onSaved: async () => { await refresh(); $('notice').textContent = '单条视频价格已保存。'; } }));
       if (clip.media) {
         row.append(text('p', `${(clip.media.bytes / 1024 / 1024).toFixed(1)} MB · 待审核 · 待设备适配`));
         const inspection = clip.media.inspection;

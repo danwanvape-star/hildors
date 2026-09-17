@@ -2,12 +2,36 @@ import 'dart:convert';
 import 'remote_catalog_transport_stub.dart'
     if (dart.library.io) 'remote_catalog_transport_io.dart' as transport;
 
+class ClipPricing {
+  const ClipPricing._(this.mode, this.amountMinor);
+  final String mode;
+  final int amountMinor;
+  bool get isPaid => mode == 'paid';
+  factory ClipPricing.fromJson(Object? raw) {
+    if (raw is! Map<String, dynamic> ||
+        raw['currency'] != 'USD' ||
+        raw['amountMinor'] is! int ||
+        !((raw['mode'] == 'free' && raw['amountMinor'] == 0) ||
+            (raw['mode'] == 'paid' &&
+                raw['amountMinor'] >= 1 &&
+                raw['amountMinor'] <= 99999999))) {
+      throw const FormatException('视频价格无效');
+    }
+    return ClipPricing._(raw['mode'] as String, raw['amountMinor'] as int);
+  }
+  String get label => isPaid
+      ? 'US\$ ${amountMinor ~/ 100}.${(amountMinor % 100).toString().padLeft(2, '0')} · 购买下载'
+      : '免费下载';
+}
+
 class RemoteCatalogClip {
   const RemoteCatalogClip(this.id, this.title, this.durationSeconds,
-      {this.previewUrl, this.thumbnailUrl});
+      {this.previewUrl, this.thumbnailUrl, this.pricing});
   final String id, title;
   final double? durationSeconds;
   final String? previewUrl, thumbnailUrl;
+  final ClipPricing? pricing;
+  String get downloadLabel => pricing?.label ?? '下载到我的角色';
 }
 
 class RemoteCatalogPackage {
@@ -68,6 +92,9 @@ class RemoteCatalogPackage {
       return RemoteCatalogClip(requiredText(raw, 'id'),
           requiredText(raw, 'title'), (duration as num?)?.toDouble(),
           previewUrl: raw['previewPath'] as String?,
+          pricing: raw.containsKey('pricing')
+              ? ClipPricing.fromJson(raw['pricing'])
+              : null,
           thumbnailUrl: raw['thumbnailPath'] as String?);
     }).toList(growable: false);
     if (clips.map((c) => c.id).toSet().length != clips.length ||
@@ -170,6 +197,7 @@ class RemoteCatalogRepository {
                 clip.durationSeconds,
                 previewUrl: absolute(clip.previewUrl),
                 thumbnailUrl: absolute(clip.thumbnailUrl),
+                pricing: clip.pricing,
               ))
           .toList(growable: false),
     );
