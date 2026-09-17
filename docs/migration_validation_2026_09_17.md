@@ -120,3 +120,11 @@ flutter build apk --release --no-pub --dart-define=HILDORS_API_BASE_URL=https://
 重启后复查服务 active、本机 health=ok、ready=ready；公网 health、ready、catalog 返回 200，console 返回 404。首次脚本末尾的 ready 请求因命令传递格式返回 curl 错误，已单独重跑并确认 ready 正常，不影响此前成功的备份与隔离校验。管理员会话可能因重启失效。
 
 当前为手动同机备份，不具备抵御整机或磁盘丢失的能力；异机/异地副本、定时备份、保留周期及完整业务恢复演练仍待实施。
+
+## 异机副本与隔离后台启动验证
+
+已将同一归档通过严格主机校验的 SSH 下载到本机 D:\HildorsBackups\20260917T074954Z\data.tar。目的目录禁用继承并仅授权当前 Windows 用户；不在项目仓库内。副本大小 18,216,960 字节，SHA-256 为 fb83da0add7ec1dcd896783dff3205b1002969b390964512736bc73492df92d5，与服务器校验文件一致。校验记录保存在该目录 transfer-verification.json。
+
+在 app-restore-check 独立目录安全解包，使用当前本机后台代码、team-staging 模式、随机临时管理员凭据和仅监听 127.0.0.1 的随机端口启动。health、ready、catalog、console 均返回 200；未认证 admin/packages 返回 401；临时认证后 admin/packages 和 admin/audit 返回 200。测试服务已停止，临时凭据未输出或写入 Git，结果保存在 app-restore-verification.json。未访问或修改线上数据库。
+
+此次覆盖异机传输完整性和恢复副本的后台启动、目录读取及管理接口鉴权。未覆盖恢复环境的浏览器登录、媒体播放、上传审核写入或完整灾难切换。当前电脑副本不等同于受管异地备份；自动备份、保留周期、备份加密与恢复演练计划仍待配置。本轮仅更新文档，未修改产品代码。
