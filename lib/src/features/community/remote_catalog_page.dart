@@ -96,83 +96,89 @@ class _RemoteCatalogPageState extends State<RemoteCatalogPage> {
               source != '全部' ||
               format != '全部' ||
               topic != '全部';
-          return ListView(padding: const EdgeInsets.all(16), children: [
-            Row(children: [
-              const Expanded(
-                  child: Text('内容库',
-                      style: TextStyle(
-                          fontSize: 20, fontWeight: FontWeight.bold))),
-              IconButton(
-                  tooltip: '刷新目录',
-                  onPressed: () => setState(() {
-                        _reload();
-                      }),
-                  icon: const Icon(Icons.refresh))
-            ]),
-            Text(
-                widget.packageActions != null
-                    ? '视频按条定价，免费内容可下载至“我的角色”，付费购买暂未开放'
-                    : widget.clipActions == null
-                        ? '内容同步预览 · 下载与设备交付尚未开放'
-                        : '包内视频可分别管理 · 设备交付尚未开放',
-                style: const TextStyle(fontSize: 12)),
-            const SizedBox(height: 12),
-            TextField(
-                controller: searchController,
-                onChanged: (value) => setState(() => query = value),
-                decoration: const InputDecoration(
-                    hintText: '搜索角色、视频或题材', prefixIcon: Icon(Icons.search))),
-            const SizedBox(height: 12),
-            _filterRow(
-                '出处',
-                const {'全部': '全部', 'hildors': 'HILDORS 出品', 'creator': '创作者作品'},
-                source,
-                (value) => setState(() => source = value)),
-            _filterRow(
-                '形式',
-                const {
-                  '全部': '全部',
-                  'single': '单条视频',
-                  'package': '角色视频包',
-                },
-                format,
-                (value) => setState(() => format = value)),
-            if (topics.isNotEmpty)
-              _filterRow('题材', {'全部': '全部', for (final tag in topics) tag: tag},
-                  topic, (value) => setState(() => topic = value)),
-            const SizedBox(height: 6),
-            if (items.isEmpty)
-              const Padding(
-                  padding: EdgeInsets.all(24), child: Text('暂无符合条件的内容')),
-            if (filtering) ...[
-              Row(children: [
-                const Expanded(child: _SectionTitle('筛选结果')),
-                TextButton(
-                    onPressed: () => setState(() {
-                          source = format = topic = '全部';
-                          query = '';
-                          searchController.clear();
-                        }),
-                    child: const Text('清除筛选')),
-              ]),
-              if (items.isNotEmpty) _grid(items, 3, data.packages),
-            ] else
-              for (final block in data.layout) ...[
-                if (_itemsFor(block, items).isNotEmpty) ...[
-                  if (!const {'HILDORS 出品', 'HILDORS出品', '创作者作品', ''}
-                      .contains(block.title.trim()))
-                    _SectionTitle(block.title),
-                  _grid(_itemsFor(block, items), block.columns, data.packages),
-                ],
-              ],
-          ]);
+          return ListView(
+              padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
+              children: [
+                Row(children: [
+                  Expanded(
+                      child: TextField(
+                          controller: searchController,
+                          onChanged: (value) => setState(() => query = value),
+                          style: const TextStyle(fontSize: 14),
+                          decoration: const InputDecoration(
+                              isDense: true,
+                              contentPadding: EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 10),
+                              hintText: '搜索角色、视频或题材',
+                              prefixIconConstraints:
+                                  BoxConstraints(minWidth: 36, minHeight: 40),
+                              prefixIcon: Icon(Icons.search, size: 20)))),
+                  IconButton(
+                      tooltip: '刷新目录',
+                      onPressed: () => setState(() {
+                            _reload();
+                          }),
+                      icon: const Icon(Icons.refresh, size: 22)),
+                ]),
+                const SizedBox(height: 4),
+                _filterRow(
+                    '出处',
+                    const {
+                      '全部': '全部',
+                      'hildors': 'HILDORS 出品',
+                      'creator': '创作者作品'
+                    },
+                    source,
+                    (value) => setState(() => source = value)),
+                _filterRow(
+                    '形式',
+                    const {
+                      '全部': '全部',
+                      'single': '单条视频',
+                      'package': '角色视频包',
+                    },
+                    format,
+                    (value) => setState(() => format = value)),
+                if (topics.isNotEmpty)
+                  _filterRow(
+                      '题材',
+                      {'全部': '全部', for (final tag in topics) tag: tag},
+                      topic,
+                      (value) => setState(() => topic = value)),
+                const SizedBox(height: 6),
+                if (items.isEmpty)
+                  const Padding(
+                      padding: EdgeInsets.all(24), child: Text('暂无符合条件的内容')),
+                if (filtering) ...[
+                  Row(children: [
+                    const Expanded(child: _SectionTitle('筛选结果')),
+                    TextButton(
+                        onPressed: () => setState(() {
+                              source = format = topic = '全部';
+                              query = '';
+                              searchController.clear();
+                            }),
+                        child: const Text('清除筛选')),
+                  ]),
+                  if (items.isNotEmpty) _grid(items, 3, data.packages),
+                ] else
+                  for (final block in data.layout) ...[
+                    if (_itemsFor(block, items).isNotEmpty) ...[
+                      if (!const {'HILDORS 出品', 'HILDORS出品', '创作者作品', ''}
+                          .contains(block.title.trim()))
+                        _SectionTitle(block.title),
+                      _grid(_itemsFor(block, items), block.columns,
+                          data.packages),
+                    ],
+                  ],
+              ]);
         },
       );
 
   Widget _filterRow(String label, Map<String, String> options, String selected,
           ValueChanged<String> onSelected) =>
       Padding(
-        padding: const EdgeInsets.only(top: 8),
+        padding: const EdgeInsets.only(top: 2),
         child: Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
           SizedBox(
               width: 38,
@@ -187,7 +193,10 @@ class _RemoteCatalogPageState extends State<RemoteCatalogPage> {
                 Padding(
                   padding: const EdgeInsets.only(right: 6),
                   child: ChoiceChip(
-                      label: Text(entry.value),
+                      visualDensity: VisualDensity.compact,
+                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      label: Text(entry.value,
+                          style: const TextStyle(fontSize: 12)),
                       selected: selected == entry.key,
                       onSelected: (_) => onSelected(entry.key)),
                 ),
