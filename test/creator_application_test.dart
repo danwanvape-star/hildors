@@ -32,6 +32,77 @@ class Transport implements CreatorContentTransport {
 }
 
 void main() {
+  testWidgets('oversized certification video is rejected before upload',
+      (tester) async {
+    tester.view.physicalSize = const Size(1000, 2800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final directory = Directory.systemTemp.createTempSync('creator-limit');
+    addTearDown(() => directory.deleteSync(recursive: true));
+    final file = File('${directory.path}/large.mp4');
+    final handle = file.openSync(mode: FileMode.write);
+    handle.truncateSync(15000001);
+    handle.closeSync();
+    final transport = WorkflowTransport();
+    await tester.pumpWidget(MaterialApp(
+        home: CreatorApplicationPage(
+      repository: CreatorApplicationRepository(transport: transport),
+      pickVideos: () async => [file.path],
+    )));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('上传本人作品'));
+    await tester.tap(find.text('上传本人作品'));
+    await tester.runAsync(() async {
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+    });
+    await tester.pumpAndSettle();
+    expect(find.textContaining('请压缩后重新选择'), findsOneWidget);
+    expect(transport.firstUpload, isTrue);
+  });
+  testWidgets('upload explains missing email instead of silently disabling',
+      (tester) async {
+    tester.view.physicalSize = const Size(1000, 2800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    var picked = false;
+    final transport = WorkflowTransport();
+    transport.profile!['email'] = '';
+    await tester.pumpWidget(MaterialApp(
+        home: CreatorApplicationPage(
+      repository: CreatorApplicationRepository(transport: transport),
+      pickVideos: () async {
+        picked = true;
+        return [];
+      },
+    )));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('上传本人作品'));
+    expect(
+        tester
+            .widget<OutlinedButton>(
+                find.widgetWithText(OutlinedButton, '上传本人作品'))
+            .onPressed,
+        isNotNull);
+    await tester.tap(find.text('上传本人作品'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('请填写有效邮箱'), findsWidgets);
+    expect(picked, isFalse);
+  });
+  testWidgets('creator name rejects Chinese and numeric-only names',
+      (tester) async {
+    await tester.pumpWidget(MaterialApp(
+        home: CreatorApplicationPage(
+      repository: CreatorApplicationRepository(transport: WorkflowTransport()),
+    )));
+    await tester.pumpAndSettle();
+    for (final value in ['若谷', '12345', 'Nova Studio']) {
+      await tester.enterText(find.byKey(const Key('application-name')), value);
+      await tester.pump();
+      expect(find.textContaining('至少包含一个英文字母'), findsWidgets);
+    }
+  });
   testWidgets('failed draft save retains every selected video for retry',
       (tester) async {
     tester.view.physicalSize = const Size(1000, 2800);
@@ -203,7 +274,7 @@ class WorkflowTransport extends PageTransport {
           'version': 1,
           'status': 'draft',
           'applicationVersion': 2,
-          'displayName': '作者',
+          'displayName': 'Creator2026',
           'email': 'creator@example.com',
           'characterTags': ['系统角色'],
           'skillTags': ['简单动作'],

@@ -25,13 +25,32 @@ class _CreatorApplicationPageState extends State<CreatorApplicationPage> {
   String region = 'cn_mainland';
   String? error, progress;
   bool get editable => profile == null || profile!.editable;
-  bool get valid =>
-      name.text.trim().isNotEmpty &&
-      RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(email.text.trim()) &&
-      roles.isNotEmpty &&
-      directions.isNotEmpty &&
-      adult &&
-      accepted;
+  bool get validName =>
+      RegExp(r'^[A-Za-z0-9]+$').hasMatch(name.text.trim()) &&
+      RegExp(r'[A-Za-z]').hasMatch(name.text.trim()) &&
+      name.text.trim().length <= 80;
+  String? get validationMessage {
+    if (!validName) return '名称仅限英文字母和数字，至少包含一个英文字母，最多 80 个字符';
+    if (!RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(email.text.trim())) {
+      return '请填写有效邮箱后上传作品';
+    }
+    if (roles.isEmpty) return '请至少选择一个擅长角色类型';
+    if (directions.isEmpty) return '请至少选择一个擅长内容方向';
+    if (!adult) return '请确认已年满 18 岁';
+    if (!accepted) return '请阅读并同意创作者规则';
+    return null;
+  }
+
+  bool get valid => validationMessage == null;
+  void _validate() {
+    final message = validationMessage;
+    if (message != null) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(message)));
+      throw FormatException(message);
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -114,6 +133,7 @@ class _CreatorApplicationPageState extends State<CreatorApplicationPage> {
   }
 
   Future<void> _save() async {
+    _validate();
     final updated = await repository.save({
       if (profile != null) 'version': profile!.version,
       'displayName': name.text.trim(),
@@ -142,8 +162,8 @@ class _CreatorApplicationPageState extends State<CreatorApplicationPage> {
       if (!path.toLowerCase().endsWith('.mp4')) {
         throw const FormatException('请选择 MP4 视频');
       }
-      if (await File(path).length() > 256 * 1024 * 1024) {
-        throw const FormatException('单个视频不能超过 256 MiB');
+      if (await File(path).length() > 15000000) {
+        throw const FormatException('单个视频不能超过 15 MB，请压缩后重新选择');
       }
       final updated = await repository.upload(path, profile!.version);
       if (!mounted) return;
@@ -155,6 +175,7 @@ class _CreatorApplicationPageState extends State<CreatorApplicationPage> {
   }
 
   Future<void> _pick() => _run(() async {
+        _validate();
         final files = widget.pickVideos != null
             ? await widget.pickVideos!()
             : (await FilePicker.pickFiles(
@@ -263,7 +284,15 @@ class _CreatorApplicationPageState extends State<CreatorApplicationPage> {
                       key: const Key('application-name'),
                       controller: name,
                       enabled: !busy,
-                      decoration: const InputDecoration(labelText: '创作者显示名称'),
+                      keyboardType: TextInputType.text,
+                      autocorrect: false,
+                      decoration: InputDecoration(
+                          labelText: '创作者显示名称',
+                          helperText: '例如 NovaStudio 或 Nova2026',
+                          errorMaxLines: 2,
+                          errorText: name.text.isNotEmpty && !validName
+                              ? '仅限英文和数字，至少包含一个英文字母，最多 80 个字符'
+                              : null),
                       onChanged: (_) => setState(() {})),
                   TextField(
                       key: const Key('application-email'),
@@ -312,9 +341,10 @@ class _CreatorApplicationPageState extends State<CreatorApplicationPage> {
                   const SizedBox(height: 16),
                   const Text('本人创作的视频作品', style: TextStyle(fontSize: 20)),
                   const Text(
-                      '请上传至少 1 个本人创作的 MP4 视频，最多 10 个，每个不超过 256 MiB。作品仅供认证审核，不会公开发布。人工审核将综合作品数量、质量及创意评定等级。'),
+                      '请上传至少 1 个本人创作的 MP4 视频，最多 10 个，每个不超过 15 MB。作品仅供认证审核，不会公开发布。人工审核将综合作品数量、质量及创意评定等级。'),
+                  if (validationMessage != null) Text(validationMessage!),
                   OutlinedButton.icon(
-                      onPressed: busy || !valid ? null : _pick,
+                      onPressed: busy ? null : _pick,
                       icon: const Icon(Icons.upload_file),
                       label: const Text('上传本人作品')),
                   for (final file in failedUploads)
@@ -364,7 +394,7 @@ class _CreatorApplicationPageState extends State<CreatorApplicationPage> {
                 if (busy) const LinearProgressIndicator(),
                 if (editable && tags.isNotEmpty) ...[
                   TextButton(
-                      onPressed: busy || !valid ? null : () => _run(_save),
+                      onPressed: busy ? null : () => _run(_save),
                       child: const Text('保存草稿')),
                   FilledButton(
                       onPressed: busy ||

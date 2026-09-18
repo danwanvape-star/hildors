@@ -77,7 +77,8 @@ class CreatorApplicationRepository {
         response.body['code'] ?? (error is Map ? error['code'] : error);
     final message = const {
       'EMAIL_IN_USE': '该邮箱已被其他创作者使用，请更换邮箱',
-      'INVALID_CREATOR_APPLICATION': '请检查角色、方向、邮箱及协议确认',
+      'INVALID_CREATOR_APPLICATION': '请检查英文名称、角色、方向、邮箱及协议确认',
+      'UPLOAD_TOO_LARGE': '单个视频不能超过 15 MB，请压缩后重新选择',
       'PROCESSOR_BUSY': '视频检查繁忙，请稍后重试',
       'CREATOR_APPLICATION_LOCKED': '申请已锁定，请刷新查看审核状态',
       'CREATOR_APPLICATION_VIDEO_LIMIT': '最多上传 10 个作品，请移除作品后重试',

@@ -52,7 +52,9 @@ export async function creatorApplicationRoute({req, res, url, store, send, fail,
     const name = (url.searchParams.get('name') || '申请视频').trim();
     if (!name || name.length > 240) throw new Error('INVALID_CREATOR_APPLICATION');
     if (req.headers['content-type'] !== 'video/mp4') { fail(415, 'MP4_REQUIRED'); return true; }
-    const video = await receiveMedia(req, directory, Math.min(uploadLimit ?? 256 * 1024 * 1024, 256 * 1024 * 1024));
+    const limit = Math.min(uploadLimit ?? 15_000_000, 15_000_000);
+    if (Number(req.headers['content-length']) > limit) { fail(413, 'UPLOAD_TOO_LARGE'); return true; }
+    const video = await receiveMedia(req, directory, limit);
     let attached = false;
     try {
       if (!authorized()) throw new Error('USER_AUTH_REQUIRED');

@@ -7,7 +7,7 @@ import { createStore } from '../src/store.mjs';
 import { app } from '../src/server.mjs';
 import { inspectVideo } from '../src/processor.mjs';
 
-const draft = {displayName:'Video Maker',email:'maker@example.test',characterTags:['神话传说'],skillTags:['简单动作'],marketRegion:'CN',agreementVersion:'v2',adultConfirmed:true,agreementAccepted:true};
+const draft = {displayName:'VideoMaker',email:'maker@example.test',characterTags:['神话传说'],skillTags:['简单动作'],marketRegion:'CN',agreementVersion:'v2',adultConfirmed:true,agreementAccepted:true};
 const mp4 = Buffer.concat([Buffer.from([0,0,0,24]),Buffer.from('ftypisom'),Buffer.alloc(32)]);
 async function fixture(t, inspector = async () => ({status:'checked',validation:'decoded',durationSeconds:1})) {
   const directory = await mkdtemp(join(tmpdir(),'creator-application-')), store = createStore();
@@ -23,6 +23,28 @@ async function fixture(t, inspector = async () => ({status:'checked',validation:
   const upload=version=>request('/v1/me/creator-application/videos?name=demo.mp4',{method:'PUT',body:mp4,headers:{'If-Match':String(version)}});
   return {store,directory,user,token,otherToken,request,save,upload};
 }
+
+test('creator names require ASCII letters with optional digits',async t=>{
+  const f=await fixture(t);
+  for (const displayName of ['若谷','12345','Video Maker','Nova_1','Ｎｏｖａ','Nova!']) {
+    assert.equal((await f.save({...draft,displayName})).status,400,displayName);
+  }
+  let version;
+  for (const displayName of ['Nova','Nova2026','2026Nova']) {
+    const r=await f.save({...draft,displayName,...(version?{version}:{})});
+    assert.equal(r.status,200); version=r.data.version;
+  }
+});
+
+test('application video accepts 15 MB and rejects one extra byte without attaching',async t=>{
+  const f=await fixture(t); let p=(await f.save()).data;
+  const body=Buffer.alloc(15_000_000); mp4.copy(body);
+  let r=await f.request('/v1/me/creator-application/videos?name=limit.mp4',{method:'PUT',body,headers:{'If-Match':String(p.version)}});
+  assert.equal(r.status,200); p=r.data;
+  r=await f.request('/v1/me/creator-application/videos?name=large.mp4',{method:'PUT',body:Buffer.concat([body,Buffer.alloc(1)]),headers:{'If-Match':String(p.version)}});
+  assert.equal(r.status,413); assert.equal(f.store.getCreatorProfile(f.user).version,p.version);
+  assert.equal((await readdir(join(f.directory,'creator-applications'))).filter(n=>n.endsWith('.mp4')).length,1);
+});
 
 test('application drafts validate system tags, directions, consent and optimistic versions',async t=>{
   const f=await fixture(t);

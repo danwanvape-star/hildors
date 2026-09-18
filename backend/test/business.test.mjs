@@ -38,7 +38,7 @@ test('customization intake and creator registration are user-scoped and admin-ma
   assert.equal(legacy.status, 409);
   assert.equal((await legacy.json()).code, 'CREATOR_APPLICATION_MIGRATION_REQUIRED');
   const creator = await fetch(base + '/v1/me/creator-application', {method:'POST',headers:userHeaders,
-    body:JSON.stringify({displayName:'Creator A',email:'creator-a@example.test',characterTags:['神话传说'],skillTags:['简单动作'],
+    body:JSON.stringify({displayName:'CreatorA',email:'creator-a@example.test',characterTags:['神话传说'],skillTags:['简单动作'],
       marketRegion:'us',agreementVersion:'creator-v2',adultConfirmed:true,agreementAccepted:true})});
   assert.equal(creator.status, 200); const creatorItem = await creator.json();
   assert.equal(creatorItem.status, 'draft');

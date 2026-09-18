@@ -10,7 +10,7 @@ function editable(profile, version, allowLegacy = false) {
 function fields(value, tags) {
   const strings = (items, allowed, limit) => Array.isArray(items) && items.length > 0 && items.length <= limit
     && new Set(items).size === items.length && items.every(item => typeof item === 'string' && allowed.includes(item));
-  if (!value || typeof value.displayName !== 'string' || !value.displayName.trim() || value.displayName.length > 80
+  if (!value || typeof value.displayName !== 'string' || !/^[A-Za-z0-9]+$/.test(value.displayName.trim()) || !/[A-Za-z]/.test(value.displayName) || value.displayName.trim().length > 80
     || typeof value.email !== 'string' || value.email.length > 254 || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(value.email.trim())
     || !strings(value.characterTags, tags.filter(t => t.active).map(t => t.name), 12)
     || !strings(value.skillTags, directions, 4)
