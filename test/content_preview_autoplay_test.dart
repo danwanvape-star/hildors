@@ -1,5 +1,8 @@
 import 'dart:async';
+import 'dart:io';
+import 'package:hildors_cockpit/src/media/preview_video_cache.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:video_player/video_player.dart';
 // The native player is replaced at its platform boundary for this widget test.
@@ -11,6 +14,7 @@ import 'package:hildors_cockpit/src/features/community/remote_package_detail_pag
 
 class _PreviewPlatform extends VideoPlayerPlatform {
   bool initializeImmediately = true;
+  bool failCachedFile = false;
   final sources = <String?>[];
   final events = <int, StreamController<VideoEvent>>{};
   final played = <int>[];
@@ -22,7 +26,11 @@ class _PreviewPlatform extends VideoPlayerPlatform {
     sources.add(options.dataSource.uri);
     final id = sources.length;
     events[id] = StreamController<VideoEvent>();
-    if (initializeImmediately) {
+    if (failCachedFile &&
+        options.dataSource.sourceType == DataSourceType.file) {
+      events[id]!.addError(PlatformException(
+          code: 'invalid_video', message: 'invalid cached video'));
+    } else if (initializeImmediately) {
       events[id]!.add(VideoEvent(
           eventType: VideoEventType.initialized,
           duration: const Duration(seconds: 30),
@@ -55,6 +63,19 @@ class _PreviewPlatform extends VideoPlayerPlatform {
   Widget buildViewWithOptions(VideoViewOptions options) => const SizedBox();
 }
 
+class _InvalidPreviewCache extends PreviewVideoCache {
+  _InvalidPreviewCache()
+      : super(origin: Uri(), directory: () async => Directory.systemTemp);
+  bool discarded = false;
+  @override
+  Future<File?> validatedFile(Uri uri, {Future<void>? cancel}) async =>
+      discarded ? null : File('${Directory.systemTemp.path}/corrupt.mp4');
+  @override
+  Future<void> discard(Uri uri) async {
+    discarded = true;
+  }
+}
+
 void main() {
   late _PreviewPlatform platform;
   late VideoPlayerPlatform previousPlatform;
@@ -65,6 +86,27 @@ void main() {
   });
   tearDown(() => VideoPlayerPlatform.instance = previousPlatform);
 
+  testWidgets('invalid cached video falls back to streaming and evicts cache',
+      (tester) async {
+    platform.failCachedFile = true;
+    final cache = _InvalidPreviewCache();
+    await tester.pumpWidget(MaterialApp(
+        home: Scaffold(body: ContentPreviewPlayer(
+            assetPath: null,
+            networkUrl: 'https://example.test/preview.mp4',
+            previewCache: cache,
+            autoPlay: true))));
+    await tester.pump();
+    await tester.runAsync(() async {
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+    });
+    await tester.pumpAndSettle();
+    expect(cache.discarded, isTrue);
+    expect(platform.sources.last, 'https://example.test/preview.mp4');
+    expect(platform.played, [2]);
+    expect(find.text('视频加载失败，请重试'), findsNothing);
+    await tester.pumpWidget(const SizedBox());
+  });
   testWidgets('slow initial loading explains buffering and offers retry',
       (tester) async {
     platform.initializeImmediately = false;

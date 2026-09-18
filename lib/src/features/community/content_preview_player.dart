@@ -4,23 +4,28 @@ import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 
 import '../../media/bundled_video_controller.dart';
+import '../../media/preview_video_cache.dart';
 
 class ContentPreviewPlayer extends StatefulWidget {
   const ContentPreviewPlayer(
       {required this.assetPath,
       this.networkUrl,
       this.autoPlay = false,
+      this.previewCache,
       super.key});
 
   final String? assetPath;
   final String? networkUrl;
   final bool autoPlay;
+  final PreviewVideoCache? previewCache;
 
   @override
   State<ContentPreviewPlayer> createState() => _ContentPreviewPlayerState();
 }
 
 class _ContentPreviewPlayerState extends State<ContentPreviewPlayer> {
+  PreviewVideoCache get _cache =>
+      widget.previewCache ?? PreviewVideoCache.shared;
   VideoPlayerController? _controller;
   bool _routeIsCurrent = true;
   String? _error;
@@ -30,6 +35,8 @@ class _ContentPreviewPlayerState extends State<ContentPreviewPlayer> {
   bool _buffering = false;
   bool _playing = false;
   int _generation = 0;
+  Duration _lastPosition = Duration.zero;
+  bool _cacheScheduled = false;
   bool get _hasSource =>
       (widget.networkUrl?.isNotEmpty ?? false) ||
       (widget.assetPath?.isNotEmpty ?? false);
@@ -75,6 +82,19 @@ class _ContentPreviewPlayerState extends State<ContentPreviewPlayer> {
       if (_error == null) setState(() => _error = '视频播放失败，请重试');
       return;
     }
+    final completedPass = value.isCompleted ||
+        (_lastPosition > value.duration * 0.8 &&
+            value.position < value.duration * 0.2);
+    _lastPosition = value.position;
+    if (!_cacheScheduled && completedPass && widget.networkUrl != null) {
+      _cacheScheduled = true;
+      final generation = _generation;
+      unawaited(_cache
+          .warm(Uri.parse(widget.networkUrl!), cancel: _cancelLoading?.future)
+          .whenComplete(() {
+        if (mounted && generation == _generation) _cacheScheduled = false;
+      }));
+    }
     if (_buffering == value.isBuffering && _playing == value.isPlaying) return;
     if (_buffering != value.isBuffering) {
       _slow = false;
@@ -94,6 +114,8 @@ class _ContentPreviewPlayerState extends State<ContentPreviewPlayer> {
     final assetPath = widget.assetPath;
     final networkUrl = widget.networkUrl;
     final generation = ++_generation;
+    _lastPosition = Duration.zero;
+    _cacheScheduled = false;
     if (_cancelLoading?.isCompleted == false) _cancelLoading!.complete();
     final cancelled = Completer<void>();
     _cancelLoading = cancelled;
@@ -114,10 +136,9 @@ class _ContentPreviewPlayerState extends State<ContentPreviewPlayer> {
     _startSlowTimer();
     try {
       final creation = networkUrl != null && networkUrl.isNotEmpty
-          ? Future.value(
-              VideoPlayerController.networkUrl(Uri.parse(networkUrl)))
+          ? _networkController(Uri.parse(networkUrl), cancelled.future)
           : createBundledVideoController(assetPath!, cancel: cancelled.future);
-      final controller = await Future.any<VideoPlayerController?>([
+      var controller = await Future.any<VideoPlayerController?>([
         creation.then((controller) {
           if (!mounted || generation != _generation) {
             unawaited(controller.dispose());
@@ -129,8 +150,25 @@ class _ContentPreviewPlayerState extends State<ContentPreviewPlayer> {
       if (!mounted || generation != _generation || controller == null) return;
       _controller = controller;
       if (!controller.value.isInitialized) {
-        await Future.any<void>([controller.initialize(), cancelled.future])
-            .timeout(const Duration(seconds: 30));
+        try {
+          await Future.any<void>([controller.initialize(), cancelled.future])
+              .timeout(const Duration(seconds: 30));
+        } catch (_) {
+          if (!mounted ||
+              generation != _generation ||
+              controller.dataSourceType != DataSourceType.file ||
+              networkUrl == null ||
+              networkUrl.isEmpty) {
+            rethrow;
+          }
+          await controller.dispose();
+          await _cache.discard(Uri.parse(networkUrl));
+          if (!mounted || generation != _generation) return;
+          controller = VideoPlayerController.networkUrl(Uri.parse(networkUrl));
+          _controller = controller;
+          await Future.any<void>([controller.initialize(), cancelled.future])
+              .timeout(const Duration(seconds: 30));
+        }
       }
       if (!mounted || generation != _generation) return;
       await controller.setLooping(true);
@@ -138,7 +176,7 @@ class _ContentPreviewPlayerState extends State<ContentPreviewPlayer> {
       _slowTimer?.cancel();
       setState(() {
         _slow = false;
-        _buffering = controller.value.isBuffering;
+        _buffering = controller!.value.isBuffering;
       });
       if (_buffering) _startSlowTimer();
       controller.addListener(_onPlaybackChanged);
@@ -161,6 +199,14 @@ class _ContentPreviewPlayerState extends State<ContentPreviewPlayer> {
         });
       }
     }
+  }
+
+  Future<VideoPlayerController> _networkController(
+      Uri uri, Future<void> cancel) async {
+    final file = await _cache.validatedFile(uri, cancel: cancel);
+    return file == null
+        ? VideoPlayerController.networkUrl(uri)
+        : VideoPlayerController.file(file);
   }
 
   Future<void> _toggle() async {
