@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, readFile, rm, writeFile, mkdir, copyFile } from 'node:fs/promises';
+import { mkdtemp, readFile, rm, writeFile, mkdir, copyFile, unlink } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
@@ -35,6 +35,13 @@ test('four real demos: upload, decode, thumbnail, review and metadata publicatio
         let item = await upload.json();
         const media = item.clips[0].media;
         assert.equal(media.inspection.status, 'checked', JSON.stringify(media.inspection));
+        assert.ok((await readFile(join(directory, 'video-previews-v1', media.id + '.mp4'))).length > 24);
+        if (index === 1) {
+          await unlink(join(directory, 'video-previews-v1', media.id + '.mp4'));
+          item = await post(path + '/clips/clip/inspect', {});
+          assert.equal(item.clips[0].media.inspection.status, 'checked');
+          assert.ok((await readFile(join(directory, 'video-previews-v1', media.id + '.mp4'))).length > 24);
+        }
         const image = await fetch(base + `/admin/media/${media.id}/thumbnail`, { headers });
         assert.equal(image.status, 200); assert.equal(image.headers.get('content-type'), 'image/jpeg');
         const thumbnail = Buffer.from(await image.arrayBuffer());
@@ -48,7 +55,7 @@ test('four real demos: upload, decode, thumbnail, review and metadata publicatio
         const published = await (await fetch(base + '/v1/packages/' + draft.id)).json();
         assert.equal(published.status, 'published'); assert.equal(published.review, undefined);
         assert.equal(published.clips[0].hardwareReady, false); assert.equal(published.clips[0].media, undefined);
-        assert.equal(published.clips[0].previewPath, `/v1/media/${media.id}`);
+        assert.equal(published.clips[0].previewPath, `/v1/media/${media.id}/preview?v=1`);
         assert.equal((await fetch(base + published.clips[0].thumbnailPath)).status, 200);
         assert.equal((await fetch(base + published.clips[0].previewPath, { headers: { Range: 'bytes=0-11' } })).status, 206);
         report.push({ file: name, ...media.inspection, bytes: media.bytes, thumbnailBytes: thumbnail.length });

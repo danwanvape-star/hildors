@@ -1,5 +1,8 @@
 import 'dart:async';
+import 'dart:io';
+import 'package:hildors_cockpit/src/media/preview_video_cache.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:video_player/video_player.dart';
 // The native player is replaced at its platform boundary for this widget test.
@@ -11,6 +14,7 @@ import 'package:hildors_cockpit/src/features/community/remote_package_detail_pag
 
 class _PreviewPlatform extends VideoPlayerPlatform {
   bool initializeImmediately = true;
+  bool failCachedFile = false;
   final sources = <String?>[];
   final events = <int, StreamController<VideoEvent>>{};
   final played = <int>[];
@@ -22,7 +26,11 @@ class _PreviewPlatform extends VideoPlayerPlatform {
     sources.add(options.dataSource.uri);
     final id = sources.length;
     events[id] = StreamController<VideoEvent>();
-    if (initializeImmediately) {
+    if (failCachedFile &&
+        options.dataSource.sourceType == DataSourceType.file) {
+      events[id]!.addError(PlatformException(
+          code: 'invalid_video', message: 'invalid cached video'));
+    } else if (initializeImmediately) {
       events[id]!.add(VideoEvent(
           eventType: VideoEventType.initialized,
           duration: const Duration(seconds: 30),
@@ -55,6 +63,19 @@ class _PreviewPlatform extends VideoPlayerPlatform {
   Widget buildViewWithOptions(VideoViewOptions options) => const SizedBox();
 }
 
+class _InvalidPreviewCache extends PreviewVideoCache {
+  _InvalidPreviewCache()
+      : super(origin: Uri(), directory: () async => Directory.systemTemp);
+  bool discarded = false;
+  @override
+  Future<File?> validatedFile(Uri uri, {Future<void>? cancel}) async =>
+      discarded ? null : File('${Directory.systemTemp.path}/corrupt.mp4');
+  @override
+  Future<void> discard(Uri uri) async {
+    discarded = true;
+  }
+}
+
 void main() {
   late _PreviewPlatform platform;
   late VideoPlayerPlatform previousPlatform;
@@ -64,6 +85,120 @@ void main() {
     VideoPlayerPlatform.instance = platform;
   });
   tearDown(() => VideoPlayerPlatform.instance = previousPlatform);
+
+  testWidgets('invalid cached video falls back to streaming and evicts cache',
+      (tester) async {
+    platform.failCachedFile = true;
+    final cache = _InvalidPreviewCache();
+    await tester.pumpWidget(MaterialApp(
+        home: Scaffold(body: ContentPreviewPlayer(
+            assetPath: null,
+            networkUrl: 'https://example.test/preview.mp4',
+            previewCache: cache,
+            autoPlay: true))));
+    await tester.pump();
+    await tester.runAsync(() async {
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+    });
+    await tester.pumpAndSettle();
+    expect(cache.discarded, isTrue);
+    expect(platform.sources.last, 'https://example.test/preview.mp4');
+    expect(platform.played, [2]);
+    expect(find.text('视频加载失败，请重试'), findsNothing);
+    await tester.pumpWidget(const SizedBox());
+  });
+  testWidgets('slow initial loading explains buffering and offers retry',
+      (tester) async {
+    platform.initializeImmediately = false;
+    await tester.pumpWidget(const MaterialApp(
+        home: ContentPreviewPlayer(
+            assetPath: null, networkUrl: 'https://example.test/slow.mp4')));
+    await tester.pump();
+    expect(find.text('视频正在缓冲，请稍候'), findsOneWidget);
+    await tester.pump(const Duration(seconds: 10));
+    expect(find.text('加载较慢，请检查网络或重试'), findsOneWidget);
+    expect(find.text('重试'), findsOneWidget);
+    await tester.pump(const Duration(seconds: 21));
+    expect(find.text('视频加载超时，请重试'), findsOneWidget);
+    expect(find.byType(CircularProgressIndicator), findsNothing);
+    await tester.pumpWidget(const SizedBox());
+    await tester.runAsync(() async {
+      await Future<void>.delayed(Duration.zero);
+    });
+  });
+
+  testWidgets('buffering during playback is visible and clears on recovery',
+      (tester) async {
+    await tester.pumpWidget(const MaterialApp(
+        home: Scaffold(
+            body: ContentPreviewPlayer(
+                assetPath: null,
+                networkUrl: 'https://example.test/play.mp4',
+                autoPlay: true))));
+    await tester.pumpAndSettle();
+    platform.events[1]!
+        .add(VideoEvent(eventType: VideoEventType.bufferingStart));
+    await tester.pump();
+    await tester.pump();
+    expect(find.text('视频正在缓冲，请稍候'), findsOneWidget);
+    platform.events[1]!.add(VideoEvent(eventType: VideoEventType.bufferingEnd));
+    await tester.pumpAndSettle();
+    expect(find.text('视频正在缓冲，请稍候'), findsNothing);
+    expect(find.byType(VideoPlayer), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+    await tester.runAsync(() async {
+      await Future<void>.delayed(Duration.zero);
+    });
+  });
+
+  testWidgets('missing source is empty rather than an endless spinner',
+      (tester) async {
+    await tester.pumpWidget(
+        const MaterialApp(home: ContentPreviewPlayer(assetPath: null)));
+    expect(find.text('暂无可播放视频'), findsOneWidget);
+    expect(find.byType(CircularProgressIndicator), findsNothing);
+  });
+
+  testWidgets('retry while initializing releases old player and recovers',
+      (tester) async {
+    platform.initializeImmediately = false;
+    await tester.pumpWidget(const MaterialApp(
+        home: Scaffold(
+            body: ContentPreviewPlayer(
+                assetPath: null,
+                networkUrl: 'https://example.test/retry.mp4'))));
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 10));
+    platform.initializeImmediately = true;
+    await tester.tap(find.text('重试'));
+    await tester.pumpAndSettle();
+    expect(find.byType(VideoPlayer), findsOneWidget);
+    expect(find.text('视频正在缓冲，请稍候'), findsNothing);
+    expect(platform.sources.length, 2);
+    await tester.pumpWidget(const SizedBox());
+    await tester.runAsync(() async {
+      await Future<void>.delayed(Duration.zero);
+    });
+    expect(platform.disposed, [1, 2]);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('leaving a stalled bundled preview releases its native player',
+      (tester) async {
+    platform.initializeImmediately = false;
+    await tester.pumpWidget(const MaterialApp(
+        home: Scaffold(
+            body: ContentPreviewPlayer(
+                assetPath: 'assets/videos/showcase/showcase_02.mp4'))));
+    await tester.pump();
+    expect(find.text('视频正在加载，请稍候'), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+    await tester.runAsync(() async {
+      await Future<void>.delayed(Duration.zero);
+    });
+    expect(platform.disposed, [1]);
+    expect(tester.takeException(), isNull);
+  });
 
   testWidgets(
       'thumbnail opens and plays only selected preview, back disposes it',

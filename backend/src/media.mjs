@@ -60,10 +60,11 @@ export async function serveImage(res, directory, image, { publicCache = false } 
   res.on('close', () => stream.destroy()); stream.pipe(res);
 }
 
-export async function serveMedia(req, res, directory, id, { publicCache = false, preflight } = {}) {
+export async function serveMedia(req, res, directory, id, { publicCache = false, preflight, cacheControl, etag } = {}) {
   const path = resolve(directory, `${id}.mp4`);
   const info = await stat(path);
   if (preflight && !preflight()) return;
+  if (etag && req.headers['if-none-match'] === etag) { res.writeHead(304, { ETag: etag, 'Cache-Control': cacheControl }); return res.end(); }
   let start = 0, end = info.size - 1, status = 200;
   if (req.headers.range) {
     const match = /^bytes=(\d+)-(\d*)$/.exec(req.headers.range);
@@ -73,7 +74,7 @@ export async function serveMedia(req, res, directory, id, { publicCache = false,
     status = 206;
   }
   const headers = { 'Content-Type': 'video/mp4', 'Content-Length': end - start + 1,
-    'Cache-Control': publicCache ? 'public, max-age=3600' : 'no-store',
+    'Cache-Control': cacheControl ?? (publicCache ? 'public, max-age=3600' : 'no-store'), ...(etag ? { ETag: etag } : {}),
     'Accept-Ranges': 'bytes', 'X-Content-Type-Options': 'nosniff' };
   if (status === 206) headers['Content-Range'] = `bytes ${start}-${end}/${info.size}`;
   res.writeHead(status, headers);

@@ -1,3 +1,4 @@
+import { serveVideoPreview, videoPreview } from './video-preview.mjs';
 import { serveImageVariant } from './cover-thumbnail.mjs';
 import { validPricing, publicPricing, publicFullPreview } from './clip-pricing.mjs';
 import { createServer } from 'node:http';
@@ -40,7 +41,7 @@ function publicPackage(item) {
       durationSeconds: c.media?.inspection?.durationSeconds ?? c.durationSeconds,
       ...(item.demo ? { bundledAsset: c.bundledAsset, thumbnail: c.thumbnail } : {}),
       ...(!item.demo && c.media?.inspection?.status === 'checked' ? {
-        ...(publicFullPreview(c) ? { previewPath: `/v1/media/${c.media.id}` } : {}),
+        ...(publicFullPreview(c) ? { previewPath: `/v1/media/${c.media.id}/preview?v=1` } : {}),
         thumbnailPath: `/v1/media/${c.media.id}/thumbnail`,
       } : {}) })) };
 }
@@ -63,6 +64,14 @@ function validLayout(value) {
 }
 
 export function app(store, { adminToken = '', adminUsername = '', adminPassword = '', mediaDirectory = fileURLToPath(new URL('../data/media/', import.meta.url)), uploadLimit, inspector = inspectVideo, enableDownloads = false, mode = 'local' } = {}) {
+  async function prepareInspection(mediaId) {
+    const result = await inspector(mediaDirectory, mediaId);
+    if (result?.status === 'checked') {
+      // Preview is a best-effort derivative; failure must not change original QC.
+      try { await videoPreview(mediaDirectory, mediaId); } catch { /* On-demand playback can retry. */ }
+    }
+    return result;
+  }
   let processing = false;
   let processingFinished = Promise.resolve(), finishProcessing;
   let automaticQueue = Promise.resolve();
@@ -75,7 +84,7 @@ export function app(store, { adminToken = '', adminUsername = '', adminPassword 
       try {
         store.setInspection(id, clipId, mediaId, {status:'processing',startedAt:new Date().toISOString()});
         let result;
-        try { result = await inspector(mediaDirectory, mediaId); }
+        try { result = await prepareInspection(mediaId); }
         catch { result = {status:'failed',code:'PROCESSING_FAILED',checkedAt:new Date().toISOString()}; }
         return store.setInspection(id, clipId, mediaId, result);
       } finally { endProcessing(); }
@@ -228,7 +237,7 @@ export function app(store, { adminToken = '', adminUsername = '', adminPassword 
             beginProcessing();
             try {
               store.setInspection(id, clipId, clip.media.id, { status: 'processing', startedAt: new Date().toISOString() });
-              const result = await inspector(mediaDirectory, clip.media.id);
+              const result = await prepareInspection(clip.media.id);
               if (!authorized()) return fail(403, 'CREATOR_APPROVAL_REQUIRED');
               return send(200, store.setInspection(id, clipId, clip.media.id, result));
             } finally { endProcessing(); }
@@ -343,21 +352,21 @@ export function app(store, { adminToken = '', adminUsername = '', adminPassword 
           && p.id > (url.searchParams.get('cursor') || ''));
         return send(200, { items: items.slice(0, limit).map(publicPackage), nextCursor: items.length > limit ? items[limit - 1].id : null });
       }
-      const publicMedia = /^\/v1\/media\/([a-f0-9-]{36})(\/thumbnail)?$/.exec(path);
+      const publicMedia = /^\/v1\/media\/([a-f0-9-]{36})(\/thumbnail|\/preview)?$/.exec(path);
       if (req.method === 'GET' && publicMedia) {
         const published = store.list().some(p => p.status === 'published' && p.clips.some(c =>
           visibleClip(c) && c.media?.id === publicMedia[1] && c.media.inspection?.status === 'checked'));
         if (!published) return fail(404, 'NOT_FOUND');
         // A shared media ID cannot make a paid video's full file public through another clip.
-        if (!publicMedia[2] && store.list().some(p => p.clips.some(c =>
+        if (publicMedia[2] !== '/thumbnail' && store.list().some(p => p.clips.some(c =>
           c.media?.id === publicMedia[1] && !publicFullPreview(c)))) return fail(404, 'NOT_FOUND');
-        if (publicMedia[2]) {
+        if (publicMedia[2] === '/thumbnail') {
           const image = readFileSync(resolve(mediaDirectory, `${publicMedia[1]}.jpg`));
           res.writeHead(200, { 'Content-Type': 'image/jpeg', 'Cache-Control': 'no-store',
             'X-Content-Type-Options': 'nosniff' });
           return res.end(image);
         }
-        return await serveMedia(req, res, mediaDirectory, publicMedia[1], { preflight: () => {
+        const preflight = () => {
           const items = store.list();
           const available = items.some(p => p.status === 'published' && p.clips.some(c =>
             visibleClip(c) && c.media?.id === publicMedia[1] && c.media.inspection?.status === 'checked'));
@@ -365,7 +374,9 @@ export function app(store, { adminToken = '', adminUsername = '', adminPassword 
             fail(404, 'NOT_FOUND'); return false;
           }
           return true;
-        } });
+        };
+        if (publicMedia[2] === '/preview') return await serveVideoPreview(req, res, mediaDirectory, publicMedia[1], preflight);
+        return await serveMedia(req, res, mediaDirectory, publicMedia[1], { preflight });
       }
       const coverThumbnailRoute = /^\/v1\/covers\/([a-f0-9-]{36})\/(thumbnail|preview)$/.exec(path);
       if (req.method === 'GET' && coverThumbnailRoute) {
@@ -413,7 +424,7 @@ export function app(store, { adminToken = '', adminUsername = '', adminPassword 
         try {
           // Invalidate any previous approval before a recheck begins.
           store.setInspection(id, clipId, clip.media.id, { status: 'processing', startedAt: new Date().toISOString() });
-          const result = await inspector(mediaDirectory, clip.media.id);
+          const result = await prepareInspection(clip.media.id);
           return send(200, store.setInspection(id, clipId, clip.media.id, result));
         } finally { endProcessing(); }
       }

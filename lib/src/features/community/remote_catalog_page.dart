@@ -44,16 +44,18 @@ class _RemoteCatalogPageState extends State<RemoteCatalogPage> {
   }
 
   Future<_CatalogData> _loadData() async {
+    final layoutRequest = _loadLayout();
     final packages = await widget.load();
-    if (widget.loadLayout == null) {
-      return _CatalogData(packages, _fallbackCollectionLayout);
-    }
+    return _CatalogData(packages, await layoutRequest);
+  }
+
+  Future<List<RemoteLayoutBlock>> _loadLayout() async {
+    if (widget.loadLayout == null) return _fallbackCollectionLayout;
     try {
       final layout = await widget.loadLayout!();
-      return _CatalogData(
-          packages, layout.isEmpty ? _fallbackCollectionLayout : layout);
+      return layout.isEmpty ? _fallbackCollectionLayout : layout;
     } catch (_) {
-      return _CatalogData(packages, _fallbackCollectionLayout);
+      return _fallbackCollectionLayout;
     }
   }
 
