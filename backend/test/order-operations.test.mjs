@@ -105,7 +105,7 @@ test('revocation and reassignment immediately remove creator private access',asy
   assert.equal(r.status,200);
   assert.equal((await request(`/v1/me/creator-tasks/${order.id}/materials/${material.id}`,'creator')).status,404);
   assert.equal((await request(`/v1/me/creator-tasks/${order.id}`,'creator',{version:oldVersion,action:'quote',fields:{quoteAmount:50,currency:'USD',deliveryDays:1}})).status,409);
-  store.manageCreatorProfile(creator.id,store.getCreatorProfile(creator.id).version,{status:'suspended',canReceiveOrders:true});
+  store.manageCreatorProfile(creator.id,store.getCreatorProfile(creator.id).version,{status:'suspended',canReceiveOrders:true,note:'审核发现违规，暂停合作'});
   assert.equal((await request(`/admin/customization-orders/${order.id}/dispatch`,'admin',{version:r.data.version,mode:'direct',creatorId:creator.id})).status,400);
   assert.equal((await request('/v1/me/creator-tasks','creator')).status,400);
 });

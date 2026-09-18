@@ -141,16 +141,23 @@ function showOrderAction(order,next,target) {
   const context=orderForm(target,order,`确认：${orderLabels[next]}`);
   const fields=orderFields(next,next==='quoted' && order.creatorQuote?{...order,workflow:{...order.workflow,...order.creatorQuote}}:order); context.form.prepend(fields);
   if(next==='user_acceptance' && order.dispatchMode) fields.append(inputField('最终交付包编号或地址','deliveryReference',order.workflow?.deliveryReference));
-  context.form.elements.note.required=['needs_info','rejected'].includes(next);
+  const needsReason=['needs_info','rejected','withdrawn'].includes(next)
+    || (order.status==='quality_review' && next==='in_production')
+    || (order.status==='user_acceptance' && next==='quality_review');
+  context.form.elements.note.required=needsReason;
+  context.form.elements.note.disabled=!needsReason;
+  context.note.hidden=!needsReason;
+  context.form.elements.note.placeholder='请填写退回或不通过的具体原因及需要补充的内容';
   for(const input of fields.querySelectorAll('input')) { input.required=true; if(input.type==='number') { input.min='0.01'; input.step='any'; if(input.name==='deliveryDays') {input.min='1';input.step='1';} } }
-  context.form.onsubmit=event=>{event.preventDefault();const values={}; for(const input of fields.querySelectorAll('[name]')) values[input.name]=input.type==='checkbox'?input.checked:input.value; saveOrderForm(order,context,orderPath(order),{version:order.version,status:next,note:context.form.elements.note.value,fields:values});};
+  context.form.onsubmit=event=>{event.preventDefault();if(needsReason && !context.form.elements.note.value.trim()) {context.error.textContent='请填写退回或不通过的原因。';return;} const values={}; for(const input of fields.querySelectorAll('[name]')) values[input.name]=input.type==='checkbox'?input.checked:input.value; saveOrderForm(order,context,orderPath(order),{version:order.version,status:next,note:needsReason?context.form.elements.note.value:'',fields:values});};
 }
 async function showDispatchForm(order,mode,target,reopen=false) {
   const request=orderDetailRequest, selecting=mode==='applications' && order.dispatchMode==='applications' && !reopen;
   const context=orderForm(target,order,mode==='direct'?'直接派单':selecting?'选择报名创作者':'发布公开报名任务');
   context.save.disabled=true;
   context.form.insertBefore(inputField('计划交付日期（可选）','dueAt','','date'),context.note);
-  context.form.elements.note.required=true;
+  context.form.elements.note.required=false;
+  context.note.hidden=true;
   try {
     if(mode==='direct'||selecting) {
       context.error.textContent='正在加载可接单创作者…';

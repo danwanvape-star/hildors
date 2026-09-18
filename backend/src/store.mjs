@@ -254,7 +254,9 @@ export function createStore(path = ':memory:') {
       if(current.legacyRecoveryAt && status==='quoted' && !current.assignedCreatorId) throw new Error('ORDER_CREATOR_REQUIRED');
       if(current.dispatchMode && status==='in_production' && current.status==='quoted') throw new Error('ORDER_USER_CONFIRMATION_REQUIRED');
       if(current.dispatchMode && status==='delivered') throw new Error('ORDER_USER_CONFIRMATION_REQUIRED');
-      if(['needs_info','rejected'].includes(status) && !note.trim()) throw new Error('ORDER_NOTE_REQUIRED');
+      if((['needs_info','rejected','withdrawn'].includes(status)
+        || (current.status==='quality_review' && status==='in_production')
+        || (current.status==='user_acceptance' && status==='quality_review')) && !note.trim()) throw new Error('ORDER_NOTE_REQUIRED');
       if(current.dispatchMode && status==='quoted' && !current.assignedCreatorId) throw new Error('ORDER_CREATOR_REQUIRED');
       if(current.dispatchMode && status==='quoted' && !current.creatorQuote) throw new Error('ORDER_QUOTE_PROPOSAL_REQUIRED');
       if(current.dispatchMode && status==='user_acceptance' && !fields.deliveryReference) throw new Error('ORDER_DELIVERY_REQUIRED');

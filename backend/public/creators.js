@@ -143,11 +143,13 @@ function renderCreatorDetail({ creator, works = [] }) {
     check.type = 'checkbox'; check.name = key; check.checked = management[key] === true;
     label.prepend(check); fields.append(label);
   }
-  const reasonLabel = text('label', '操作原因 / 审核说明（必填）', 'creator-full'), note = document.createElement('textarea');
-  note.name = 'note'; note.required = true; note.maxLength = 1000; note.rows = 3; note.placeholder = '说明审核结论、停用原因或本次权限调整依据'; reasonLabel.append(note); fields.append(reasonLabel);
+  const reasonLabel = text('label', '不通过 / 停用原因（必填）', 'creator-full'), note = document.createElement('textarea');
+  note.name = 'note'; note.maxLength = 1000; note.rows = 3; note.placeholder = '请说明具体问题及需要改进的内容'; reasonLabel.append(note); fields.append(reasonLabel);
+  const syncReason = () => { const required = ['rejected', 'suspended'].includes(status.value); reasonLabel.hidden = !required; note.required = required; note.disabled = !required; };
+  status.onchange = syncReason; syncReason();
   fields.append(text('p', '只有已认证的创作者可使用开启的业务权限；停用会暂停投稿和接单，恢复后沿用原权限配置。', 'creator-full'));
   const actions = text('div', '', 'creator-actions creator-full');
-  const shortcut = (label, state) => actions.append(creatorButton(label, () => { status.value = state; note.focus(); }));
+  const shortcut = (label, state) => actions.append(creatorButton(label, () => { status.value = state; syncReason(); if (note.required) note.focus(); else save.focus(); }));
   if (creator.status === 'pending') { shortcut('通过申请', 'approved'); shortcut('驳回申请', 'rejected'); }
   else if (creator.status === 'suspended') shortcut('恢复认证', 'approved');
   else if (creator.status !== 'draft') { shortcut('停用账号', 'suspended'); if (creator.status === 'rejected') shortcut('重新审核', 'pending'); }
@@ -171,7 +173,8 @@ function renderCreatorDetail({ creator, works = [] }) {
   for (const entry of history) {
     const event = text('article', '', 'creator-history');
     event.append(text('strong', `${entry.previousStatus ? `${creatorLabels[entry.previousStatus] || entry.previousStatus} → ` : ''}${creatorLabels[entry.status] || entry.status}`),
-      text('p', `${creatorDate(entry.at)} · 操作人：${entry.actor || '历史记录未记录'} · 负责人：${entry.manager || '未分配'}`), text('p', entry.note || '未填写原因'));
+      text('p', `${creatorDate(entry.at)} · 操作人：${entry.actor || '历史记录未记录'} · 负责人：${entry.manager || '未分配'}`));
+    if (entry.note) event.append(text('p', entry.note));
     for (const [key, change] of Object.entries(entry.changes || {})) event.append(text('div', `${creatorFields[key] || key}：${creatorValue(key, change.from)} → ${creatorValue(key, change.to)}`, 'creator-change'));
     historySection.append(event);
   }
@@ -179,9 +182,10 @@ function renderCreatorDetail({ creator, works = [] }) {
 }
 async function saveCreator(event, creator, fields, error) {
   event.preventDefault(); if (creatorSaving || selectedCreator?.id !== creator.id) return;
-  const data = new FormData(event.target), note = String(data.get('note') || '').trim();
-  if (!note) { error.textContent = '请填写本次操作原因。'; return; }
-  const status = data.get('status');
+  const data = new FormData(event.target), status = data.get('status');
+  const needsReason = ['rejected', 'suspended'].includes(status);
+  const note = needsReason ? String(data.get('note') || '').trim() : '';
+  if (needsReason && !note) { error.textContent = '请填写不通过或停用原因。'; return; }
   const abilityLevel = String(data.get('abilityLevel') || '');
   if (creator.status === 'draft' && status !== 'draft') { error.textContent = '申请人尚未正式提交，暂不可审核。'; return; }
   if (creator.applicationVersion === 2 && status === 'approved') {

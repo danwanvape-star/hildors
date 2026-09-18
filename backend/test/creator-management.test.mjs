@@ -49,6 +49,17 @@ test('creator detail returns only related works and requires admin authenticatio
   assert.equal((await request('/admin/creators/missing')).status, 404);
 });
 
+test('approval and permission edits need no reason while rejection and suspension require one', async t => {
+  const {request,creator,store}=await fixture(t); const path=`/admin/creators/${creator.id}`;
+  let r=await request(path,{version:creator.version,status:'approved'});
+  assert.equal(r.status,200); assert.equal(r.data.status,'approved');
+  r=await request(path,{version:r.data.version,status:'approved',canReceiveOrders:true}); assert.equal(r.status,200);
+  for(const status of ['rejected','suspended']) {
+    assert.equal((await request(path,{version:r.data.version,status,note:'  '})).status,400);
+    assert.throws(()=>store.manageCreatorProfile(creator.id,r.data.version,{status}),/CREATOR_REASON_REQUIRED/);
+  }
+});
+
 test('review requires reason, validates fields and keeps previous settings when omitted', async t => {
   const { request, creator } = await fixture(t);
   const path = `/admin/creators/${creator.id}`;

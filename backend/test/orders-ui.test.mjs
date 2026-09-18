@@ -27,6 +27,9 @@ function harness(api) {
   class Element {
     constructor(tag='div',value='') {this.tag=tag;this.textContent=value;this.children=[];this.value='';this.open=false;this.isConnected=true;this.listeners={};}
     append(...children){this.children.push(...children);}
+    prepend(...children){this.children.unshift(...children);}
+    querySelectorAll(selector){return this.children.flatMap(n=>[...(selector==='[name]'?n.name?[n]:[]:selector.split(',').includes(n.tag)?[n]:[]),...n.querySelectorAll(selector)]);}
+    get elements(){return Object.fromEntries(this.querySelectorAll('[name]').map(n=>[n.name,n]));}
     replaceChildren(...children){this.children=children;}
     setAttribute(){}
     addEventListener(name,fn){this.listeners[name]=fn;}
@@ -38,6 +41,18 @@ function harness(api) {
   vm.runInContext(source,context);
   return {context,$,run:code=>vm.runInContext(code,context)};
 }
+
+test('order approvals hide prose while rejection and returned QC require it',async()=>{
+  let calls=0;const h=harness(async()=>{calls++;});
+  h.run("orderFields=()=>document.createElement('div')");
+  for(const [from,to,required] of [['free_review','approved_for_quote',false],['quality_review','user_acceptance',false],['free_review','rejected',true],['free_review','needs_info',true],['quality_review','in_production',true],['user_acceptance','quality_review',true]]) {
+    h.run(`showOrderAction({id:'one',status:'${from}',version:1},'${to}',document.getElementById('action'))`);
+    const form=h.$('action').children.find(n=>n.tag==='form'),note=form.elements.note;
+    assert.equal(note.required,required);assert.equal(note.disabled,!required);
+    const label=form.children.find(n=>n.children.includes(note));assert.equal(label.hidden,!required);
+    if(required) {note.value='  ';form.onsubmit({preventDefault(){}});assert.equal(calls,0);}
+  }
+});
 test('server filters and pagination use server totals rather than page length',async()=>{
   let path;const h=harness(async value=>{path=value;return {items:[],total:35,page:1,counts:{total:70,free_review:11,in_production:9}};});
   h.$('order-search').value='角色 & 名称';h.$('order-status').value='quoted';h.$('order-dispatch').value='direct';

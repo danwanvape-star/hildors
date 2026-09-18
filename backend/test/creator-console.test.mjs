@@ -67,7 +67,7 @@ test('creator detail close ignores a late response and failed refresh clears sta
 
 test('creator save rejects blank reasons before sending a mutation', async () => {
   const { get, run } = fixture();
-  await run("selectedCreator = {id:'one'}; let mutations = 0; api = async () => { mutations++; }; saveCreator({preventDefault(){},target:{note:'  '}},selectedCreator,document.getElementById('fields'),document.getElementById('error'));");
+  await run("selectedCreator = {id:'one'}; let mutations = 0; api = async () => { mutations++; }; saveCreator({preventDefault(){},target:{status:'rejected',note:'  '}},selectedCreator,document.getElementById('fields'),document.getElementById('error'));");
   assert.equal(run('mutations'), 0); assert.match(get('error').textContent, /原因/);
 });
 
@@ -76,6 +76,17 @@ const videoApplicant = { id: 'creator/one', version: 3, displayName: '青岚', a
   portfolioUrl: 'https://example.com/legacy', management: { tier: 'partner' },
   applicationVideos: [{ id: 'video/one', name: '表演.mp4', bytes: 1048576, inspection: { status: 'checked', validation: 'decoded' } }] };
 const contents = node => [node.textContent || '', ...(node.children || []).map(contents)].join(' ');
+
+test('approval hides reason input and submits without text; rejection reveals required reason',async()=>{
+  const {run,context,get}=fixture();context.applicant={...videoApplicant,abilityLevel:'gold'};
+  run('renderCreatorDetail({creator:applicant,works:[]})');
+  const root=get('creator-detail-body'); const status=root.querySelectorAll('select').find(x=>x.name==='status');
+  const note=root.querySelector('textarea');
+  status.value='approved';status.onchange();assert.equal(note.required,false);assert.equal(note.disabled,true);
+  status.value='rejected';status.onchange();assert.equal(note.required,true);assert.equal(note.disabled,false);
+  await run('selectedCreator=applicant; let sent; api=async(path,body)=>{if(body)sent=body; throw new Error("stop after capture")}; saveCreator({preventDefault(){},target:{status:"approved",abilityLevel:"gold",tier:"standard",commissionRate:"0"}},applicant,document.getElementById("fields"),document.getElementById("error"))');
+  assert.equal(run('sent.status'),'approved');assert.equal(run('sent.note'),'');
+});
 
 test('video applications render private manual playback, categories and independent human grades', () => {
   const { get, run, context } = fixture(); context.applicant = videoApplicant;

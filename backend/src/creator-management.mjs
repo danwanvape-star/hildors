@@ -30,6 +30,7 @@ export function creatorManagementUpdate(current, value, actor = 'system') {
   management.commissionRate = Number(management.commissionRate);
   management.manager = management.manager.trim();
   management.note = (value.note ?? '').trim();
+  if (['rejected', 'suspended'].includes(value.status) && !management.note) throw new Error('CREATOR_REASON_REQUIRED');
   const changes = {};
   if ((current.abilityLevel ?? null) !== abilityLevel) changes.abilityLevel = { from: current.abilityLevel ?? null, to: abilityLevel };
   for (const key of ['tier', 'commissionRate', 'manager', ...flags]) {
@@ -82,6 +83,6 @@ export async function creatorRoute({ req, url, store, send, fail, readJson, acto
   const value = await readJson();
   if (!authorized()) { fail(401, 'ADMIN_AUTH_REQUIRED'); return true; }
   if (!value || !Number.isInteger(value.version) || typeof value.status !== 'string') { fail(400, 'INVALID_CREATOR_UPDATE'); return true; }
-  if (typeof value.note !== 'string' || !value.note.trim()) { fail(400, 'CREATOR_REASON_REQUIRED'); return true; }
+  if (['rejected', 'suspended'].includes(value.status) && (typeof value.note !== 'string' || !value.note.trim())) { fail(400, 'CREATOR_REASON_REQUIRED'); return true; }
   send(200, store.manageCreatorProfile(creator.id, value.version, value, actor)); return true;
 }
