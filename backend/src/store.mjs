@@ -3,6 +3,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { randomUUID, randomBytes, createHash } from 'node:crypto';
 import { orderOperations } from './order-operations.mjs';
 import { creatorManagementUpdate } from './creator-management.mjs';
+import { creatorApplicationOperations } from './creator-application-store.mjs';
 import { checkedClips, editableClip } from './package-clips.mjs';
 
 const defaultLayout = () => ({
@@ -94,6 +95,7 @@ export function createStore(path = ':memory:') {
   }
   return {
     ...orderOperations(db),
+    ...creatorApplicationOperations(db),
     get,
     updateClipPricing(id, clipId, version, pricing) {
       if (!validPricing(pricing)) throw new Error('INVALID_PRICING');
@@ -284,12 +286,13 @@ export function createStore(path = ':memory:') {
       const owner = db.prepare('SELECT user_id FROM creator_profiles WHERE email_normalized=?').get(email);
       if (owner && owner.user_id !== userId) throw new Error('EMAIL_IN_USE');
       const previous = this.getCreatorProfile(userId);
+      if (previous?.applicationVersion === 2) throw new Error('CREATOR_APPLICATION_MIGRATION_REQUIRED');
       document = { ...document, email, management: previous?.management, managementHistory: previous?.managementHistory,
-        reviewNote: previous?.reviewNote };
+        reviewNote: previous?.reviewNote, abilityLevel: previous?.abilityLevel };
       const existing = db.prepare('SELECT id FROM creator_profiles WHERE user_id=?').get(userId);
       const now = new Date().toISOString(), id = existing?.id ?? randomUUID();
       if (existing) db.prepare('UPDATE creator_profiles SET document=?,email_normalized=?,status=?,version=version+1,updated_at=? WHERE id=?')
-        .run(JSON.stringify(document), email, previous?.status === 'suspended' ? 'suspended' : 'pending', now, id);
+        .run(JSON.stringify(document), email, ['approved', 'suspended'].includes(previous?.status) ? previous.status : 'pending', now, id);
       else db.prepare(`INSERT INTO creator_profiles
         (id,user_id,version,status,document,email_normalized,created_at,updated_at)
         VALUES (?,?,1,?,?,?,?,?)`)
@@ -309,6 +312,7 @@ export function createStore(path = ':memory:') {
     reviewCreatorProfile(id, version, status, note = '') {
       const current = this.getCreatorProfile(id);
       if (!current || current.version !== version) throw new Error('CONFLICT');
+      if (current.applicationVersion === 2) return this.manageCreatorProfile(id, version, {status, note});
       if (!['pending','approved','rejected','suspended'].includes(status)) throw new Error('INVALID_CREATOR_STATUS');
       const document = { ...current, reviewNote: note.trim(), status: undefined, id: undefined,
         userId: undefined, version: undefined, createdAt: undefined, updatedAt: undefined };

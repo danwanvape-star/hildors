@@ -95,7 +95,7 @@ test('suspension blocks content and tasks, restoration keeps permissions, resubm
   assert.equal((await request('/v1/me/content', undefined, token)).status, 403);
   assert.equal((await request('/v1/me/creator-tasks', undefined, token)).data.code, 'ORDER_CREATOR_INELIGIBLE');
   submission = await request('/v1/me/creator-profile', profile, token);
-  assert.equal(submission.data.status, 'pending');
+  assert.equal(submission.data.status, 'approved');
   assert.equal(store.getCreatorProfile(creator.id).management.canPublish, false);
   assert.equal(store.getCreatorProfile(creator.id).managementHistory.length, 4);
 });

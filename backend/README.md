@@ -1,5 +1,7 @@
 # HILDORS 本地后台原型
 
+内容管理已增加紧凑分页列表、统一题材标签、角色背景介绍及创作者投稿审核。审核通过后仅入库，运营需单独上架。接口和兼容规则见 [内容管理改造说明](../docs/content-admin-workflow.md)。
+
 这是后台建设的首个可运行增量：Node 24内置HTTP和SQLite，无第三方依赖。正式部署仍按`docs/backend_mvp_blueprint.md`迁移到业务框架和PostgreSQL；当前不是生产服务。
 
 团队封闭测试的启动配置与Linux服务模板见`docs/team_staging_deployment.md`。该模式仍只监听本机，经SSH隧道访问，不是公开上线方案。
@@ -35,9 +37,9 @@ SQLite保存于`backend/data/catalog.sqlite`，已忽略提交。首次初始化
 ```json
 {
   "title": "测试角色包",
-  "source": "creator",
+  "description": "来自星河深处的守护者，在寻找故乡的旅途中逐渐成长。",
   "format": "package",
-  "tags": ["神话"],
+  "tags": ["神话传说"],
   "clips": [{"id": "clip-1", "title": "待机"}]
 }
 ```

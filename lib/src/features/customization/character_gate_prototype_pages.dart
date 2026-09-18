@@ -10,6 +10,7 @@ import 'character_gate_order_progress.dart';
 import 'character_gate_quality_review.dart';
 import 'customization_order_repository.dart';
 import 'creator_profile_repository.dart';
+import 'creator_application_page.dart';
 import 'cloud_business_intake.dart';
 import 'cloud_order_submission.dart';
 import 'cloud_orders_page.dart';
@@ -1497,10 +1498,16 @@ class _CreatorHubPageState extends State<CreatorHubPage>
   String? taxFormType;
   final selectedSkills = <String>{};
 
+  bool get _useCloudApplication =>
+      widget.profileRepository == null &&
+      widget.cloudProfileLoader == null &&
+      widget.cloudProfileSubmitter == null &&
+      CloudBusinessIntake.instance.isConfigured;
+
   @override
   void initState() {
     super.initState();
-    _reload();
+    if (!_useCloudApplication) _reload();
   }
 
   Future<Map<String, dynamic>?> _loadCloudProfile() =>
@@ -1630,6 +1637,7 @@ class _CreatorHubPageState extends State<CreatorHubPage>
 
   @override
   Widget build(BuildContext context) {
+    if (_useCloudApplication) return const CreatorApplicationPage();
     if (gateLoading || gateLoadFailed) {
       return GateScaffold(
           appBar: AppBar(title: const Text('创作者工作台')),

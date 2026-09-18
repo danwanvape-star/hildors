@@ -14,6 +14,7 @@ import { stat } from 'node:fs/promises';
 import { runtimeConfig } from './runtime-config.mjs';
 import { orderRoute } from './order-routes.mjs';
 import { creatorRoute } from './creator-management.mjs';
+import { creatorApplicationRoute } from './creator-application.mjs';
 import { visibleClip, visiblePackage, editableClip } from './package-clips.mjs';
 
 function validDocument(value) {
@@ -68,6 +69,12 @@ export function app(store, { adminToken = '', adminUsername = '', adminPassword 
   let automaticQueue = Promise.resolve();
   const beginProcessing = () => { processing = true; processingFinished = new Promise(resolve => { finishProcessing = resolve; }); };
   const endProcessing = () => { processing = false; finishProcessing?.(); };
+  const inspectApplicationVideo = async (directory, id) => {
+    if (processing) throw new Error('PROCESSOR_BUSY');
+    beginProcessing();
+    try { return await inspector(directory, id); }
+    finally { endProcessing(); }
+  };
   function automaticallyInspect(id, clipId, mediaId) {
     const task = automaticQueue.then(async () => {
       while (processing) await processingFinished;
@@ -162,6 +169,8 @@ export function app(store, { adminToken = '', adminUsername = '', adminPassword 
         const token = /^Bearer ([A-Za-z0-9_-]{43})$/.exec(req.headers.authorization || '')?.[1];
         const userId = store.authenticate(token);
         if (!userId) return fail(401, 'USER_AUTH_REQUIRED');
+        if (await creatorApplicationRoute({req,res,url,store,send,fail,readJson,mediaDirectory,userId,
+          authorized:()=>store.authenticate(token)===userId,inspector:inspectApplicationVideo,uploadLimit})) return;
         if(req.method==='POST' && path==='/v1/me/session/renew') return send(200,store.createDeviceSession(userId));
         if(await orderRoute({req,res,url,store,send,fail,readJson,mediaDirectory,userId,authorized:()=>store.authenticate(token)===userId})) return;
         if (path === '/v1/me/content' || path.startsWith('/v1/me/content/')) {
@@ -267,6 +276,9 @@ export function app(store, { adminToken = '', adminUsername = '', adminPassword 
           const profile = store.getCreatorProfile(userId); return profile ? send(200, profile) : fail(404, 'NOT_FOUND');
         }
         if (req.method === 'POST' && path === '/v1/me/creator-profile') {
+          const previous = store.getCreatorProfile(userId);
+          if (!previous || previous.applicationVersion === 2 || !['approved','suspended'].includes(previous.status))
+            return fail(409, 'CREATOR_APPLICATION_MIGRATION_REQUIRED');
           const chunks = []; let bytes = 0;
           for await (const chunk of req) { bytes += chunk.length; if (bytes > 32768) return fail(413, 'BODY_TOO_LARGE'); chunks.push(chunk); }
           let value; try { value = JSON.parse(Buffer.concat(chunks).toString('utf8')); } catch { return fail(400, 'INVALID_JSON'); }
@@ -278,6 +290,8 @@ export function app(store, { adminToken = '', adminUsername = '', adminPassword 
             || !value.skillTags.every(x => typeof x === 'string' && x.length <= 60)
             || typeof value.marketRegion !== 'string' || value.marketRegion.length > 32
             || typeof value.agreementVersion !== 'string' || !value.agreementVersion.trim()) return fail(400, 'INVALID_CREATOR_PROFILE');
+          if (store.authenticate(token) !== userId) return fail(401, 'USER_AUTH_REQUIRED');
+          if (store.getCreatorProfile(userId)?.version !== previous.version) return fail(409, 'VERSION_OR_STATE_CONFLICT');
           return send(200, store.upsertCreatorProfile(userId, { displayName: value.displayName.trim(),
             email: value.email.trim().toLowerCase(),
             portfolioUrl: value.portfolioUrl.trim(), skillTags: value.skillTags,
@@ -388,9 +402,11 @@ export function app(store, { adminToken = '', adminUsername = '', adminPassword 
         return visiblePackage(item) ? send(200, publicPackage(item)) : fail(404, 'NOT_FOUND');
       }
       if(path.startsWith('/admin/') && await orderRoute({req,res,url,store,send,fail,readJson,mediaDirectory,authorized:adminAuthorized})) return;
+      if (path.startsWith('/admin/creators/') && await creatorApplicationRoute({req,res,url,store,send,fail,readJson,
+        mediaDirectory,authorized:adminAuthorized,inspector,uploadLimit})) return;
       if (req.method === 'GET' && path === '/admin/packages') return send(200, { items: store.list() });
       if (req.method === 'GET' && path === '/admin/customization-orders') return send(200, { items: store.listCustomizationOrders() });
-      if (path.startsWith('/admin/creators') && await creatorRoute({ req, url, store, send, fail, readJson,
+      if (path.startsWith('/admin/creators') && await creatorRoute({ req, url, store, send, fail, readJson, authorized: adminAuthorized,
         actor: req.headers.authorization ? 'admin-token' : (adminUsername || 'admin') })) return;
       if (req.method === 'GET' && path === '/admin/layout') return send(200, store.getLayout());
       if (req.method === 'GET' && path === '/admin/audit') return send(200, { items: store.auditLog() });
@@ -561,6 +577,11 @@ export function app(store, { adminToken = '', adminUsername = '', adminPassword 
       }
       return fail(404, 'NOT_FOUND');
     } catch (error) {
+      if (error.message === 'USER_AUTH_REQUIRED') return fail(401, error.message);
+      if (['CREATOR_APPLICATION_LOCKED','CREATOR_APPLICATION_MIGRATION_REQUIRED','CREATOR_APPLICATION_VIDEO_REQUIRED','CREATOR_APPLICATION_VIDEO_LIMIT'].includes(error.message)) return fail(409, error.message);
+      if (error.message === 'CREATOR_APPLICATION_VIDEO_INVALID') return fail(422, error.message);
+      if (error.message === 'INVALID_CREATOR_APPLICATION') return fail(400, error.message);
+      if (error.message === 'PROCESSOR_BUSY') return fail(409, error.message);
       if (['INVALID_CREATOR_PROFILE', 'INVALID_CREATOR_STATUS'].includes(error.message)) return fail(400, error.message);
       if (['INVALID_JSON','INVALID_CONTENT_TAGS','INVALID_PACKAGE'].includes(error.message) || error.code === 'ERR_SQLITE_CONSTRAINT_UNIQUE') return fail(400, error.message.startsWith('INVALID_') ? error.message : 'INVALID_CONTENT_TAGS');
       if (error.message === 'BODY_TOO_LARGE') return fail(413, 'BODY_TOO_LARGE');

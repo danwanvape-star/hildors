@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 
@@ -22,7 +24,15 @@ class _ContentPreviewPlayerState extends State<ContentPreviewPlayer> {
   VideoPlayerController? _controller;
   bool _routeIsCurrent = true;
   String? _error;
-  String? _technicalError;
+  Timer? _slowTimer;
+  Completer<void>? _cancelLoading;
+  bool _slow = false;
+  bool _buffering = false;
+  bool _playing = false;
+  int _generation = 0;
+  bool get _hasSource =>
+      (widget.networkUrl?.isNotEmpty ?? false) ||
+      (widget.assetPath?.isNotEmpty ?? false);
   final _transformationController = TransformationController();
 
   @override
@@ -41,38 +51,113 @@ class _ContentPreviewPlayerState extends State<ContentPreviewPlayer> {
     }
   }
 
+  @override
+  void didUpdateWidget(covariant ContentPreviewPlayer oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.networkUrl != widget.networkUrl ||
+        oldWidget.assetPath != widget.assetPath) {
+      _initialize();
+    }
+  }
+
+  void _startSlowTimer() {
+    _slowTimer?.cancel();
+    _slowTimer = Timer(const Duration(seconds: 10), () {
+      if (mounted && _error == null) setState(() => _slow = true);
+    });
+  }
+
+  void _onPlaybackChanged() {
+    final value = _controller?.value;
+    if (!mounted || value == null) return;
+    if (value.hasError) {
+      _slowTimer?.cancel();
+      if (_error == null) setState(() => _error = '视频播放失败，请重试');
+      return;
+    }
+    if (_buffering == value.isBuffering && _playing == value.isPlaying) return;
+    if (_buffering != value.isBuffering) {
+      _slow = false;
+      if (value.isBuffering) {
+        _startSlowTimer();
+      } else {
+        _slowTimer?.cancel();
+      }
+    }
+    setState(() {
+      _buffering = value.isBuffering;
+      _playing = value.isPlaying;
+    });
+  }
+
   Future<void> _initialize() async {
     final assetPath = widget.assetPath;
     final networkUrl = widget.networkUrl;
-    if (assetPath == null && networkUrl == null) return;
+    final generation = ++_generation;
+    if (_cancelLoading?.isCompleted == false) _cancelLoading!.complete();
+    final cancelled = Completer<void>();
+    _cancelLoading = cancelled;
+    final old = _controller;
+    _controller = null;
+    old?.removeListener(_onPlaybackChanged);
+    if (old != null) unawaited(old.dispose());
+    _slowTimer?.cancel();
     if (mounted) {
       setState(() {
         _error = null;
-        _technicalError = null;
+        _slow = false;
+        _buffering = false;
+        _playing = false;
       });
     }
+    if (!_hasSource) return;
+    _startSlowTimer();
     try {
-      final controller = networkUrl != null
-          ? VideoPlayerController.networkUrl(Uri.parse(networkUrl))
-          : await createBundledVideoController(assetPath!);
-      if (!controller.value.isInitialized) await controller.initialize();
-      await controller.setLooping(true);
-      if (!mounted) {
-        await controller.dispose();
-        return;
+      final creation = networkUrl != null && networkUrl.isNotEmpty
+          ? Future.value(
+              VideoPlayerController.networkUrl(Uri.parse(networkUrl)))
+          : createBundledVideoController(assetPath!, cancel: cancelled.future);
+      final controller = await Future.any<VideoPlayerController?>([
+        creation.then((controller) {
+          if (!mounted || generation != _generation) {
+            unawaited(controller.dispose());
+          }
+          return controller;
+        }),
+        cancelled.future.then((_) => null),
+      ]).timeout(const Duration(seconds: 30));
+      if (!mounted || generation != _generation || controller == null) return;
+      _controller = controller;
+      if (!controller.value.isInitialized) {
+        await Future.any<void>([controller.initialize(), cancelled.future])
+            .timeout(const Duration(seconds: 30));
       }
-      setState(() => _controller = controller);
+      if (!mounted || generation != _generation) return;
+      await controller.setLooping(true);
+      if (!mounted || generation != _generation) return;
+      _slowTimer?.cancel();
+      setState(() {
+        _slow = false;
+        _buffering = controller.value.isBuffering;
+      });
+      if (_buffering) _startSlowTimer();
+      controller.addListener(_onPlaybackChanged);
       if (widget.autoPlay && _routeIsCurrent) {
         await controller.play();
-        if (mounted) setState(() {});
       }
     } catch (error, stackTrace) {
       debugPrint('Preview video failed: $error');
       debugPrintStack(stackTrace: stackTrace);
-      if (mounted) {
+      if (mounted && generation == _generation) {
+        _generation++;
+        if (!cancelled.isCompleted) cancelled.complete();
+        _slowTimer?.cancel();
+        final failed = _controller;
+        _controller = null;
+        failed?.removeListener(_onPlaybackChanged);
+        if (failed != null) unawaited(failed.dispose());
         setState(() {
-          _error = '预览加载失败，请稍后重试';
-          _technicalError = error.toString();
+          _error = error is TimeoutException ? '视频加载超时，请重试' : '视频加载失败，请重试';
         });
       }
     }
@@ -120,38 +205,51 @@ class _ContentPreviewPlayerState extends State<ContentPreviewPlayer> {
                   ),
                 ),
               ),
-            )
-          else
-            Center(
-              child: _error == null
-                  ? const CircularProgressIndicator()
-                  : Column(
+            ),
+          if (!ready || _buffering || _error != null)
+            ColoredBox(
+              color: ready ? Colors.black54 : Colors.black,
+              child: Center(
+                  child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Semantics(
+                    liveRegion: true,
+                    child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Text(_error!, textAlign: TextAlign.center),
-                        if (_technicalError != null) ...[
-                          const SizedBox(height: 6),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
-                            child: Text(
-                              _technicalError!,
-                              maxLines: 3,
-                              overflow: TextOverflow.ellipsis,
-                              textAlign: TextAlign.center,
-                              style: Theme.of(context).textTheme.bodySmall,
-                            ),
-                          ),
+                        if (_hasSource && _error == null) ...[
+                          const SizedBox(
+                              width: 28,
+                              height: 28,
+                              child:
+                                  CircularProgressIndicator(strokeWidth: 2.5)),
+                          const SizedBox(height: 16),
                         ],
-                        const SizedBox(height: 8),
-                        TextButton.icon(
-                          onPressed: _initialize,
-                          icon: const Icon(Icons.refresh),
-                          label: const Text('重试'),
-                        ),
+                        Text(
+                            _error ??
+                                (!_hasSource
+                                    ? '暂无可播放视频'
+                                    : widget.networkUrl != null
+                                        ? '视频正在缓冲，请稍候'
+                                        : '视频正在加载，请稍候'),
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(color: Colors.white)),
+                        if (_slow && _error == null)
+                          const Padding(
+                              padding: EdgeInsets.only(top: 8),
+                              child: Text('加载较慢，请检查网络或重试',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(color: Colors.white70))),
+                        if (_error != null || _slow)
+                          TextButton.icon(
+                              onPressed: _initialize,
+                              icon: const Icon(Icons.refresh),
+                              label: const Text('重试')),
                       ],
-                    ),
+                    )),
+              )),
             ),
-          if (ready)
+          if (ready && _error == null)
             Positioned(
               right: 12,
               bottom: 12,
@@ -165,7 +263,7 @@ class _ContentPreviewPlayerState extends State<ContentPreviewPlayer> {
                 ),
               ),
             ),
-          if (ready)
+          if (ready && !_buffering && _error == null)
             const Positioned(
               left: 12,
               bottom: 12,
@@ -178,7 +276,11 @@ class _ContentPreviewPlayerState extends State<ContentPreviewPlayer> {
 
   @override
   void dispose() {
+    _generation++;
+    if (_cancelLoading?.isCompleted == false) _cancelLoading!.complete();
+    _slowTimer?.cancel();
     _transformationController.dispose();
+    _controller?.removeListener(_onPlaybackChanged);
     _controller?.dispose();
     super.dispose();
   }

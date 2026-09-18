@@ -32,14 +32,20 @@ test('customization intake and creator registration are user-scoped and admin-ma
     body: JSON.stringify({ version: updatedItem.version, status: 'delivered', note: '跳过流程' }) });
   assert.equal(skipped.status, 409);
   assert.equal((await skipped.json()).code, 'INVALID_ORDER_TRANSITION');
-  const creator = await fetch(base + '/v1/me/creator-profile', { method: 'POST', headers: userHeaders,
+  const legacy = await fetch(base + '/v1/me/creator-profile', { method: 'POST', headers: userHeaders,
     body: JSON.stringify({ displayName: 'Creator A', email: 'creator-a@example.test', portfolioUrl: 'https://example.test/work',
       skillTags: ['3D'], marketRegion: 'us', agreementVersion: 'creator-v1' }) });
+  assert.equal(legacy.status, 409);
+  assert.equal((await legacy.json()).code, 'CREATOR_APPLICATION_MIGRATION_REQUIRED');
+  const creator = await fetch(base + '/v1/me/creator-application', {method:'POST',headers:userHeaders,
+    body:JSON.stringify({displayName:'Creator A',email:'creator-a@example.test',characterTags:['神话传说'],skillTags:['简单动作'],
+      marketRegion:'us',agreementVersion:'creator-v2',adultConfirmed:true,agreementAccepted:true})});
   assert.equal(creator.status, 200); const creatorItem = await creator.json();
-  assert.equal(creatorItem.status, 'pending');
+  assert.equal(creatorItem.status, 'draft');
   const reviewed = await fetch(base + `/admin/creators/${creatorItem.id}`, { method: 'POST', headers: adminHeaders,
     body: JSON.stringify({ version: creatorItem.version, status: 'approved', note: '作品审核通过' }) });
-  assert.equal((await reviewed.json()).status, 'approved');
+  assert.equal(reviewed.status,400);
+  assert.equal((await reviewed.json()).code,'INVALID_CREATOR_PROFILE');
   assert.equal((await fetch(base + '/admin/customization-orders')).status, 401);
 });
 

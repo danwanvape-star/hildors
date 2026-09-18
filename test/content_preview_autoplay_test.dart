@@ -65,6 +65,99 @@ void main() {
   });
   tearDown(() => VideoPlayerPlatform.instance = previousPlatform);
 
+  testWidgets('slow initial loading explains buffering and offers retry',
+      (tester) async {
+    platform.initializeImmediately = false;
+    await tester.pumpWidget(const MaterialApp(
+        home: ContentPreviewPlayer(
+            assetPath: null, networkUrl: 'https://example.test/slow.mp4')));
+    await tester.pump();
+    expect(find.text('视频正在缓冲，请稍候'), findsOneWidget);
+    await tester.pump(const Duration(seconds: 10));
+    expect(find.text('加载较慢，请检查网络或重试'), findsOneWidget);
+    expect(find.text('重试'), findsOneWidget);
+    await tester.pump(const Duration(seconds: 21));
+    expect(find.text('视频加载超时，请重试'), findsOneWidget);
+    expect(find.byType(CircularProgressIndicator), findsNothing);
+    await tester.pumpWidget(const SizedBox());
+    await tester.runAsync(() async {
+      await Future<void>.delayed(Duration.zero);
+    });
+  });
+
+  testWidgets('buffering during playback is visible and clears on recovery',
+      (tester) async {
+    await tester.pumpWidget(const MaterialApp(
+        home: Scaffold(
+            body: ContentPreviewPlayer(
+                assetPath: null,
+                networkUrl: 'https://example.test/play.mp4',
+                autoPlay: true))));
+    await tester.pumpAndSettle();
+    platform.events[1]!
+        .add(VideoEvent(eventType: VideoEventType.bufferingStart));
+    await tester.pump();
+    await tester.pump();
+    expect(find.text('视频正在缓冲，请稍候'), findsOneWidget);
+    platform.events[1]!.add(VideoEvent(eventType: VideoEventType.bufferingEnd));
+    await tester.pumpAndSettle();
+    expect(find.text('视频正在缓冲，请稍候'), findsNothing);
+    expect(find.byType(VideoPlayer), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+    await tester.runAsync(() async {
+      await Future<void>.delayed(Duration.zero);
+    });
+  });
+
+  testWidgets('missing source is empty rather than an endless spinner',
+      (tester) async {
+    await tester.pumpWidget(
+        const MaterialApp(home: ContentPreviewPlayer(assetPath: null)));
+    expect(find.text('暂无可播放视频'), findsOneWidget);
+    expect(find.byType(CircularProgressIndicator), findsNothing);
+  });
+
+  testWidgets('retry while initializing releases old player and recovers',
+      (tester) async {
+    platform.initializeImmediately = false;
+    await tester.pumpWidget(const MaterialApp(
+        home: Scaffold(
+            body: ContentPreviewPlayer(
+                assetPath: null,
+                networkUrl: 'https://example.test/retry.mp4'))));
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 10));
+    platform.initializeImmediately = true;
+    await tester.tap(find.text('重试'));
+    await tester.pumpAndSettle();
+    expect(find.byType(VideoPlayer), findsOneWidget);
+    expect(find.text('视频正在缓冲，请稍候'), findsNothing);
+    expect(platform.sources.length, 2);
+    await tester.pumpWidget(const SizedBox());
+    await tester.runAsync(() async {
+      await Future<void>.delayed(Duration.zero);
+    });
+    expect(platform.disposed, [1, 2]);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('leaving a stalled bundled preview releases its native player',
+      (tester) async {
+    platform.initializeImmediately = false;
+    await tester.pumpWidget(const MaterialApp(
+        home: Scaffold(
+            body: ContentPreviewPlayer(
+                assetPath: 'assets/videos/showcase/showcase_02.mp4'))));
+    await tester.pump();
+    expect(find.text('视频正在加载，请稍候'), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+    await tester.runAsync(() async {
+      await Future<void>.delayed(Duration.zero);
+    });
+    expect(platform.disposed, [1]);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets(
       'thumbnail opens and plays only selected preview, back disposes it',
       (tester) async {
