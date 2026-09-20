@@ -32,3 +32,6 @@
     flex-direction: column;
   }
 }
+
+.startup-reload { display:inline-block; padding:10px 16px; border-radius:8px; background:#5edcc8; color:#062b29; text-decoration:none; font-weight:700; }
+#startup-recovery strong { color:#72dfca; }

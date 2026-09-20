@@ -17,12 +17,19 @@ function clearPreviews() { for (const url of previews) URL.revokeObjectURL(url);
 const messages = { PASSWORD_CHANGE_REQUIRED:'请先修改本人密码，再进入业务模块。', OPERATOR_INVALID_CREDENTIALS:'当前密码不正确。', OPERATOR_PASSWORD_REUSED:'新密码不能与当前密码相同。', OPERATOR_INVALID_PASSWORD:'密码须为 12–128 个字符。', FORBIDDEN: '当前账号没有此操作权限，请联系管理员。', PERMISSION_DENIED: '当前账号没有此操作权限，请联系管理员。', CONTENT_GOVERNANCE_HOLD: '内容存在治理限制，请先处理相关问题。', LOGIN_RATE_LIMITED: '登录尝试过多，请稍后再试。', UNAUTHORIZED: '登录已过期，请重新登录。', INVALID_CREDENTIALS: '用户名或密码错误。', VERSION_OR_STATE_CONFLICT: '内容已被更新，请刷新后重试。', INVALID_ORDER_TRANSITION: '不能跳过必要步骤，请按流程推进订单。', ORDER_QUOTE_REQUIRED: '报价时必须填写金额、币种和预计工期。', ORDER_PRODUCTION_REQUIRED: '进入制作前必须指定负责人和截止日期。', ORDER_DELIVERABLE_REQUIRED: '提交质检前必须填写成品文件或任务地址。', ORDER_QC_REQUIRED: '平台质检全部通过后才能提交用户验收。', ORDER_DELIVERY_REQUIRED: '完成交付前必须填写最终交付记录。', MEDIA_REVIEW_REQUIRED: '需要先完成素材处理和审核。', PACKAGE_COVER_REQUIRED: '角色视频包必须先上传角色主图。', INVALID_PACKAGE: '请检查名称、视频数量和标签。' };
 Object.assign(messages, { ORDER_USER_CONFIRMATION_REQUIRED:'请等待用户在 App 中亲自确认。', ORDER_CREATOR_INELIGIBLE:'该创作者未认证或没有接单权限，请重新选择。', ORDER_SELF_ASSIGNMENT:'不能将订单分配给下单用户本人。', ORDER_APPLICATION_REQUIRED:'请从已报名创作者中选择制作人。', ORDER_DISPATCH_STAGE:'当前订单状态不允许派单，请重新加载详情。', ORDER_CREATOR_REQUIRED:'请先选择具备接单资格的创作者。', ORDER_NOTE_REQUIRED:'请填写本次处理说明。', ORDER_QUOTE_PROPOSAL_REQUIRED:'请等待创作者提交建议报价。', ORDER_ALREADY_ASSIGNED:'订单已有制作人，请重新加载详情。' });
 async function api(path, body) {
-  const response = await fetch(path, { method: body === undefined ? 'GET' : 'POST',
-    headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin',
-    body: body === undefined ? undefined : JSON.stringify(body) });
-  const result = await response.json();
-  if (!response.ok) throw Object.assign(new Error(messages[result.code] || '操作失败，请稍后重试。'), {status:response.status,code:result.code});
-  return result;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), body === undefined ? 15000 : 45000);
+  try {
+    const response = await fetch(path, { method: body === undefined ? 'GET' : 'POST',
+      headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin', signal: controller.signal,
+      body: body === undefined ? undefined : JSON.stringify(body) });
+    const result = await response.json();
+    if (!response.ok) throw Object.assign(new Error(messages[result.code] || '操作失败，请稍后重试。'), {status:response.status,code:result.code});
+    return result;
+  } catch (error) {
+    if (controller.signal.aborted) throw Object.assign(new Error(body === undefined ? '连接超时，请重新加载页面。' : '请求超时，操作结果尚未确认。请先刷新核对，勿重复提交。'), {code:'REQUEST_TIMEOUT'});
+    throw error;
+  } finally { clearTimeout(timer); }
 }
 function text(tag, value, className) { const el = document.createElement(tag); el.textContent = value; if (className) el.className = className; return el; }
 const orderLabels = { free_review: '待预审', needs_info: '待补充资料', approved_for_quote: '待报价', quoted: '待用户确认报价', in_production: '制作中', quality_review: '待平台质检', user_acceptance: '待用户验收', delivered: '已交付', rejected: '预审未通过', withdrawn: '已撤回' };
@@ -411,7 +418,7 @@ async function startAdminSession() {
   const current = epoch;
   const identity = await refreshAdminIdentity();
   if (!identity || current !== epoch) return;
-  showConnection(true);
+  showConnection(true); $('startup-recovery').hidden = true;
   if (identity.actor.mustChangePassword) { showView('empty'); $('view-subtitle').textContent = '完成本人密码设置后即可进入已授权模块。'; showConnection(true); $('notice').textContent = '请先修改本人密码，再进入业务模块。'; openOwnPassword(); return; }
   const requested = window.location?.hash?.slice(1);
   if (requested && Object.hasOwn(adminViews, requested) && canAdmin(adminViews[requested])) activeView = requested;
@@ -427,9 +434,11 @@ function handleSessionFailure(error) {
 }
 async function restoreAdminSession() {
   const current = epoch;
-  $('login').hidden = true; $('session-retry').hidden = true;
+  $('login').hidden = true; $('session-retry').hidden = true; $('startup-recovery').hidden = false;
+  $('notice').textContent = '正在检查登录状态…';
   try { await startAdminSession(); }
   catch (error) { if (current === epoch) handleSessionFailure(error); }
+  finally { if (current === epoch) $('startup-recovery').hidden = true; }
 }
 async function refresh() {
   const current = epoch;

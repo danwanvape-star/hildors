@@ -24,7 +24,7 @@ function fixture() {
   }
   const elements = new Map(), get = id => { if (!elements.has(id)) elements.set(id, new Element()); return elements.get(id); };
   const context = vm.createContext({ document: { getElementById: get, createElement: tag => new Element(tag), querySelectorAll: () => [] },
-    window: { addEventListener() {} }, URL, URLSearchParams, setTimeout, clearTimeout, console,
+    window: { addEventListener() {} }, URL, URLSearchParams, AbortController, setTimeout:(...args)=>{const timer=setTimeout(...args);timer.unref();return timer;}, clearTimeout, console,
     FormData: class { constructor(data) { this.data = data; } get(key) { return this.data[key] ?? ''; } has(key) { return key in this.data; } },
     fetch: () => new Promise(() => {}), confirm: () => true });
   const html = readFileSync(new URL('../public/index.html', import.meta.url), 'utf8');
