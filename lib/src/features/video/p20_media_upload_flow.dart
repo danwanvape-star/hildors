@@ -90,7 +90,12 @@ class P20MediaUploadFlow {
       File? audio;
       if (list == P20MediaList.daily) {
         _set(P20MediaStage.extractingAudio);
-        audio = await media.extractAudio(source);
+        try {
+          audio = await media.extractAudio(source);
+        } on P20MissingAudio {
+          // A accepts silent video too. Only a confirmed absent track may
+          // skip audio; extraction failures must still stop the attempt.
+        }
       }
       _set(P20MediaStage.transcodingVideo);
       final video = await media.transcodeVideo(source);

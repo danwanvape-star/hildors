@@ -192,13 +192,11 @@ class _P20UploadPageState extends State<P20UploadPage> {
                 const SizedBox(height: 16),
                 Text(finishedFile
                     ? text.refreshFailed
-                    : _error is P20MissingAudio
-                        ? text.missingAudio
-                        : _error is FormatException &&
-                                (_error as FormatException).message ==
-                                    'download_first'
-                            ? text.downloadFirst
-                            : text.failed),
+                    : _error is FormatException &&
+                            (_error as FormatException).message ==
+                                'download_first'
+                        ? text.downloadFirst
+                        : text.failed),
               ],
               if (_flow?.audioUploaded == true && !finishedFile)
                 Text(text.partial),

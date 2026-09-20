@@ -7,6 +7,7 @@ class FakeMedia implements P20MediaPreparation {
   FakeMedia(this.events);
   final List<String> events;
   bool missingAudio = false;
+  bool brokenAudio = false;
   Completer<void>? pauseAudio;
   @override
   Future<void> cancel() async {}
@@ -15,6 +16,7 @@ class FakeMedia implements P20MediaPreparation {
     events.add('extract');
     await pauseAudio?.future;
     if (missingAudio) throw const P20MissingAudio();
+    if (brokenAudio) throw StateError('audio encoder failed');
     return File('sound.mp3');
   }
 
@@ -77,11 +79,18 @@ void main() {
     await flow.run(File('source.mp4'), P20MediaList.bluetooth, 'sample');
     expect(events, ['transcode', '1:sample.mp4', 'refresh:1']);
   });
-  test('A missing audio aborts before any upload', () async {
+  test('A without audio uploads video only', () async {
     media.missingAudio = true;
+    await flow.run(File('source.mp4'), P20MediaList.daily, 'sample');
+    expect(events, ['extract', 'transcode', '0:sample.mp4', 'refresh:0']);
+    expect(flow.audioUploaded, isFalse);
+    expect(flow.stage, P20MediaStage.completed);
+  });
+  test('A audio encoder failure is not treated as a silent source', () async {
+    media.brokenAudio = true;
     await expectLater(
         flow.run(File('source.mp4'), P20MediaList.daily, 'sample'),
-        throwsA(isA<P20MissingAudio>()));
+        throwsStateError);
     expect(events, ['extract']);
     expect(flow.stage, P20MediaStage.failed);
   });

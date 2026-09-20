@@ -13,17 +13,14 @@ class P20UploadStrings {
       ? '请先返回首页连接设备 Wi-Fi，再进行上传。'
       : 'Connect to the device from Home before uploading.';
   String get daily => _zh
-      ? 'A 日常列表：提取 MP3 → 视频转码 → 上传音频 → 上传视频。'
-      : 'A daily playlist: extract MP3 → convert video → upload audio → upload video.';
+      ? 'A 日常列表：支持有声和无声视频。有音轨时先提取 MP3，转码后先上传音频再上传视频；无音轨时仅转码并上传视频。'
+      : 'A daily playlist accepts videos with or without sound. With audio: extract MP3, convert, upload audio then video. Without audio: convert and upload video only.';
   String get bluetooth => _zh
-      ? 'B 蓝牙列表：只转码并上传视频，不提取或上传音频。'
-      : 'B Bluetooth playlist: convert and upload video only; no audio extraction or upload.';
+      ? 'B 蓝牙列表：支持有声和无声视频，均只转码并上传视频，不读取原视频音频。'
+      : 'B Bluetooth playlist accepts videos with or without sound. Convert and upload video only; source audio is ignored.';
   String get settings => _zh
       ? '298 × 298 · 20 帧/秒 · 使用当前取景范围'
       : '298 × 298 · 20 fps · Current framing';
-  String get missingAudio => _zh
-      ? '原视频没有音轨，无法加入需要音频的 A 列表。请选择带声音的视频，或加入 B 列表。'
-      : 'This video has no audio track. Choose a video with sound for playlist A, or use playlist B.';
   String get downloadFirst => _zh
       ? '请先将视频下载到“我的角色”，再上传到设备。'
       : 'Download this video to My Characters before uploading to the device.';
@@ -42,7 +39,7 @@ class P20UploadStrings {
   String stage(P20MediaStage stage) => (_zh
       ? const [
           '准备就绪',
-          '正在提取音频',
+          '正在检查并提取音频（如有）',
           '正在转码视频',
           '正在上传音频',
           '正在上传视频',
@@ -53,7 +50,7 @@ class P20UploadStrings {
         ]
       : const [
           'Ready',
-          'Extracting audio',
+          'Checking and extracting audio if present',
           'Converting video',
           'Uploading audio',
           'Uploading video',
