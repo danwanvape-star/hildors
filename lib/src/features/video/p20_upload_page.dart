@@ -52,6 +52,7 @@ class P20UploadPage extends StatefulWidget {
 class _P20UploadPageState extends State<P20UploadPage> {
   P20MediaUploadFlow? _flow;
   P20MediaStage _stage = P20MediaStage.idle;
+  P20MediaStage _lastActiveStage = P20MediaStage.idle;
   StreamSubscription<DeviceConnectionState>? _connection;
   bool _busy = false,
       _attempted = false,
@@ -108,7 +109,14 @@ class _P20UploadPageState extends State<P20UploadPage> {
         if (mounted) {
           setState(() {
             _stage = stage;
-            _progress = null;
+            if (stage != P20MediaStage.failed &&
+                stage != P20MediaStage.cancelled) {
+              _lastActiveStage = stage;
+              _progress = stage == P20MediaStage.uploadingAudio ||
+                      stage == P20MediaStage.uploadingVideo
+                  ? 0
+                  : null;
+            }
           });
         }
       });
@@ -181,22 +189,30 @@ class _P20UploadPageState extends State<P20UploadPage> {
               Text(text.settings),
               const SizedBox(height: 24),
               Text(text.stage(_stage)),
-              if (_busy) ...[
+              if (_busy || _progress != null) ...[
                 const SizedBox(height: 12),
                 LinearProgressIndicator(value: _progress)
               ],
-              if (_progress != null) Text('${(_progress! * 100).floor()}%'),
+              if (_progress != null) ...[
+                Text('${(_progress! * 100).floor()}%'),
+                Text(text.confirmedProgress),
+              ],
               if (!_attempted && !widget.client.isConnected)
                 Text(text.disconnected),
               if (_error != null && _stage != P20MediaStage.cancelled) ...[
                 const SizedBox(height: 16),
+                Text(text.failureStage(_lastActiveStage)),
                 Text(finishedFile
                     ? text.refreshFailed
                     : _error is FormatException &&
                             (_error as FormatException).message ==
                                 'download_first'
                         ? text.downloadFirst
-                        : text.failed),
+                        : text.error(_error!, _lastActiveStage)),
+                if ((_lastActiveStage == P20MediaStage.uploadingAudio ||
+                        _lastActiveStage == P20MediaStage.uploadingVideo) &&
+                    widget.client.lastUploadSnapshot != null)
+                  Text(text.transferDetails(widget.client.lastUploadSnapshot!)),
               ],
               if (_flow?.audioUploaded == true && !finishedFile)
                 Text(text.partial),

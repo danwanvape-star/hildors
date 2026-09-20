@@ -1,4 +1,7 @@
+import 'dart:async';
+import 'dart:io';
 import 'package:flutter/widgets.dart';
+import '../../device/p20_v2_connection.dart';
 import 'p20_media_upload_flow.dart';
 
 class P20UploadStrings {
@@ -27,6 +30,68 @@ class P20UploadStrings {
   String get failed => _zh
       ? '处理或上传失败。请检查视频、设备连接和存储空间后重试。'
       : 'Preparation or upload failed. Check the video, device connection and storage, then try again.';
+  String get confirmedProgress => _zh ? '设备已确认接收进度' : 'Confirmed by the device';
+  String failureStage(P20MediaStage value) =>
+      '${_zh ? '失败阶段' : 'Failed during'}: ${stage(value)}';
+  String transferDetails(P20UploadSnapshot snapshot) {
+    final phase = (_zh
+        ? const ['等待设备允许接收', '文件传输', '等待设备完成确认', '设备已确认完成']
+        : const [
+            'Waiting for upload acceptance',
+            'Transferring file',
+            'Waiting for completion confirmation',
+            'Device confirmed completion'
+          ])[snapshot.phase.index];
+    return '$phase · ${_zh ? '已确认' : 'Confirmed'} ${snapshot.acknowledged} / ${snapshot.total} ${_zh ? '字节' : 'bytes'}';
+  }
+
+  String error(Object error, P20MediaStage stage) {
+    if (error is P20DeviceUploadRejected) {
+      final reason = switch (error.status) {
+        0x80 => _zh ? '设备忙，请稍后重试。' : 'Device is busy. Try again shortly.',
+        0x81 => _zh
+            ? '设备写入失败，请检查存储卡。'
+            : 'Device could not write the file. Check its storage card.',
+        0x82 => _zh ? '设备中已存在同名文件。' : 'The file already exists on the device.',
+        0x85 => _zh ? '设备存储或列表已满。' : 'Device storage or playlist is full.',
+        0x8a => _zh
+            ? '设备电量过低，请充电后重试。'
+            : 'Device battery is too low. Charge it and retry.',
+        _ => _zh ? '设备拒绝接收文件。' : 'Device rejected the file.',
+      };
+      return '$reason (0x${error.status.toRadixString(16).toUpperCase()})';
+    }
+    if (error is TimeoutException) {
+      final uploading = stage == P20MediaStage.uploadingAudio ||
+          stage == P20MediaStage.uploadingVideo;
+      return uploading
+          ? (_zh
+              ? '等待设备确认超时。请记录下方阶段和进度，重新连接后再试。'
+              : 'Device confirmation timed out. Note the stage and progress below, then reconnect.')
+          : (_zh
+              ? '处理等待超时，请尝试较短的视频。'
+              : 'Media processing timed out. Try a shorter video.');
+    }
+    if (error is SocketException) {
+      return _zh
+          ? '设备连接已断开，请重新连接后重试。'
+          : 'Device connection was lost. Reconnect and retry.';
+    }
+    if (error is FileSystemException) {
+      return _zh
+          ? '无法读取或写入本机文件，请检查源文件和手机可用空间。'
+          : 'Cannot read or write local files. Check the source and available phone storage.';
+    }
+    if (error is FormatException &&
+        (stage == P20MediaStage.uploadingAudio ||
+            stage == P20MediaStage.uploadingVideo)) {
+      return _zh
+          ? '设备上传应答格式或进度序号不匹配，请核对设备固件协议。'
+          : 'Device reply or progress sequence did not match. Check the firmware protocol.';
+    }
+    return failed;
+  }
+
   String get partial => _zh
       ? '音频已上传，视频未完成。本次不会自动重试或删除设备文件。'
       : 'Audio was uploaded but video did not finish. No device files have been deleted or automatically retried.';

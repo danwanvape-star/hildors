@@ -3,6 +3,15 @@ import 'dart:io';
 import '../protocol/p20_protocol.dart' show P20Frame;
 import 'p20_v2_protocol.dart';
 
+enum P20UploadPhase { awaitingReady, streaming, awaitingCompletion, completed }
+
+/// Safe transfer metadata only: never filenames, file contents or credentials.
+class P20UploadSnapshot {
+  const P20UploadSnapshot(this.phase, this.sent, this.acknowledged, this.total);
+  final P20UploadPhase phase;
+  final int sent, acknowledged, total;
+}
+
 class P20DeviceUploadRejected implements Exception {
   const P20DeviceUploadRejected(this.status);
   final int status;
@@ -94,31 +103,54 @@ class P20V2Connection {
       _exclusive(() => _write(P20V2Protocol.request(1, [on ? 1 : 2])));
 
   Future<void> upload(File file, int listId, List<int> gbkName,
-          {void Function(int acknowledged, int total)? onProgress}) =>
+          {void Function(int acknowledged, int total)? onProgress,
+          void Function(P20UploadSnapshot)? onState}) =>
       _exclusive(() async {
         final input = await file.open();
         try {
           final size = await input.length();
           final header = P20V2Protocol.uploadHeader(listId, size, gbkName);
-          await _write(P20V2Protocol.request(0x31, header));
-          var response = await _next(0x31);
-          _status(response, 0);
           var sent = 0;
-          var sequence = 0;
-          while (sent < size) {
-            final wanted = (size - sent).clamp(1, 32768);
-            final chunk = await input.read(wanted);
-            if (chunk.length != wanted) {
-              throw const FileSystemException('Upload source changed');
+          var acknowledged = 0;
+          var phase = P20UploadPhase.awaitingReady;
+          void report() =>
+              onState?.call(P20UploadSnapshot(phase, sent, acknowledged, size));
+          report();
+          onProgress?.call(0, size);
+          await _write(P20V2Protocol.request(0x31, header));
+          _status(await _next(0x31), 0);
+          phase = P20UploadPhase.streaming;
+          report();
+          // Progress packets are notifications, not permission to send the next
+          // block. Keep sending with socket backpressure while reading replies.
+          Future<void> sendData() async {
+            while (sent < size) {
+              final wanted = (size - sent).clamp(1, 32768);
+              final chunk = await input.read(wanted);
+              if (chunk.length != wanted) {
+                throw const FileSystemException('Upload source changed');
+              }
+              sent += chunk.length;
+              await _write(chunk);
+              report();
             }
-            await _write(chunk);
-            sent += chunk.length;
-            if (chunk.length == 32768) {
-              response = await _next(0x31);
-              // Some firmware may emit only completion at an exact boundary.
-              if (response.data.length == 1 &&
-                  response.data[0] == 2 &&
-                  sent == size) {
+            if (phase != P20UploadPhase.completed) {
+              phase = P20UploadPhase.awaitingCompletion;
+              report();
+            }
+          }
+
+          Future<void> readProgress() async {
+            var sequence = 0;
+            while (true) {
+              final response = await _next(0x31);
+              if (response.data.length == 1 && response.data[0] == 2) {
+                if (sent != size) {
+                  throw const FormatException('Premature upload completion');
+                }
+                acknowledged = size;
+                phase = P20UploadPhase.completed;
+                report();
                 onProgress?.call(size, size);
                 return;
               }
@@ -132,15 +164,29 @@ class P20V2Connection {
                   (response.data[2] << 16) |
                   (response.data[3] << 8) |
                   response.data[4];
-              if (acknowledgedSequence != ++sequence) {
+              if (acknowledgedSequence != ++sequence ||
+                  sequence * 32768 > sent) {
                 throw const FormatException('Unexpected upload sequence');
               }
-              // Completion, not a progress packet, is the success signal.
-              onProgress?.call(sent, size);
+              acknowledged = sequence * 32768;
+              report();
+              onProgress?.call(acknowledged, size);
             }
           }
-          _status(await _next(0x31), 2);
-          onProgress?.call(size, size);
+
+          final sender = sendData();
+          final receiver = readProgress();
+          try {
+            await Future.wait([sender, receiver], eagerError: true);
+          } catch (_) {
+            // Stop both halves before releasing the file or command queue.
+            await close();
+            await Future.wait([
+              sender.catchError((Object _) {}),
+              receiver.catchError((Object _) {}),
+            ]);
+            rethrow;
+          }
         } finally {
           await input.close();
         }

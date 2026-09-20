@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hildors_cockpit/src/device/p20_device_client.dart';
 import 'package:hildors_cockpit/src/device/p20_command_session.dart';
+import 'package:hildors_cockpit/src/device/p20_v2_connection.dart';
 import 'package:hildors_cockpit/src/features/video/fan_framing_page.dart';
 import 'package:hildors_cockpit/src/features/video/p20_media_upload_flow.dart';
 import 'package:hildors_cockpit/src/features/video/p20_upload_page.dart';
@@ -13,11 +14,18 @@ import 'package:hildors_cockpit/src/features/video/p20_ffmpeg_preparation.dart';
 class ConnectedClient extends P20DeviceClient {
   ConnectedClient() : super(modernProtocol: true);
   String? uploadedName;
+  bool failUpload = false;
   @override
   bool get isConnected => true;
   @override
   Future<void> uploadFile(File file, int listId, List<int> name,
       {void Function(int, int)? onProgress}) async {
+    if (failUpload) {
+      lastUploadSnapshot = const P20UploadSnapshot(
+          P20UploadPhase.awaitingCompletion, 100, 50, 100);
+      onProgress?.call(50, 100);
+      throw TimeoutException('test timeout');
+    }
     uploadedName = String.fromCharCodes(name);
   }
 }
@@ -48,6 +56,51 @@ class TestEngine implements P20MediaEngine {
 
 void main() {
   const paths = MethodChannel('plugins.flutter.io/path_provider');
+  testWidgets('failed upload retains confirmed progress and a specific error',
+      (tester) async {
+    final temp = (await tester
+        .runAsync(() => Directory.systemTemp.createTemp('p20-progress-')))!;
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(paths, (_) async => temp.path);
+    final client = ConnectedClient()..failUpload = true;
+    final session = TestSession(client, false);
+    addTearDown(session.dispose);
+    addTearDown(client.dispose);
+    addTearDown(() {
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(paths, null);
+    });
+    await tester.pumpWidget(MaterialApp(
+        home: P20UploadPage(
+            client: client,
+            session: session,
+            source: '${temp.path}/source.mp4',
+            asset: false,
+            list: P20MediaList.bluetooth,
+            framing: const FanFraming(),
+            engine: TestEngine())));
+    await tester.runAsync(() async {
+      await tester.tap(find.text('Prepare and upload'));
+      for (var i = 0;
+          i < 100 && find.text('Back to playlist').evaluate().isEmpty;
+          i++) {
+        await Future<void>.delayed(const Duration(milliseconds: 30));
+        await tester.pump();
+      }
+    });
+    await tester.pumpAndSettle();
+    expect(find.text('50%'), findsOneWidget);
+    expect(
+        tester
+            .widget<LinearProgressIndicator>(
+                find.byType(LinearProgressIndicator))
+            .value,
+        0.5);
+    expect(find.textContaining('timed out'), findsOneWidget);
+    expect(find.textContaining('Uploading video'), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+    await tester.runAsync(() => temp.delete(recursive: true));
+  });
   for (final systemBack in [false, true]) {
     testWidgets(
         'confirmed upload survives ${systemBack ? 'system' : 'toolbar'} back, including failed refresh',

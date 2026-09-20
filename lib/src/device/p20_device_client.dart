@@ -35,6 +35,7 @@ class P20DeviceClient {
   final int frameCrc;
   final bool modernProtocol;
   P20V2Connection? _modern;
+  P20UploadSnapshot? lastUploadSnapshot;
   Socket? _socket;
   StreamSubscription<Uint8List>? _subscription;
   Timer? _reconnectTimer;
@@ -213,8 +214,11 @@ class P20DeviceClient {
   }
 
   Future<void> uploadFile(File file, int listId, List<int> gbkName,
-          {void Function(int acknowledged, int total)? onProgress}) =>
-      _requireModern().upload(file, listId, gbkName, onProgress: onProgress);
+      {void Function(int acknowledged, int total)? onProgress}) {
+    lastUploadSnapshot = null;
+    return _requireModern().upload(file, listId, gbkName,
+        onProgress: onProgress, onState: (state) => lastUploadSnapshot = state);
+  }
 
   void setPower(bool on) => send(P20Command.power, [on ? 0x01 : 0x02]);
   void setPlaying(bool playing) =>

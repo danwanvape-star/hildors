@@ -12,6 +12,95 @@ List<int> reply(int command, List<int> data) {
 }
 
 void main() {
+  test(
+      'all bytes confirmed without completion still times out and closes queue',
+      () async {
+    final server = await ServerSocket.bind(InternetAddress.loopbackIPv4, 0);
+    final directory = await Directory.systemTemp.createTemp('p20-finish-');
+    final file = await File('${directory.path}/file')
+        .writeAsBytes(List.filled(32768, 7));
+    Socket? peer;
+    var header = true;
+    var received = 0;
+    final subscription = server.listen((socket) {
+      peer = socket;
+      socket.listen((bytes) {
+        if (header) {
+          header = false;
+          socket.add(reply(0x31, [0]));
+        } else {
+          received += bytes.length;
+          if (received == 32768) socket.add(reply(0x31, [1, 0, 0, 0, 1]));
+        }
+      });
+    });
+    final client = P20V2Connection(
+        await Socket.connect('127.0.0.1', server.port),
+        timeout: const Duration(milliseconds: 300));
+    P20UploadSnapshot? snapshot;
+    try {
+      final upload = client.upload(file, 0, 'sample.mp4'.codeUnits,
+          onState: (value) => snapshot = value);
+      final queued = client.request(4);
+      await Future.wait([
+        expectLater(upload, throwsA(isA<TimeoutException>())),
+        expectLater(queued, throwsStateError),
+      ]);
+      expect(received, 32768);
+      expect(snapshot!.phase, P20UploadPhase.awaitingCompletion);
+      expect(snapshot!.acknowledged, 32768);
+    } finally {
+      await client.close();
+      peer?.destroy();
+      await subscription.cancel();
+      await server.close();
+      await directory.delete(recursive: true);
+    }
+  });
+  test('streams continuously when device batches progress notifications',
+      () async {
+    final server = await ServerSocket.bind(InternetAddress.loopbackIPv4, 0);
+    final directory = await Directory.systemTemp.createTemp('p20-stream-');
+    final file = await File('${directory.path}/file')
+        .writeAsBytes(List.filled(65537, 7));
+    Socket? peer;
+    var header = true;
+    var received = 0;
+    final subscription = server.listen((socket) {
+      peer = socket;
+      socket.listen((bytes) {
+        if (header) {
+          header = false;
+          socket.add(reply(0x31, [0]));
+        } else {
+          received += bytes.length;
+          if (received == 65537) {
+            socket.add([
+              ...reply(0x31, [1, 0, 0, 0, 1]),
+              ...reply(0x31, [1, 0, 0, 0, 2]),
+              ...reply(0x31, [2])
+            ]);
+          }
+        }
+      });
+    });
+    final client = P20V2Connection(
+        await Socket.connect('127.0.0.1', server.port),
+        timeout: const Duration(milliseconds: 300));
+    final progress = <int>[];
+    try {
+      await client.upload(file, 1, 'sample.mp4'.codeUnits,
+          onProgress: (done, total) => progress.add(done));
+      expect(received, 65537);
+      expect(progress, [0, 32768, 65536, 65537]);
+    } finally {
+      await client.close();
+      peer?.destroy();
+      await subscription.cancel();
+      await server.close();
+      await directory.delete(recursive: true);
+    }
+  });
   test('idle remote disconnect notifies owner once', () async {
     final server = await ServerSocket.bind(InternetAddress.loopbackIPv4, 0);
     final accepted = Completer<Socket>();
