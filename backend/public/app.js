@@ -428,7 +428,7 @@ async function startAdminSession() {
   if (current === epoch) $('session-retry').hidden = true;
 }
 function handleSessionFailure(error) {
-  if (error.status === 401) { endAdminSession(); $('notice').textContent = '登录已失效，请重新登录。'; $('session-retry').hidden = true; return; }
+  if (error.status === 401) { $('startup-recovery').hidden = true; endAdminSession(); $('notice').textContent = '登录已失效，请重新登录。'; $('session-retry').hidden = true; return; }
   $('notice').textContent = error.status === 403 ? '当前账号没有此页面的权限，可切换其他菜单。' : '页面暂时加载失败，请重试。无需重复登录。';
   $('session-retry').hidden = false;
 }

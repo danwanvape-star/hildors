@@ -6,7 +6,7 @@ const source=readFileSync(new URL('../public/app.js',import.meta.url),'utf8');
 function fixture(){
  const nodes=new Map(),get=id=>{if(!nodes.has(id))nodes.set(id,{hidden:false,textContent:''});return nodes.get(id);};
  const states=[];
- const context=vm.createContext({$:get,window:{location:{hash:'#content'}},refreshAdminIdentity:async()=>({actor:{isRoot:true},permissions:[]}),canAdmin:()=>true,showConnection:value=>states.push(value),showView:()=>{},openOwnPassword:()=>{},loadAdminView:async()=>{},endAdminSession:()=>states.push(false)});
+ const context=vm.createContext({$:get,window:{location:{hash:'#content'}},refreshAdminIdentity:async()=>({actor:{isRoot:true},permissions:[]}),canAdmin:()=>true,showConnection:value=>states.push(value),showView:()=>{},openOwnPassword:()=>{},loadAdminView:async()=>{},endAdminSession:()=>{states.push(false);vm.runInContext('epoch++',context);}});
  vm.runInContext("let epoch=0,activeView='content';const adminViews={content:'content.view'};",context);
  const start=source.slice(source.indexOf('async function startAdminSession()'),source.indexOf('async function refresh()'));
  vm.runInContext(start,context);
@@ -25,7 +25,7 @@ for(const status of [403,500,undefined])test('business failure '+status+' does n
 });
 test('expired session returns to login and stale startup failures cannot log out a newer session',async()=>{
  const f=fixture();f.context.refreshAdminIdentity=async()=>{throw Object.assign(new Error('expired'),{status:401});};
- await f.run('restoreAdminSession()');assert.deepEqual(f.states,[false]);
+ await f.run('restoreAdminSession()');assert.deepEqual(f.states,[false]);assert.equal(f.get('startup-recovery').hidden,true);
  f.states.length=0;let reject;f.context.refreshAdminIdentity=()=>new Promise((_,r)=>{reject=r;});
  const work=f.run('restoreAdminSession()');f.run('epoch++');reject(Object.assign(new Error('expired'),{status:401}));await work;
  assert.deepEqual(f.states,[]);
