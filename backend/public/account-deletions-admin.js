@@ -1,7 +1,7 @@
 const list = document.querySelector('#requests'), message = document.querySelector('#message');
 const el = (tag, text) => { const node = document.createElement(tag); node.textContent = text; return node; };
 let generation = 0, actor = null, permissions = new Set();
-const can = key => Boolean(actor) && (actor.isRoot === true || permissions.has(key));
+const can = key => Boolean(actor) && !actor.mustChangePassword && (actor.isRoot === true || permissions.has(key));
 async function request(path, body) {
   const response = await fetch(path, {method:body ? 'POST' : 'GET',credentials:'same-origin',headers:body ? {'Content-Type':'application/json'} : {},body:body ? JSON.stringify(body) : undefined});
   if (!response.ok) throw new Error(response.status === 401 ? '请先返回后台登录。' : response.status === 403 ? '当前账号没有此操作权限。' : response.status === 409 ? '记录已更新或已取消，请刷新。' : '操作失败，请检查填写内容或稍后重试。');
@@ -12,6 +12,7 @@ async function load() {
   try {
     const identity = await request('/admin/me'); if (current !== generation) return;
     actor = identity.actor || null; permissions = new Set(Array.isArray(identity.permissions) ? identity.permissions : []);
+    if (actor?.mustChangePassword) { message.textContent = '请点击“登录与账号”或返回管理后台，先修改本人密码，再进入此页面。'; return; }
     if (!can('account_deletions.view')) { message.textContent = '当前账号没有查看注销申请的权限。'; return; }
     const data = await request('/admin/account-deletions'); if (current !== generation) return;
     for (const item of data.items) {

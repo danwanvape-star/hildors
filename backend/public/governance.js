@@ -12,6 +12,7 @@ async function load() {
   try {
     const identity = await request('/admin/me');
     if (generation !== governanceRequest) return;
+    if (identity.actor?.mustChangePassword) { message.textContent = '请返回管理后台，先修改本人密码，再进入此页面。'; return; }
     const permissions = new Set(Array.isArray(identity.permissions) ? identity.permissions : []);
     const allowed = key => Boolean(identity.actor) && (identity.actor.isRoot === true || permissions.has(key));
     if (!allowed('governance.view')) { message.textContent = '当前账号没有查看举报的权限。'; return; }

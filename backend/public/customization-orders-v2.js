@@ -4,7 +4,7 @@ let busy = false, page = 1, hasNext = false;
 let query = '', statusFilter = '';
 let listGeneration = 0;
 let actor = null, permissions = new Set();
-const can = key => Boolean(actor) && (actor.isRoot === true || permissions.has(key));
+const can = key => Boolean(actor) && !actor.mustChangePassword && (actor.isRoot === true || permissions.has(key));
 const statuses = { free_review: '免费预审', needs_info: '待补充资料', approved_for_quote: '预审通过', quoted: '等待用户确认条款与付款', in_production: '制作中', quality_review: '平台质检', user_acceptance: '等待用户验收', delivered: '已交付', rejected: '已拒绝', withdrawn: '已撤回' };
 const path = order => `/admin/customization-orders/${encodeURIComponent(order.id)}`;
 async function request(url, options = {}) {
@@ -148,6 +148,7 @@ function renderSummary(order, generation) {
 async function load() {
   actor = null; permissions.clear(); hasNext = false; $('orders').replaceChildren();
   const identity = await request('/admin/me'); actor = identity.actor || null; permissions = new Set(Array.isArray(identity.permissions) ? identity.permissions : []);
+    if (actor?.mustChangePassword) { $('message').textContent = '请点击“登录与账号”或返回管理后台，先修改本人密码，再进入此页面。'; return; }
   if (!can('orders.view')) { $('message').textContent = '当前账号没有查看订单的权限。'; return; }
   const params = new URLSearchParams({kind:'plan',page:String(page),pageSize:'20',q:query,status:statusFilter});
   const data = await request(`/admin/customization-orders?${params}`);

@@ -18,7 +18,7 @@ if (typeof document !== 'undefined') {
   let busy = false;
   let actor = null, permissions = new Set();
   const controlPermissions = new WeakMap();
-  const can = key => Boolean(actor) && (actor.isRoot === true || permissions.has(key));
+  const can = key => Boolean(actor) && !actor.mustChangePassword && (actor.isRoot === true || permissions.has(key));
   const fieldPermissions = {durationSeconds:'plans.edit',description:'plans.edit',sortOrder:'plans.edit',usdBaseCents:'plans.pricing',audioMarkupPercent:'plans.pricing',listed:'plans.publish',appleProductId:'plans.billing',googleProductId:'plans.billing',audioAppleProductId:'plans.billing',audioGoogleProductId:'plans.billing'};
   const canSave = () => ['plans.edit','plans.pricing','plans.publish','plans.billing'].some(can);
   function updateControls() {
@@ -147,6 +147,7 @@ if (typeof document !== 'undefined') {
     actor = null; permissions.clear(); list.replaceChildren();
     const identity = await request('/admin/me');
     actor = identity.actor || null; permissions = new Set(Array.isArray(identity.permissions) ? identity.permissions : []);
+    if (actor?.mustChangePassword) { message.textContent = '请点击“登录与账号”或返回管理后台，先修改本人密码，再进入此页面。'; return; }
     if (!can('plans.view')) { message.textContent = '当前账号没有查看套餐的权限。'; return; }
     const data = await request('/admin/customization-plans');
     list.replaceChildren(...data.items.map(render));

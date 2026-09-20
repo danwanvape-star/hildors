@@ -18,3 +18,5 @@
 回退：停止 hildors-team-staging.service，将备份 code.tgz 中原代码恢复到 /opt/hildors/backend，再将 operators-rollback-compatible.mjs 覆盖 src/operators.mjs，最后启动服务并验证 /ready。兼容文件仅将旧版账号 INSERT 改成显式列名，使旧代码能使用新增列后的数据库。不要直接恢复旧数据库，以免覆盖上线后新增业务数据；保留新增列和所有已发生的密码/权限修改。新增 operator-throttle.mjs 在旧代码中不会被引用，可保留。回退会撤销强制改密和新增限流功能。
 
 审查修复：可信代理来源识别、改密退出时旧响应竞态，均已添加回归测试。
+
+追加修复（2026-09-20）：定制订单、套餐管理、举报治理、账号删除申请四个独立页面均识别首次改密状态，明确提示返回后台修改本人密码，并停止请求业务数据。普通已有账号的授权加载流程不变。新增 8 项回归测试，全量 218 项通过，0 失败、0 跳过。已部署四个静态脚本，逐一验证返回 HTTP 200 且内容哈希匹配；未重启服务或改数据库。手动代码备份：/var/backups/hildors/operator-page-gates-20260920T034653Z/code.tgz。回退仅需从该归档恢复四个脚本到 /opt/hildors/backend，不影响上一轮账号安全修复。
