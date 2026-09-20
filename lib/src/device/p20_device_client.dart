@@ -4,6 +4,7 @@ import 'dart:typed_data';
 
 import '../protocol/p20_protocol.dart';
 import 'reconnect_backoff.dart';
+import 'p20_v2_connection.dart';
 
 enum DeviceConnectionState { disconnected, connecting, reconnecting, connected }
 
@@ -15,6 +16,7 @@ class DeviceStatus {
     this.angle,
     this.playMode,
     this.baudRate,
+    this.listId,
   });
 
   final bool? poweredOn;
@@ -23,12 +25,16 @@ class DeviceStatus {
   final int? angle;
   final int? playMode;
   final int? baudRate;
+  final int? listId;
 }
 
 class P20DeviceClient {
-  P20DeviceClient({this.frameCrc = P20Protocol.crc});
+  P20DeviceClient(
+      {this.frameCrc = P20Protocol.crc, this.modernProtocol = false});
 
   final int frameCrc;
+  final bool modernProtocol;
+  P20V2Connection? _modern;
   Socket? _socket;
   StreamSubscription<Uint8List>? _subscription;
   Timer? _reconnectTimer;
@@ -81,16 +87,26 @@ class P20DeviceClient {
       }
       socket.setOption(SocketOption.tcpNoDelay, true);
       _socket = socket;
-      _subscription = socket.listen(
-        (bytes) {
-          for (final frame in _decoder.add(bytes)) {
-            _frames.add(frame);
+      if (modernProtocol) {
+        late final P20V2Connection transport;
+        transport = P20V2Connection(socket, onClosed: () {
+          if (identical(_modern, transport)) {
+            unawaited(_handleTransportClosed());
           }
-        },
-        onError: (_) => _handleTransportClosed(),
-        onDone: _handleTransportClosed,
-        cancelOnError: true,
-      );
+        });
+        _modern = transport;
+      } else {
+        _subscription = socket.listen(
+          (bytes) {
+            for (final frame in _decoder.add(bytes)) {
+              _frames.add(frame);
+            }
+          },
+          onError: (_) => _handleTransportClosed(),
+          onDone: _handleTransportClosed,
+          cancelOnError: true,
+        );
+      }
       _backoff.reset();
       _emitConnection(DeviceConnectionState.connected);
     } catch (_) {
@@ -146,10 +162,16 @@ class P20DeviceClient {
   Future<void> _closeTransport() async {
     final subscription = _subscription;
     final socket = _socket;
+    final modern = _modern;
+    _modern = null;
     _subscription = null;
     _socket = null;
     await subscription?.cancel();
-    await socket?.close();
+    if (modern != null) {
+      await modern.close();
+    } else {
+      await socket?.close();
+    }
   }
 
   void _emitConnection(DeviceConnectionState state) {
@@ -159,6 +181,15 @@ class P20DeviceClient {
   }
 
   void send(P20Command command, [List<int> data = const []]) {
+    if (modernProtocol) {
+      final transport = _requireModern();
+      final operation = command == P20Command.power
+          ? transport.power(data.single == 1)
+          : requestFrame(command, data).then<void>((_) {});
+      // A failed command closes the transport; onClosed drives connection UI.
+      unawaited(operation.catchError((Object _) {}));
+      return;
+    }
     final socket = _socket;
     if (socket == null || !isConnected) {
       throw StateError('Device is not connected');
@@ -166,20 +197,41 @@ class P20DeviceClient {
     socket.add(P20Protocol.encode(command, data, frameCrc));
   }
 
+  P20V2Connection _requireModern() {
+    final transport = _modern;
+    if (transport == null || !isConnected) {
+      throw StateError('Device is not connected with the P20 v2 protocol');
+    }
+    return transport;
+  }
+
+  Future<P20Frame> requestFrame(P20Command command,
+      [List<int> data = const []]) async {
+    final frame = await _requireModern().request(command.code, data);
+    if (!_disposed) _frames.add(frame);
+    return frame;
+  }
+
+  Future<void> uploadFile(File file, int listId, List<int> gbkName,
+          {void Function(int acknowledged, int total)? onProgress}) =>
+      _requireModern().upload(file, listId, gbkName, onProgress: onProgress);
+
   void setPower(bool on) => send(P20Command.power, [on ? 0x01 : 0x02]);
   void setPlaying(bool playing) =>
       send(P20Command.playback, [playing ? 0x01 : 0x02]);
   void firstTrack() => send(P20Command.track, [0x01]);
   void previousTrack() => send(P20Command.track, [0x02]);
   void nextTrack() => send(P20Command.track, [0x03]);
-  void queryStatus() => send(P20Command.queryStatus, [0x00]);
-  void setBrightness(int value) =>
-      send(P20Command.setBrightness, [value.clamp(1, 100).toInt()]);
+  void queryStatus() =>
+      send(P20Command.queryStatus, modernProtocol ? const [] : const [0x00]);
+  void setBrightness(int value) => send(
+      P20Command.setBrightness, [value.clamp(modernProtocol ? 0 : 1, 100)]);
   void setAngle(int value) =>
       send(P20Command.setAngle, P20Protocol.uint16BigEndian(value));
 
   DeviceStatus? parseStatus(P20Frame frame) {
-    if (frame.command != P20Command.queryStatus.code || frame.data.length < 7) {
+    if (frame.command != P20Command.queryStatus.code ||
+        frame.data.length < (modernProtocol ? 8 : 7)) {
       return null;
     }
     return DeviceStatus(
@@ -189,6 +241,7 @@ class P20DeviceClient {
       angle: (frame.data[3] << 8) | frame.data[4],
       playMode: frame.data[5],
       baudRate: frame.data[6],
+      listId: modernProtocol ? frame.data[7] : null,
     );
   }
 

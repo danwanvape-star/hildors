@@ -12,6 +12,33 @@ List<int> reply(int command, List<int> data) {
 }
 
 void main() {
+  test('idle remote disconnect notifies owner once', () async {
+    final server = await ServerSocket.bind(InternetAddress.loopbackIPv4, 0);
+    final accepted = Completer<Socket>();
+    final subscription = server.listen(accepted.complete);
+    final closed = Completer<void>();
+    var notifications = 0;
+    final client = P20V2Connection(
+      await Socket.connect('127.0.0.1', server.port),
+      onClosed: () {
+        notifications++;
+        if (!closed.isCompleted) closed.complete();
+      },
+    );
+    final peer = await accepted.future;
+    try {
+      peer.destroy();
+      await closed.future.timeout(const Duration(seconds: 1));
+      await expectLater(client.request(4), throwsStateError);
+      await client.close();
+      expect(notifications, 1);
+    } finally {
+      await client.close();
+      peer.destroy();
+      await subscription.cancel();
+      await server.close();
+    }
+  });
   test('close interrupts waiting upload and queued command', () async {
     final server = await ServerSocket.bind(InternetAddress.loopbackIPv4, 0);
     final directory = await Directory.systemTemp.createTemp('p20-cancel-');

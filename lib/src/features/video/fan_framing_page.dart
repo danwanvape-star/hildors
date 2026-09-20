@@ -77,9 +77,12 @@ class FanFramingDraftStore {
 }
 
 class FanFramingPage extends StatefulWidget {
-  const FanFramingPage({required this.source, this.asset = false, super.key});
+  const FanFramingPage(
+      {required this.source, this.asset = false, this.onUpload, super.key});
   final String source;
   final bool asset;
+  final Future<void> Function(BuildContext context, FanFraming framing)?
+      onUpload;
   @override
   State<FanFramingPage> createState() => _FanFramingPageState();
 }
@@ -286,8 +289,17 @@ class _FanFramingPageState extends State<FanFramingPage> {
               icon: const Icon(Icons.save_outlined),
               label: Text(_saving ? '保存中…' : '保存展示范围')),
           const SizedBox(height: 8),
-          const OutlinedButton(onPressed: null, child: Text('转码并上传 · 暂未开放')),
-          const Text('当前仅保存展示范围。设备转码接入后，可按此取景生成设备视频。',
+          OutlinedButton(
+              onPressed: widget.onUpload == null || player == null || _saving
+                  ? null
+                  : () async {
+                      await _player?.pause();
+                      if (context.mounted) {
+                        await widget.onUpload!(context, _frame);
+                      }
+                    },
+              child: Text(widget.onUpload == null ? '请从设备播放列表进入上传' : '转码并上传')),
+          const Text('保存只记录展示范围；点击转码并上传后，才会处理并传输设备文件。',
               textAlign: TextAlign.center),
         ],
       )),

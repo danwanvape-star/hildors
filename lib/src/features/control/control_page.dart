@@ -40,7 +40,7 @@ class _ControlPageState extends State<ControlPage> with WidgetsBindingObserver {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _ownsClient = widget.client == null;
-    _client = widget.client ?? P20DeviceClient();
+    _client = widget.client ?? P20DeviceClient(modernProtocol: true);
     _session = P20CommandSession(_client);
     _connection = _client.connectionState;
     if (_client.isConnected) unawaited(_refreshBluetoothName());

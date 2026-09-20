@@ -24,7 +24,7 @@ class _DashboardPageState extends State<DashboardPage> {
   @override
   void initState() {
     super.initState();
-    _client = P20DeviceClient();
+    _client = P20DeviceClient(modernProtocol: true);
     _session = P20CommandSession(_client);
     _projection = P20ProjectionService(_client, _session);
   }

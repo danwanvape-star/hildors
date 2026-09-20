@@ -21,12 +21,29 @@ class P20DeviceUploadRejected implements Exception {
 /// Sole owner of a September-2026 device socket. Do not open concurrently with
 /// the legacy client: the firmware only permits one TCP client.
 class P20V2Connection {
-  P20V2Connection(this._socket, {this.timeout = const Duration(seconds: 15)}) {
+  P20V2Connection(this._socket,
+      {this.timeout = const Duration(seconds: 15), this.onClosed}) {
     final decoder = P20V2Decoder();
-    _responses = StreamIterator(_socket.expand(decoder.add));
+    _responses = StreamIterator(_incoming.stream);
+    // Keep reading while idle so a paused response iterator cannot conceal EOF.
+    _subscription = _socket.listen((bytes) {
+      if (_closed) return;
+      try {
+        for (final frame in decoder.add(bytes)) {
+          _incoming.add(frame);
+        }
+      } catch (_) {
+        unawaited(close());
+      }
+    },
+        onDone: () => unawaited(close()),
+        onError: (Object _) => unawaited(close()));
   }
   final Socket _socket;
   final Duration timeout;
+  final void Function()? onClosed;
+  final _incoming = StreamController<P20Frame>();
+  late final StreamSubscription<List<int>> _subscription;
   late final StreamIterator<P20Frame> _responses;
   Future<void> _tail = Future.value();
   bool _closed = false;
@@ -146,6 +163,9 @@ class P20V2Connection {
     if (_closed) return;
     _closed = true;
     _socket.destroy();
+    await _subscription.cancel();
     await _responses.cancel();
+    unawaited(_incoming.close());
+    onClosed?.call();
   }
 }

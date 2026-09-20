@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:collection';
 import 'dart:convert';
+import 'package:gbk_codec/gbk_codec.dart';
 
 import '../protocol/p20_protocol.dart';
 import 'p20_device_client.dart';
@@ -14,18 +15,22 @@ class P20VideoEntry {
     required this.total,
     required this.index,
     required this.fileName,
+    this.listId = 0,
   });
 
   final int total;
   final int index;
   final String fileName;
+  final int listId;
 }
 
 class P20CurrentVideo {
-  const P20CurrentVideo({required this.index, required this.playing});
+  const P20CurrentVideo(
+      {required this.index, required this.playing, this.listId = 0});
 
   final int index;
   final bool playing;
+  final int listId;
 }
 
 class P20CommandException implements Exception {
@@ -49,13 +54,16 @@ class P20CommandSession {
 
   Future<P20Frame> request(
     P20Command command, [
-    List<int> data = const [0x00],
+    List<int>? data,
     Duration timeout = const Duration(seconds: 3),
   ]) {
+    if (client.modernProtocol) {
+      return client.requestFrame(command, data ?? const []);
+    }
     final completer = Completer<P20Frame>();
     (_pending[command.code] ??= Queue()).add(completer);
     try {
-      client.send(command, data);
+      client.send(command, data ?? const [0x00]);
     } catch (error, stackTrace) {
       _pending[command.code]?.remove(completer);
       completer.completeError(error, stackTrace);
@@ -103,7 +111,25 @@ class P20CommandSession {
     _requireSuccess(frame, resultIndex: 1);
   }
 
-  Future<P20VideoEntry?> queryVideo(int index) async {
+  Future<P20VideoEntry?> queryVideo(int index, {int listId = 0}) async {
+    _validateList(listId);
+    if (client.modernProtocol) {
+      RangeError.checkValueInInterval(index, 0, 95, 'index');
+      final frame = await request(P20Command.queryVideoList, [listId, index]);
+      _requireLength(frame, 3);
+      if (frame.data[0] != listId ||
+          frame.data[2] != index ||
+          frame.data[1] > 96) {
+        throw const P20CommandException('播放列表应答不匹配');
+      }
+      if (frame.data[1] == 0 || index >= frame.data[1]) return null;
+      if (frame.data.length == 3) throw const P20CommandException('视频文件名缺失');
+      return P20VideoEntry(
+          total: frame.data[1],
+          index: index,
+          listId: listId,
+          fileName: gbk_bytes.decode(frame.data.sublist(3)));
+    }
     if (index < 0 || index > 254) {
       throw RangeError.range(index, 0, 254, 'index');
     }
@@ -117,11 +143,14 @@ class P20CommandSession {
     );
   }
 
-  Future<List<P20VideoEntry>> queryVideos() async {
+  Future<List<P20VideoEntry>> queryVideos({int listId = 0}) async {
     final videos = <P20VideoEntry>[];
-    for (var index = 0; index < 50; index++) {
-      final video = await queryVideo(index);
+    for (var index = 0; index < (client.modernProtocol ? 96 : 50); index++) {
+      final video = await queryVideo(index, listId: listId);
       if (video == null) break;
+      if (videos.isNotEmpty && videos.first.total != video.total) {
+        throw const P20CommandException('设备列表已变化，请刷新');
+      }
       videos.add(video);
       if (videos.length >= video.total) break;
     }
@@ -130,22 +159,33 @@ class P20CommandSession {
 
   Future<P20CurrentVideo> queryCurrentVideo() async {
     final frame = await request(P20Command.queryCurrentVideo);
+    if (client.modernProtocol) {
+      _requireLength(frame, 3);
+      return P20CurrentVideo(
+          listId: frame.data[0],
+          index: frame.data[1],
+          playing: frame.data[2] == 1);
+    }
     _requireLength(frame, 2);
     return P20CurrentVideo(index: frame.data[0], playing: frame.data[1] == 1);
   }
 
-  Future<void> playVideo(String fileName) async {
-    final frame = await request(P20Command.playVideo, utf8.encode(fileName));
+  Future<void> playVideo(String fileName, {int listId = 0}) async {
+    final frame =
+        await request(P20Command.playVideo, _filePayload(fileName, listId));
     _requireSuccess(frame);
   }
 
-  Future<void> deleteVideo(String fileName) async {
-    final frame = await request(P20Command.deleteVideo, utf8.encode(fileName));
+  Future<void> deleteVideo(String fileName, {int listId = 0}) async {
+    final frame =
+        await request(P20Command.deleteVideo, _filePayload(fileName, listId));
     _requireSuccess(frame);
   }
 
-  Future<void> deleteAllVideos() async {
-    final frame = await request(P20Command.deleteAllVideos, [0xFF]);
+  Future<void> deleteAllVideos({int listId = 0}) async {
+    _validateList(listId);
+    final frame = await request(
+        P20Command.deleteAllVideos, [client.modernProtocol ? listId : 0xFF]);
     _requireSuccess(frame, resultIndex: 1);
   }
 
@@ -153,13 +193,41 @@ class P20CommandSession {
     required int total,
     required int from,
     required int to,
+    int listId = 0,
   }) async {
-    final frame = await request(P20Command.reorderVideos, [total, from, to]);
-    _requireSuccess(frame);
+    _validateList(listId);
+    final frame = await request(P20Command.reorderVideos,
+        [if (client.modernProtocol) listId, total, from, to]);
+    _requireSuccess(frame, resultIndex: client.modernProtocol ? 1 : 0);
+  }
+
+  static void _validateList(int listId) =>
+      RangeError.checkValueInInterval(listId, 0, 1, 'listId');
+
+  List<int> _filePayload(String name, int listId) {
+    _validateList(listId);
+    if (!client.modernProtocol) return utf8.encode(name);
+    final bytes = gbk_bytes.encode(name);
+    if (bytes.isEmpty ||
+        bytes.length > 61 ||
+        gbk_bytes.decode(bytes) != name ||
+        name.contains('/') ||
+        name.contains('\\') ||
+        name.contains('\u0000')) {
+      throw const P20CommandException('设备文件名不合法');
+    }
+    return [listId, ...bytes];
   }
 
   Future<String> queryBluetoothSpeakerName() async {
     final frame = await request(P20Command.queryBluetoothSpeakerName);
+    if (client.modernProtocol) {
+      _requireLength(frame, 1);
+      if (frame.data.length != frame.data[0] + 1) {
+        throw const P20CommandException('蓝牙名称长度不合法');
+      }
+      return gbk_bytes.decode(frame.data.sublist(1));
+    }
     return utf8.decode(frame.data, allowMalformed: true).trim();
   }
 

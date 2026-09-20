@@ -12,6 +12,8 @@ import 'character_video_package.dart';
 import 'character_package_picker.dart';
 import 'fan_framing_page.dart';
 import 'pending_playlist_store.dart';
+import 'p20_upload_page.dart';
+import 'p20_media_upload_flow.dart';
 
 bool _isNetworkVideoSource(String source) {
   final scheme = Uri.tryParse(source)?.scheme.toLowerCase();
@@ -91,10 +93,8 @@ class _PlaylistManagementPageState extends State<PlaylistManagementPage> {
         });
         await _savePending(target);
         if (videos.length == 1 && mounted) {
-          final video = videos.single.video;
-          await Navigator.of(context).push(MaterialPageRoute<void>(
-              builder: (_) =>
-                  FanFramingPage(source: video.source, asset: video.asset)));
+          await _openPending(
+              target, videos.single.key, _pending[target]![videos.single.key]!);
         }
       } else {
         final picked = await FilePicker.pickFile(
@@ -105,8 +105,8 @@ class _PlaylistManagementPageState extends State<PlaylistManagementPage> {
             (title: picked.name, source: picked.path!, asset: false));
         await _savePending(target);
         if (!mounted) return;
-        await Navigator.of(context).push(MaterialPageRoute<void>(
-            builder: (_) => FanFramingPage(source: picked!.path!)));
+        await _openPending(
+            target, picked!.path!, _pending[target]![picked.path!]!);
       }
     } catch (_) {
       if (mounted) {
@@ -181,8 +181,38 @@ class _PlaylistManagementPageState extends State<PlaylistManagementPage> {
       }
       if (!mounted) return;
       await Navigator.of(context).push(MaterialPageRoute<void>(
-          builder: (_) =>
-              FanFramingPage(source: video.source, asset: video.asset)));
+          builder: (_) => FanFramingPage(
+              source: video.source,
+              asset: video.asset,
+              onUpload: (framingContext, framing) async {
+                final name = await Navigator.of(framingContext).push<String>(
+                    MaterialPageRoute(
+                        builder: (_) => P20UploadPage(
+                            client: widget.client,
+                            session: widget.session,
+                            source: video.source,
+                            asset: video.asset,
+                            framing: framing,
+                            list: kind == DevicePlaylistKind.startup
+                                ? P20MediaList.daily
+                                : P20MediaList.bluetooth)));
+                if (name == null || !mounted) return;
+                final draft =
+                    (kind == DevicePlaylistKind.startup ? _startup : _bluetooth)
+                        .add(name);
+                setState(() {
+                  if (kind == DevicePlaylistKind.startup) {
+                    _startup = draft;
+                  } else {
+                    _bluetooth = draft;
+                  }
+                  _pending[kind]!.remove(key);
+                  _deviceVideos = const [];
+                });
+                await _saveList(draft);
+                await _savePending(kind);
+                if (framingContext.mounted) Navigator.pop(framingContext);
+              })));
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context)
@@ -220,8 +250,7 @@ class _PlaylistManagementPageState extends State<PlaylistManagementPage> {
       setState(() => _pending[kind]![key] = video);
       await _savePending(kind);
       if (!mounted) return;
-      await Navigator.of(context).push(MaterialPageRoute<void>(
-          builder: (_) => FanFramingPage(source: video.source)));
+      await _openPending(kind, key, video);
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context)
@@ -315,13 +344,14 @@ class _PlaylistManagementPageState extends State<PlaylistManagementPage> {
 
   Future<void> _readDeviceVideos() async {
     if (!_connected || _loading) return;
+    final kind = _kind;
     setState(() {
       _loading = true;
       _error = null;
     });
     try {
-      final videos = await widget.session.queryVideos();
-      if (mounted) setState(() => _deviceVideos = videos);
+      final videos = await widget.session.queryVideos(listId: kind.index);
+      if (mounted && _kind == kind) setState(() => _deviceVideos = videos);
     } catch (error) {
       if (mounted) {
         setState(() => _error = friendlyDeviceConnectionError(error));
@@ -369,6 +399,7 @@ class _PlaylistManagementPageState extends State<PlaylistManagementPage> {
   }
 
   Future<void> _playOnDevice(String fileName) async {
+    final kind = _kind;
     if (!_connected) {
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
@@ -378,7 +409,7 @@ class _PlaylistManagementPageState extends State<PlaylistManagementPage> {
     if (_playingFileName != null) return;
     setState(() => _playingFileName = fileName);
     try {
-      final available = await widget.session.queryVideos();
+      final available = await widget.session.queryVideos(listId: kind.index);
       if (!available.any((video) => video.fileName == fileName)) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -386,7 +417,7 @@ class _PlaylistManagementPageState extends State<PlaylistManagementPage> {
         }
         return;
       }
-      await widget.session.playVideo(fileName);
+      await widget.session.playVideo(fileName, listId: kind.index);
       if (!mounted) return;
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
@@ -482,8 +513,11 @@ class _PlaylistManagementPageState extends State<PlaylistManagementPage> {
                 ),
               ],
               selected: {_kind},
-              onSelectionChanged: (value) =>
-                  setState(() => _kind = value.single),
+              onSelectionChanged: (value) => setState(() {
+                _kind = value.single;
+                _deviceVideos = const [];
+                _error = null;
+              }),
             ),
             const SizedBox(height: 10),
             _DeviceStatusBar(
