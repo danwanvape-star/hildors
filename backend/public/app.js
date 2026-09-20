@@ -21,7 +21,7 @@ async function api(path, body) {
     headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin',
     body: body === undefined ? undefined : JSON.stringify(body) });
   const result = await response.json();
-  if (!response.ok) throw new Error(messages[result.code] || '操作失败，请稍后重试。');
+  if (!response.ok) throw Object.assign(new Error(messages[result.code] || '操作失败，请稍后重试。'), {status:response.status,code:result.code});
   return result;
 }
 function text(tag, value, className) { const el = document.createElement(tag); el.textContent = value; if (className) el.className = className; return el; }
@@ -411,13 +411,25 @@ async function startAdminSession() {
   const current = epoch;
   const identity = await refreshAdminIdentity();
   if (!identity || current !== epoch) return;
+  showConnection(true);
   if (identity.actor.mustChangePassword) { showView('empty'); $('view-subtitle').textContent = '完成本人密码设置后即可进入已授权模块。'; showConnection(true); $('notice').textContent = '请先修改本人密码，再进入业务模块。'; openOwnPassword(); return; }
   const requested = window.location?.hash?.slice(1);
   if (requested && Object.hasOwn(adminViews, requested) && canAdmin(adminViews[requested])) activeView = requested;
   const view = Object.hasOwn(adminViews, activeView) && canAdmin(adminViews[activeView]) ? activeView : Object.keys(adminViews).find(key => canAdmin(adminViews[key]));
-  if (view) await loadAdminView(view);
+  if (view) { showView(view); await loadAdminView(view); }
   else { showView('empty'); $('notice').textContent = ['governance.view','plans.view','account_deletions.view'].some(canAdmin) ? '请从左侧进入已授权的管理模块。' : '当前账号暂无可用业务模块，请联系管理员分配权限。'; }
-  if (current === epoch) showConnection(true);
+  if (current === epoch) $('session-retry').hidden = true;
+}
+function handleSessionFailure(error) {
+  if (error.status === 401) { endAdminSession(); $('notice').textContent = '登录已失效，请重新登录。'; $('session-retry').hidden = true; return; }
+  $('notice').textContent = error.status === 403 ? '当前账号没有此页面的权限，可切换其他菜单。' : '页面暂时加载失败，请重试。无需重复登录。';
+  $('session-retry').hidden = false;
+}
+async function restoreAdminSession() {
+  const current = epoch;
+  $('login').hidden = true; $('session-retry').hidden = true;
+  try { await startAdminSession(); }
+  catch (error) { if (current === epoch) handleSessionFailure(error); }
 }
 async function refresh() {
   const current = epoch;
@@ -429,7 +441,7 @@ async function refresh() {
 $('login').onsubmit = async event => {
   event.preventDefault(); epoch++;
   $('workspace').hidden = true;
-  try { await api('/admin/login', { username: $('username').value.trim(), password: $('password').value }); $('password').value = ''; await startAdminSession(); }
+  try { await api('/admin/login', { username: $('username').value.trim(), password: $('password').value }); $('password').value = ''; await restoreAdminSession(); }
   catch (error) { $('password').value = ''; showConnection(false); $('notice').textContent = error.message; }
 };
 function endAdminSession() { epoch++; clearOperatorManagement(); clearAudit(); clearOrderDetail(); clearCreatorManagement(); clearPreviews(); items = []; orders = []; creators = []; layoutState = null; reviewing = null; showConnection(false); document.querySelectorAll('[data-panel]').forEach(x => x.hidden = true); $('cards').replaceChildren(); for (const id of ['editor','review-dialog','content-detail','metadata-dialog','tags-dialog','clip-review-dialog']) $(id).close(); selectedItemId = null; $('notice').textContent = '已安全退出后台。'; }
@@ -441,8 +453,9 @@ $('order-status').onchange = resetOrderPage;
 $('orders-refresh').onclick = () => refreshOrders().catch(error => $('notice').textContent = error.message);
 $('creators-refresh').onclick = () => refreshCreators().catch(error => $('notice').textContent = error.message);
 document.querySelectorAll('[data-view]').forEach(button => button.onclick = async () => {
-  try { await loadAdminView(button.dataset.view); }
-  catch (error) { $('notice').textContent = error.message; }
+  const current = epoch;
+  try { await loadAdminView(button.dataset.view); $('session-retry').hidden = true; }
+  catch (error) { if (current === epoch) handleSessionFailure(error); }
 });
 document.querySelectorAll('[data-layout-page]').forEach(button => button.onclick = () => { layoutPage = button.dataset.layoutPage; renderLayout(); });
 $('layout-save').onclick = async () => { try { layoutState = await api('/admin/layout/draft', { version: layoutState.version, layout: layoutState.draft }); layoutSavedSnapshot = JSON.stringify(layoutState.draft); renderLayout(); $('notice').textContent = '页面装修草稿已保存，尚未影响用户。'; } catch (error) { $('notice').textContent = error.message; } };
@@ -549,5 +562,5 @@ initCreatorManagement();
 initOperatorManagement();
 initAuditManagement();
 $('notice').textContent = '正在检查登录状态…';
-startAdminSession()
-  .catch(() => { showConnection(false); $('workspace').hidden = true; $('notice').textContent = '请使用管理员账号登录。'; });
+$('session-retry').onclick = () => restoreAdminSession();
+restoreAdminSession();
