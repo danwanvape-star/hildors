@@ -3,7 +3,7 @@ import { visibleClip } from './package-clips.mjs';
 import { validPricing, publicFullPreview } from './clip-pricing.mjs';
 export function authorizedClip(store, userId, packageId, clipId) {
   const item = store.get(packageId);
-  if (!item || item.status !== 'published' || item.demo || item.review?.decision !== 'approved') return null;
+  if (!item || item.deletedAt || item.status !== 'published' || item.demo || item.review?.decision !== 'approved') return null;
   const clip = item.clips.find(c => c.id === clipId && visibleClip(c));
   if (!clip) return null;
   if (clip.pricing !== undefined) {
@@ -14,7 +14,7 @@ export function authorizedClip(store, userId, packageId, clipId) {
     || !/^[a-f0-9-]{36}$/.test(media.id) || !/^[a-f0-9]{64}$/.test(media.sha256)
     || !Number.isSafeInteger(media.bytes) || media.bytes <= 0) return null;
   // Aliases of the same bytes cannot bypass configured paid or invalid pricing.
-  if ((store.list?.() ?? [item]).some(p => p.clips.some(c =>
+  if ((store.list?.({ includeDeleted: true }) ?? [item]).some(p => p.clips.some(c =>
     c.media?.id === media.id && !publicFullPreview(c)))) return null;
   return { item, clip, media };
 }

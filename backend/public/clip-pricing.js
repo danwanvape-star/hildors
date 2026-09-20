@@ -21,9 +21,12 @@ function createClipPricingEditor(item, clip, { save, onSaved }) {
   amountLabel.append(amount);
   const notice = element('p'); notice.role = 'status'; notice.setAttribute('role', 'status');
   const button = element('button', '保存单条价格'); button.type = 'button';
-  mode.onchange = () => { amountLabel.hidden = mode.value !== 'paid'; amount.disabled = mode.value !== 'paid'; };
+  const canPrice = () => typeof canAdmin === 'function' && canAdmin('content.pricing');
+  mode.disabled = !canPrice(); button.hidden = !canPrice();
+  mode.onchange = () => { amountLabel.hidden = mode.value !== 'paid'; amount.disabled = mode.value !== 'paid' || !canPrice(); };
   mode.onchange();
   button.onclick = async () => {
+    if (!canPrice()) return;
     notice.textContent = '';
     if (!['free', 'paid'].includes(mode.value)) { notice.textContent = '请选择免费或收费。'; return; }
     let amountMinor = 0;

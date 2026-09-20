@@ -51,9 +51,10 @@ export async function receiveImage(req, directory, contentType, limit = 8 * 1024
   } catch (error) { await handle?.close(); await unlink(temporary).catch(() => {}); throw error; }
 }
 
-export async function serveImage(res, directory, image, { publicCache = false } = {}) {
+export async function serveImage(res, directory, image, { publicCache = false, preflight } = {}) {
   const path = resolve(directory, `${image.id}.${image.extension}`);
   const info = await stat(path);
+  if (preflight && !preflight()) return;
   res.writeHead(200, { 'Content-Type': image.contentType, 'Content-Length': info.size,
     'Cache-Control': publicCache ? 'public, max-age=3600' : 'no-store', 'X-Content-Type-Options': 'nosniff' });
   const stream = createReadStream(path); stream.on('error', () => res.destroy());

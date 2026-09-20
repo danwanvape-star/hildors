@@ -61,9 +61,9 @@ export async function videoPreview(directory, id) {
   pending.set(target, work);
   try { return await work; } finally { pending.delete(target); }
 }
-export async function serveVideoPreview(req, res, directory, id, preflight) {
+export async function serveVideoPreview(req, res, directory, id, preflight, { cacheControl = 'public, max-age=0, must-revalidate' } = {}) {
   await videoPreview(directory, id);
   return serveMedia(req, res, resolve(directory, 'video-previews-v1'), id, {
-    preflight, cacheControl: 'public, max-age=0, must-revalidate', etag: `"video-${id}-preview-v1"`,
+    preflight, cacheControl, etag: `"video-${id}-preview-v1"`,
   });
 }

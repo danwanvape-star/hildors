@@ -14,7 +14,7 @@ function showConnection(connected) {
   $('connected').hidden = !connected;
 }
 function clearPreviews() { for (const url of previews) URL.revokeObjectURL(url); previews.clear(); }
-const messages = { UNAUTHORIZED: '登录已过期，请重新登录。', INVALID_CREDENTIALS: '用户名或密码错误。', VERSION_OR_STATE_CONFLICT: '内容已被更新，请刷新后重试。', INVALID_ORDER_TRANSITION: '不能跳过必要步骤，请按流程推进订单。', ORDER_QUOTE_REQUIRED: '报价时必须填写金额、币种和预计工期。', ORDER_PRODUCTION_REQUIRED: '进入制作前必须指定负责人和截止日期。', ORDER_DELIVERABLE_REQUIRED: '提交质检前必须填写成品文件或任务地址。', ORDER_QC_REQUIRED: '平台质检全部通过后才能提交用户验收。', ORDER_DELIVERY_REQUIRED: '完成交付前必须填写最终交付记录。', MEDIA_REVIEW_REQUIRED: '需要先完成素材处理和审核。', PACKAGE_COVER_REQUIRED: '角色视频包必须先上传角色主图。', INVALID_PACKAGE: '请检查名称、视频数量和标签。' };
+const messages = { PASSWORD_CHANGE_REQUIRED:'请先修改本人密码，再进入业务模块。', OPERATOR_INVALID_CREDENTIALS:'当前密码不正确。', OPERATOR_PASSWORD_REUSED:'新密码不能与当前密码相同。', OPERATOR_INVALID_PASSWORD:'密码须为 12–128 个字符。', FORBIDDEN: '当前账号没有此操作权限，请联系管理员。', PERMISSION_DENIED: '当前账号没有此操作权限，请联系管理员。', CONTENT_GOVERNANCE_HOLD: '内容存在治理限制，请先处理相关问题。', LOGIN_RATE_LIMITED: '登录尝试过多，请稍后再试。', UNAUTHORIZED: '登录已过期，请重新登录。', INVALID_CREDENTIALS: '用户名或密码错误。', VERSION_OR_STATE_CONFLICT: '内容已被更新，请刷新后重试。', INVALID_ORDER_TRANSITION: '不能跳过必要步骤，请按流程推进订单。', ORDER_QUOTE_REQUIRED: '报价时必须填写金额、币种和预计工期。', ORDER_PRODUCTION_REQUIRED: '进入制作前必须指定负责人和截止日期。', ORDER_DELIVERABLE_REQUIRED: '提交质检前必须填写成品文件或任务地址。', ORDER_QC_REQUIRED: '平台质检全部通过后才能提交用户验收。', ORDER_DELIVERY_REQUIRED: '完成交付前必须填写最终交付记录。', MEDIA_REVIEW_REQUIRED: '需要先完成素材处理和审核。', PACKAGE_COVER_REQUIRED: '角色视频包必须先上传角色主图。', INVALID_PACKAGE: '请检查名称、视频数量和标签。' };
 Object.assign(messages, { ORDER_USER_CONFIRMATION_REQUIRED:'请等待用户在 App 中亲自确认。', ORDER_CREATOR_INELIGIBLE:'该创作者未认证或没有接单权限，请重新选择。', ORDER_SELF_ASSIGNMENT:'不能将订单分配给下单用户本人。', ORDER_APPLICATION_REQUIRED:'请从已报名创作者中选择制作人。', ORDER_DISPATCH_STAGE:'当前订单状态不允许派单，请重新加载详情。', ORDER_CREATOR_REQUIRED:'请先选择具备接单资格的创作者。', ORDER_NOTE_REQUIRED:'请填写本次处理说明。', ORDER_QUOTE_PROPOSAL_REQUIRED:'请等待创作者提交建议报价。', ORDER_ALREADY_ASSIGNED:'订单已有制作人，请重新加载详情。' });
 async function api(path, body) {
   const response = await fetch(path, { method: body === undefined ? 'GET' : 'POST',
@@ -45,7 +45,7 @@ function orderFields(next, order) {
 function showView(view) {
   activeView = view;
   $('console-main').classList.toggle('orders-mode', view === 'orders');
-  const titles = { content: ['内容管理', '管理角色内容、创作者投稿与上架进度。'], orders: ['定制订单', '审核需求、分配创作者并跟进制作交付。'], creators: ['创作者管理', '审核创作者资格与管理接单权限。'], layout: ['页面装修', '管理 App 页面模块与发布版本。'] };
+  const titles = { content: ['内容管理', '管理角色内容、创作者投稿与上架进度。'], orders: ['角色定制 · 历史报价订单', '审核需求、分配创作者并跟进制作交付。'], creators: ['创作者管理', '审核创作者资格与管理接单权限。'], audit: ['运营日志', '查看操作记录与操作人。'], operators: ['运营账号', '按岗位创建账号并逐项分配管理权限。'], empty: ['运营工作台', '当前账号尚未分配业务模块。'], layout: ['APP界面装修', '管理 App 页面模块与发布版本。'] };
   $('view-title').textContent = titles[view][0];
   $('view-subtitle').textContent = titles[view][1];
   document.querySelectorAll('[data-panel]').forEach(panel => panel.hidden = panel.dataset.panel !== view);
@@ -67,7 +67,7 @@ function renderLayout() {
   const blocks = layoutState.draft.pages[layoutPage];
   $('layout-blocks').replaceChildren(); $('layout-preview').replaceChildren();
   blocks.forEach((block, index) => {
-    const row = text('div', '', 'layout-block'); row.draggable = true;
+    const row = text('div', '', 'layout-block'); row.draggable = canAdmin('layout.edit');
     row.ondragstart = () => { draggedLayoutIndex = index; row.classList.add('dragging'); };
     row.ondragend = () => { draggedLayoutIndex = null; row.classList.remove('dragging'); };
     row.ondragover = event => event.preventDefault();
@@ -82,6 +82,8 @@ function renderLayout() {
     const columns = document.createElement('select'); for (const count of [1,2,3]) { const option = document.createElement('option'); option.value = count; option.textContent = `${count}列`; option.selected = count === block.columns; columns.append(option); } columns.onchange = () => { block.columns = Number(columns.value); renderLayout(); };
     options.append(visibleLabel, columns); row.append(handle, fields, options); $('layout-blocks').append(row);
   });
+  if (!canAdmin('layout.edit')) for (const control of $('layout-blocks').querySelectorAll('input,select')) control.disabled = true;
+  applyAdminPermissions();
   renderLayoutPreview();
 }
 function updateLayoutDirty() {
@@ -101,17 +103,22 @@ function renderLayoutPreview() {
 }
 async function refreshLayout() { layoutState = await api('/admin/layout'); layoutSavedSnapshot = JSON.stringify(layoutState.draft); renderLayout(); }
 function contentState(item) {
+  if (item.deletedAt) return 'deleted';
   if (item.status !== 'draft') return item.status;
   return item.submissionStatus || (item.review?.decision === 'approved' ? 'approved' : item.review?.decision === 'rejected' ? 'rejected' : 'draft');
 }
-const contentStateLabels = {draft:'草稿', pending:'待审核', approved:'已入库待上架', rejected:'已退回', published:'已上架', withdrawn:'已下架'};
+const contentStateLabels = {draft:'草稿', pending:'待审核', approved:'待上架', rejected:'已退回', published:'已上架', withdrawn:'已下架', deleted:'已删除'};
 function resetPage() { contentPage = 1; render(); }
 function render() {
-  $('total').textContent = items.length;
-  $('published').textContent = items.filter(x => x.status === 'published').length;
-  $('drafts').textContent = items.filter(x => x.status === 'draft').length;
+  renderContentTabs();
+  $('creator-pending-count').textContent = String(items.filter(x => x.source === 'creator' && contentState(x) === 'pending').length);
+  const creatorQueue = $('source-filter').value === 'creator' && $('status').value === 'pending';
+  $('creator-review-guide').hidden = !creatorQueue;
+  $('total').textContent = items.filter(x => !x.deletedAt).length;
+  $('published').textContent = items.filter(x => !x.deletedAt && x.status === 'published').length;
+  $('drafts').textContent = items.filter(x => !x.deletedAt && x.status === 'draft').length;
   const query = $('search').value.trim().toLowerCase();
-  const visible = items.filter(x => (!$('status').value || contentState(x) === $('status').value)
+  const visible = items.filter(x => ($('status').value ? contentState(x) === $('status').value : !x.deletedAt)
     && (!$('source-filter').value || x.source === $('source-filter').value)
     && (!$('format-filter').value || x.format === $('format-filter').value)
     && (!$('tag-filter').value || x.tags.includes($('tag-filter').value))
@@ -132,17 +139,27 @@ function render() {
       cover.append(image);
     } else cover.append(text('span', item.format === 'package' ? '角色包' : '视频'));
     const info = text('div', '', 'content-info');
-    info.append(text('h2', item.title), text('p', item.tags.join(' · ') || '题材待补充'));
+    info.append(text('h2', item.title), text('p', item.tags.join(' · ') || '题材待补充'), text('p', contentNextStep(item), 'content-next-step'));
     const attribution = text('div', '', 'content-attribution');
     attribution.append(text('strong', item.source === 'hildors' ? 'HILDORS 出品' : '创作者出品'), text('small', item.source === 'creator' ? item.creator?.name || '历史创作者' : '官方内容'));
     const format = text('div', '', 'content-format');
     format.append(text('span', item.format === 'package' ? '角色视频包' : '单视频'), text('small', `${uploadedClips(item).length} 个视频 · ${liveClips(item).length} 已上架`));
     const status = text('span', contentStateLabels[contentState(item)] || '草稿', `content-status ${contentState(item)}`);
-    const open = text('button', '查看详情', 'secondary');
+    const open = text('button', contentState(item) === 'pending' ? '查看并审核' : '查看详情', 'secondary');
     open.onclick = () => { selectedItemId = item.id; renderDetail(item); $('content-detail').showModal(); };
-    row.append(cover, info, attribution, format, status, open); $('cards').append(row);
+    const actions = text('div', '', 'content-row-actions');
+    actions.append(open); appendContentActions(actions, item);
+    row.append(cover, info, attribution, format, status, actions); $('cards').append(row);
   }
-  if (!visible.length) $('cards').append(text('p', '暂无符合条件的内容。', 'empty'));
+  if (!visible.length) $('cards').append(text('p', creatorQueue ? '暂无待审核的创作者投稿。创作者需要在 App 中点击「提交审核」；仅上传的视频可切换状态为「草稿」查看。' : '暂无符合条件的内容。', 'empty'));
+  if (typeof applyAdminPermissions === 'function') applyAdminPermissions();
+}
+async function openCreatorSubmissions() {
+  $('search').value = ''; $('format-filter').value = ''; $('tag-filter').value = '';
+  $('source-filter').value = 'creator'; $('status').value = 'pending'; contentPage = 1;
+  showView('content'); render();
+  try { await refresh(); $('notice').textContent = '创作者投稿审核：打开「查看并审核」，检查视频后通过或退回；通过后单独上架。'; }
+  catch (error) { $('notice').textContent = error.message; }
 }
 function refreshTagFilter() {
   const selected = $('tag-filter').value;
@@ -167,18 +184,47 @@ function openMetadata(item) {
   metadataItem = item;
   $('metadata-form').elements.title.value = item.title;
   $('metadata-form').elements.description.value = item.description || '';
+  $('metadata-form').elements.englishTitle.value = item.translations?.en?.title || '';
+  $('metadata-form').elements.englishDescription.value = item.translations?.en?.description || '';
+  $('clip-translations').replaceChildren();
+  const missing = [];
+  if (!item.translations?.en?.title?.trim()) missing.push('角色名称');
+  if (!item.translations?.en?.description?.trim()) missing.push('角色背景');
+  item.clips.forEach((clip,index) => {
+    const section = document.createElement('fieldset'); section.append(text('legend', '视频：' + clip.title));
+    for (const [language,label] of [['zh','中文'],['en','英文']]) {
+      for (const [key,caption,limit] of [['title','名称',120],['description','介绍',10000]]) {
+        const field = document.createElement(key === 'title' ? 'input' : 'textarea');
+        field.name = 'clip' + (language === 'en' ? 'English' : 'Chinese') + (key === 'title' ? 'Title' : 'Description') + index;
+        field.maxLength = limit; field.value = clip.translations?.[language]?.[key] || (language === 'zh' ? clip[key] || '' : '');
+        const wrapper = text('label',label + caption); wrapper.append(field); section.append(wrapper);
+      }
+    }
+    if (!clip.translations?.en?.title?.trim() || !clip.translations?.en?.description?.trim()) missing.push('视频“' + clip.title + '”');
+    $('clip-translations').append(section);
+  });
+  $('translation-warning').textContent = missing.length ? '英文缺译：' + missing.join('、') + '。保存不会自动补译或上架。' : '英文文案已填写，请由运营确认翻译质量。';
   renderTagOptions('metadata-tags', item.tags); $('metadata-error').textContent = ''; $('metadata-dialog').showModal();
 }
 function addTagRow(tag = {id:crypto.randomUUID(),name:'',active:true}) {
   const row = text('div', '', 'tag-management-row'); row.dataset.id = tag.id;
   const name = document.createElement('input'); name.value = tag.name; name.maxLength = 32; name.required = true; name.setAttribute('aria-label', '标签名称');
   const label = text('label', '启用'); const active = document.createElement('input'); active.type = 'checkbox'; active.checked = tag.active; label.prepend(active);
-  row.append(name, label); $('tag-rows').append(row); name.focus?.();
+  const english = document.createElement('input'); english.className = 'tag-english'; english.maxLength = 32;
+  english.value = tag.translations?.en?.name || ''; english.placeholder = '英文标签（缺译时回退原文）'; english.setAttribute('aria-label', '英文标签名称');
+  row.translationValue = tag.translations || {};
+  row.append(name, english, label); $('tag-rows').append(row); name.focus?.();
 }
 Object.assign(messages, { CONTENT_TAG_REQUIRED: '请至少选择一个题材标签。', INVALID_CONTENT_TAGS: '标签无效或已停用，请刷新标签库后重选。', INVALID_PACKAGE: '请检查名称、背景介绍、视频清单和题材标签。' });
 function renderDetail(item) {
   clearPreviews();
-  const canEditMedia = item.status === 'draft' && !item.ownerId;
+  if (item.deletedAt) {
+    const archived = text('section'); archived.append(text('h2', item.title), text('p', contentNextStep(item)));
+    appendContentActions(archived, item); $('detail-body').replaceChildren(archived);
+    if (typeof applyAdminPermissions === 'function') applyAdminPermissions();
+    return;
+  }
+  const canEditMedia = item.status === 'draft' && !item.ownerId && canAdmin('content.upload');
     const card = text('article', '', 'card');
     card.classList.add(item.format === 'package' ? 'package-card' : 'single-card');
     if (item.format === 'package') {
@@ -197,7 +243,7 @@ function renderDetail(item) {
       coverInput.onchange = async () => { const file = coverInput.files[0]; if (!file) return; coverInput.disabled = true; try { const response = await fetch(`/admin/packages/${encodeURIComponent(item.id)}/cover`, { method: 'PUT', credentials: 'same-origin', headers: { 'Content-Type': file.type, 'If-Match': String(item.version) }, body: file }); const result = await response.json(); if (!response.ok) throw new Error(messages[result.code] || '主图上传失败。'); await refresh(); $('notice').textContent = '角色主图已保存。'; } catch (error) { $('notice').textContent = error.message; coverInput.disabled = false; } }; coverLabel.append(coverInput); card.append(coverLabel);
     }
     const folderTitle = item.format === 'package' ? text('h3', `包内视频（${uploadedClips(item).length}）`) : null; if (folderTitle) card.append(folderTitle);
-    if (item.format === 'package' && !item.ownerId && ['draft','published'].includes(item.status)) {
+    if (canAdmin('content.upload') && item.format === 'package' && !item.ownerId && ['draft','published'].includes(item.status)) {
       const label = text('label', '上传 / 追加视频（可多选 MP4）');
       const input = document.createElement('input'); input.type = 'file'; input.accept = '.mp4,video/mp4'; input.multiple = true;
       input.onchange = async () => {
@@ -221,7 +267,7 @@ function renderDetail(item) {
     const list = document.createElement('ul');
     for (const clip of item.clips) {
       if (item.format === 'package' && !clip.media) continue;
-      const canEditClip = !item.ownerId && (canEditMedia || (item.status === 'published' && ['draft','withdrawn'].includes(clip.visibility)));
+      const canEditClip = canAdmin('content.upload') && !item.ownerId && (canEditMedia || (item.status === 'published' && ['draft','withdrawn'].includes(clip.visibility)));
       const row = text('li', '', 'clip-row'); row.append(text('h4',clip.title));
       row.append(createClipPricingEditor(item, clip, { save: api, onSaved: async () => { await refresh(); contentNotice('单条视频价格已保存。'); } }));
       row.append(text('p', clip.visibility === 'withdrawn' ? '已下架' : item.status === 'published' && clip.visibility !== 'draft' ? '已上架' : clip.media?.inspection?.status === 'checked' ? '缩略图已生成 · 待审核上架' : clip.media ? '待自动处理 / 处理失败' : '待上传'));
@@ -291,24 +337,27 @@ function renderDetail(item) {
         if (clip.media) { const replacement = document.createElement('details'); replacement.append(text('summary','替换视频'),label); row.append(replacement); }
         else row.append(label);
       }
-      if (item.format === 'package' && clip.media && ['draft','published'].includes(item.status) && (!item.ownerId || item.status === 'published')) {
+      if (item.format === 'package' && clip.media && ['draft','published','withdrawn'].includes(item.status) && (!item.ownerId || ['published','withdrawn'].includes(item.status))) {
         if (clip.visibility !== 'withdrawn') {
           const withdraw = text('button', '单独下架此视频', 'secondary');
-          withdraw.onclick = async () => {
+          withdraw.dataset.permission = 'content.withdraw';
+      withdraw.onclick = async () => {
             if (!confirm(`确认下架“${clip.title}”？包内其他视频不受影响。`)) return;
             withdraw.disabled = true;
             try { await api(`/admin/packages/${encodeURIComponent(item.id)}/clips/${encodeURIComponent(clip.id)}/withdraw`, { version: item.version }); await refresh(); $('notice').textContent = '该视频已下架。'; }
             catch (error) { $('notice').textContent = error.message; withdraw.disabled = false; }
           }; row.append(withdraw);
         }
-        if (item.status === 'draft' && clip.visibility === 'withdrawn') {
+        if (['draft','withdrawn'].includes(item.status) && clip.visibility === 'withdrawn') {
           const restore = text('button', '恢复至草稿', 'secondary');
-          restore.onclick = async () => { restore.disabled = true; try { await api(`/admin/packages/${encodeURIComponent(item.id)}/clips/${encodeURIComponent(clip.id)}/restore`, {version:item.version}); await refresh(); } catch(error) { $('notice').textContent = error.message; restore.disabled = false; } };
+          restore.dataset.permission = 'content.delete';
+      restore.onclick = async () => { restore.disabled = true; try { await api(`/admin/packages/${encodeURIComponent(item.id)}/clips/${encodeURIComponent(clip.id)}/restore`, {version:item.version}); await refresh(); } catch(error) { $('notice').textContent = error.message; restore.disabled = false; } };
           row.append(restore);
         }
-        if (item.status === 'published' && ['draft','withdrawn'].includes(clip.visibility) && clip.media.inspection?.status === 'checked') {
+        if (canAdmin('content.review') && canAdmin('content.publish') && item.status === 'published' && ['draft','withdrawn'].includes(clip.visibility) && clip.media.inspection?.status === 'checked') {
           const publish = text('button', '审核并上架此视频');
-          publish.onclick = () => { reviewingClip = { item, clip }; $('clip-review-form').reset(); $('clip-review-title').textContent = clip.title; $('clip-review-error').textContent = ''; $('clip-review-dialog').showModal(); };
+          publish.dataset.permission = 'content.publish';
+      publish.onclick = () => { reviewingClip = { item, clip }; $('clip-review-form').reset(); $('clip-review-title').textContent = clip.title; $('clip-review-error').textContent = ''; $('clip-review-dialog').showModal(); };
           row.append(publish);
         }
       }
@@ -318,10 +367,12 @@ function renderDetail(item) {
     const allMedia = active.length > 0 && active.every(c => c.media);
     const allChecked = active.length > 0 && active.every(c => c.media?.inspection?.status === 'checked');
     const coverReady = item.format === 'single' || Boolean(item.cover) || item.demo;
-    card.append(list, text('p', item.demo ? '内置演示素材' : item.status === 'published' ? '已发布到 App 内容目录' : !coverReady ? '下一步：上传角色主图' : !allMedia ? '下一步：上传视频，可一次选择多个文件' : !allChecked ? '视频正在处理或处理失败，请查看各条视频的状态' : item.review?.decision === 'approved' ? '审核已通过，可发布到 App' : '素材已就绪，可审核入库', 'workflow-hint'));
+    if (item.ownerId && item.status === 'draft' && ['draft','rejected'].includes(item.submissionStatus)) card.append(text('p', item.submissionStatus === 'rejected' ? '已退回修改，等待创作者修改后重新提交审核。' : '创作者已保存草稿，尚未提交审核。请由创作者在 App 中完成上传并点击「提交审核」。', 'workflow-hint'));
+    card.append(list, text('p', item.ownerId && item.status === 'draft' && ['draft','rejected'].includes(item.submissionStatus) ? '作品尚未进入平台审核队列。' : item.demo ? '内置演示素材' : item.status === 'published' ? '已发布到 App 内容目录' : !coverReady ? '下一步：上传角色主图' : !allMedia ? '下一步：上传视频，可一次选择多个文件' : !allChecked ? '视频正在处理或处理失败，请查看各条视频的状态' : item.review?.decision === 'approved' ? '审核已通过，可发布到 App' : '素材已就绪，可审核入库', 'workflow-hint'));
     if (item.review) card.append(text('p', `审核：${item.review.decision === 'approved' ? '已通过' : '退回修改'} · ${item.review.note}`));
     if (item.status === 'draft' && (item.ownerId ? item.submissionStatus === 'pending' : coverReady && allChecked && item.review?.decision !== 'approved')) {
       const reviewButton = text('button', '审核内容', 'publish-action');
+      reviewButton.dataset.permission = 'content.review';
       reviewButton.onclick = () => {
         reviewing = item; $('review-form').reset(); syncReviewDecision(); $('review-error').textContent = '';
         $('review-title').textContent = `${item.title} · ${item.contentCode || item.id}`; $('review-dialog').showModal();
@@ -332,33 +383,41 @@ function renderDetail(item) {
       const unavailable = text('button', allMedia ? '视频处理完成后可审核' : '上传视频后可审核', 'publish-action');
       unavailable.disabled = true; card.append(unavailable);
     }
-    if (item.status === 'draft' && item.review?.decision === 'approved') {
-      const publish = text('button', '发布到 App', 'publish-action');
-      publish.onclick = async () => {
-        if (!confirm('发布后将出现在本地目录接口中，硬件下载与转码仍未开放。确认发布？')) return;
-        publish.disabled = true;
-        try { await api(`/admin/packages/${item.id}/publish`, { version: item.version }); await refresh(); $('notice').textContent = '目录已发布。设备适配及云端下载仍未开放。'; }
-        catch (error) { $('notice').textContent = error.message; publish.disabled = false; }
-      };
-      card.append(publish);
-    }
-    if (item.status === 'published') {
-      const button = text('button', '下架内容', 'secondary');
-      button.onclick = async () => {
-        if (!confirm(`确认下架“${item.title}”？下架后目录不再展示。`)) return;
-        button.disabled = true;
-        try { await api(`/admin/packages/${encodeURIComponent(item.id)}/withdraw`, { version: item.version }); await refresh(); $('notice').textContent = '内容已下架。'; }
-        catch (error) { $('notice').textContent = error.message; button.disabled = false; }
-      };
-      card.append(button);
-    }
+    const managementActions = text('div', '', 'content-detail-actions');
+    appendContentActions(managementActions, item); card.append(managementActions);
 
   card.append(text('h3', '角色背景介绍'), text('p', item.description || '背景介绍待补充', 'story-text'));
   if (!item.ownerId || (item.status === 'draft' && ['draft','rejected'].includes(item.submissionStatus))) {
-    const edit = text('button', '编辑名称、题材与介绍', 'secondary');
+    const edit = text('button', '编辑名称、题材与介绍', 'secondary'); edit.dataset.permission = 'content.edit';
     edit.onclick = () => openMetadata(item); card.append(edit);
   }
   $('detail-body').replaceChildren(card);
+  if (typeof applyAdminPermissions === 'function') applyAdminPermissions();
+}
+const adminViews = {content:'content.view', orders:'orders.view', creators:'creators.view', layout:'layout.view', operators:'operators.manage', audit:'audit.view'};
+async function loadAdminView(view) {
+  const current = epoch;
+  if (!Object.hasOwn(adminViews, view) || !canAdmin(adminViews[view])) return;
+  if (view === 'content') await refresh();
+  if (view === 'orders') await refreshOrders();
+  if (view === 'creators') await refreshCreators();
+  if (view === 'layout') await refreshLayout();
+  if (view === 'operators') await refreshOperators();
+  if (view === 'audit') await refreshAudit();
+  if (current !== epoch) return;
+  showView(view); applyAdminPermissions();
+}
+async function startAdminSession() {
+  const current = epoch;
+  const identity = await refreshAdminIdentity();
+  if (!identity || current !== epoch) return;
+  if (identity.actor.mustChangePassword) { showView('empty'); $('view-subtitle').textContent = '完成本人密码设置后即可进入已授权模块。'; showConnection(true); $('notice').textContent = '请先修改本人密码，再进入业务模块。'; openOwnPassword(); return; }
+  const requested = window.location?.hash?.slice(1);
+  if (requested && Object.hasOwn(adminViews, requested) && canAdmin(adminViews[requested])) activeView = requested;
+  const view = Object.hasOwn(adminViews, activeView) && canAdmin(adminViews[activeView]) ? activeView : Object.keys(adminViews).find(key => canAdmin(adminViews[key]));
+  if (view) await loadAdminView(view);
+  else { showView('empty'); $('notice').textContent = ['governance.view','plans.view','account_deletions.view'].some(canAdmin) ? '请从左侧进入已授权的管理模块。' : '当前账号暂无可用业务模块，请联系管理员分配权限。'; }
+  if (current === epoch) showConnection(true);
 }
 async function refresh() {
   const current = epoch;
@@ -370,17 +429,19 @@ async function refresh() {
 $('login').onsubmit = async event => {
   event.preventDefault(); epoch++;
   $('workspace').hidden = true;
-  try { await api('/admin/login', { username: $('username').value.trim(), password: $('password').value }); $('password').value = ''; await refresh(); showConnection(true); $('notice').textContent = '后台已登录。'; }
+  try { await api('/admin/login', { username: $('username').value.trim(), password: $('password').value }); $('password').value = ''; await startAdminSession(); }
   catch (error) { $('password').value = ''; showConnection(false); $('notice').textContent = error.message; }
 };
-$('logout').onclick = async () => { epoch++; clearOrderDetail(); clearCreatorManagement(); await api('/admin/logout', {}).catch(() => {}); clearPreviews(); items = []; orders = []; creators = []; layoutState = null; reviewing = null; showConnection(false); document.querySelectorAll('[data-panel]').forEach(x => x.hidden = true); $('cards').replaceChildren(); for (const id of ['editor','review-dialog','content-detail','metadata-dialog','tags-dialog']) $(id).close(); selectedItemId = null; $('notice').textContent = '已安全退出后台。'; };
+function endAdminSession() { epoch++; clearOperatorManagement(); clearAudit(); clearOrderDetail(); clearCreatorManagement(); clearPreviews(); items = []; orders = []; creators = []; layoutState = null; reviewing = null; showConnection(false); document.querySelectorAll('[data-panel]').forEach(x => x.hidden = true); $('cards').replaceChildren(); for (const id of ['editor','review-dialog','content-detail','metadata-dialog','tags-dialog','clip-review-dialog']) $(id).close(); selectedItemId = null; $('notice').textContent = '已安全退出后台。'; }
+$('logout').onclick = async () => { endAdminSession(); await api('/admin/logout', {}).catch(() => {}); };
 $('refresh').onclick = async () => { try { await refresh(); $('notice').textContent = '内容已刷新。'; } catch (error) { $('notice').textContent = error.message; } };
+$('creator-submissions').onclick = openCreatorSubmissions;
 $('search').oninput = resetPage; for (const id of ['status','source-filter','format-filter','tag-filter']) $(id).onchange = resetPage;
 $('order-status').onchange = resetOrderPage;
 $('orders-refresh').onclick = () => refreshOrders().catch(error => $('notice').textContent = error.message);
 $('creators-refresh').onclick = () => refreshCreators().catch(error => $('notice').textContent = error.message);
 document.querySelectorAll('[data-view]').forEach(button => button.onclick = async () => {
-  try { if (button.dataset.view === 'orders') await refreshOrders(); if (button.dataset.view === 'creators') await refreshCreators(); if (button.dataset.view === 'layout') await refreshLayout(); showView(button.dataset.view); }
+  try { await loadAdminView(button.dataset.view); }
   catch (error) { $('notice').textContent = error.message; }
 });
 document.querySelectorAll('[data-layout-page]').forEach(button => button.onclick = () => { layoutPage = button.dataset.layoutPage; renderLayout(); });
@@ -460,7 +521,11 @@ $('metadata-form').onsubmit = async event => {
   const data = new FormData(event.target); $('metadata-save').disabled = true;
   try {
     await api(`/admin/packages/${encodeURIComponent(metadataItem.id)}/metadata`, { version: metadataItem.version,
-      title: data.get('title'), description: data.get('description'), tags: selectedTags('metadata-tags') });
+      title: data.get('title'), description: data.get('description'), tags: selectedTags('metadata-tags'),
+      translations: { ...metadataItem.translations, zh:{title:data.get('title'),description:data.get('description')}, en:{title:data.get('englishTitle'),description:data.get('englishDescription')} },
+      clipTranslations: metadataItem.clips.map((clip,index) => ({id:clip.id,translations:{...clip.translations,
+        zh:{title:data.get('clipChineseTitle'+index),description:data.get('clipChineseDescription'+index)},
+        en:{title:data.get('clipEnglishTitle'+index),description:data.get('clipEnglishDescription'+index)}}})) });
     $('metadata-dialog').close(); await refresh(); $('notice').textContent = '内容介绍已更新。';
   } catch (error) { $('metadata-error').textContent = error.message; }
   finally { $('metadata-save').disabled = false; }
@@ -473,7 +538,7 @@ $('tags-close').onclick = () => $('tags-dialog').close();
 $('tag-add').onclick = () => addTagRow();
 $('tags-form').onsubmit = async event => {
   event.preventDefault(); $('tags-save').disabled = true;
-  const tags = [...$('tag-rows').children].map(row => ({id:row.dataset.id, name:row.querySelector('input:not([type=checkbox])').value.trim(), active:row.querySelector('[type=checkbox]').checked}));
+  const tags = [...$('tag-rows').children].map(row => ({id:row.dataset.id, name:row.querySelector('input:not([type=checkbox])').value.trim(), active:row.querySelector('[type=checkbox]').checked, translations:{...row.translationValue,zh:{name:row.querySelector('input:not([type=checkbox])').value.trim()},en:{name:row.querySelector('.tag-english').value.trim()}}}));
   try {
     contentTags = (await api('/admin/content-tags', {items:tags})).items;
     $('tags-dialog').close(); refreshTagFilter(); $('notice').textContent = '题材标签库已更新。';
@@ -481,6 +546,8 @@ $('tags-form').onsubmit = async event => {
   finally { $('tags-save').disabled = false; }
 };
 initCreatorManagement();
+initOperatorManagement();
+initAuditManagement();
 $('notice').textContent = '正在检查登录状态…';
-refresh().then(() => { showConnection(true); $('notice').textContent = '后台已登录。'; })
+startAdminSession()
   .catch(() => { showConnection(false); $('workspace').hidden = true; $('notice').textContent = '请使用管理员账号登录。'; });

@@ -4,6 +4,12 @@ import vm from 'node:vm';
 import { readFile } from 'node:fs/promises';
 
 const source=await readFile(new URL('../public/orders.js',import.meta.url),'utf8');
+test('admin detail shows server verified order contact without treating legacy email as verified',()=>{
+  const h=harness(async()=>{});
+  h.run("renderOrderDetail({id:'one',version:1,status:'free_review',verifiedContactEmail:'buyer@example.com'})");
+  const values=[];function walk(n){values.push(n.textContent);for(const c of n.children)walk(c);}walk(h.$('order-detail-body'));
+  assert(values.includes('已验证联系邮箱：buyer@example.com'));
+});
 
 test('order gallery loads thumbnails and offers preview separately from original',()=>{
   const h=harness(async()=>{});
@@ -23,7 +29,7 @@ test('legacy unassigned production offers recovery and recovered order explains 
   h.run("renderOrderDetail({id:'legacy',version:7,status:'needs_info',legacyRecoveryAt:'2026-09-17',materials:[]})");
   assert(labels().some(x=>x.includes('等待用户上传真实素材')));
 });
-function harness(api) {
+function harness(api, permissions = null) {
   class Element {
     constructor(tag='div',value='') {this.tag=tag;this.textContent=value;this.children=[];this.value='';this.open=false;this.isConnected=true;this.listeners={};}
     append(...children){this.children.push(...children);}
@@ -37,10 +43,24 @@ function harness(api) {
     close(){this.open=false;this.listeners.close?.();}
   }
   const elements=new Map();const $=id=>{if(!elements.has(id))elements.set(id,new Element());return elements.get(id);};
-  const context=vm.createContext({document:{getElementById:$,createElement:tag=>new Element(tag)},$,text:(tag,value)=>new Element(tag,value),api,epoch:0,orders:[],orderLabels:{free_review:'待预审',quoted:'待用户确认报价'},orderTransitions:{quoted:['in_production','needs_info']},URLSearchParams,setTimeout,clearTimeout,Date,console});
+  const context=vm.createContext({canAdmin:key=>permissions===null || permissions.includes(key),document:{getElementById:$,createElement:tag=>new Element(tag)},$,text:(tag,value)=>new Element(tag,value),api,epoch:0,orders:[],orderLabels:{free_review:'待预审',quoted:'待用户确认报价'},orderTransitions:{quoted:['in_production','needs_info']},URLSearchParams,setTimeout,clearTimeout,Date,console});
   vm.runInContext(source,context);
   return {context,$,run:code=>vm.runInContext(code,context)};
 }
+
+test('view-only order detail retains information but has no dispatch, recovery or transition writes', () => {
+  const h = harness(async()=>{}, ['orders.view']);
+  h.run("orderTransitions.approved_for_quote=['quoted','needs_info']; renderOrderDetail({id:'one',version:1,status:'approved_for_quote'})");
+  assert.equal(h.$('order-detail-body').querySelectorAll('button').length, 0);
+  h.run("renderOrderDetail({id:'one',version:1,status:'in_production'})");
+  assert.equal(h.$('order-detail-body').querySelectorAll('button').length, 0);
+});
+
+test('order status permissions distinguish quote, delivery, cancellation and review', () => {
+  const h = harness(async()=>{}, ['orders.review']);
+  assert.equal(h.run("canOrderAction('needs_info')"), true);
+  for (const state of ['quoted','in_production','withdrawn']) assert.equal(h.run(`canOrderAction('${state}')`), false);
+});
 
 test('order approvals hide prose while rejection and returned QC require it',async()=>{
   let calls=0;const h=harness(async()=>{calls++;});

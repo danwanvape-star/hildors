@@ -132,6 +132,9 @@ test('creator package cover upload, inspection versions and management permissio
   assert.throws(() => store.attachCover(item.id, item.version, item.cover), /CONFLICT/);
   let profile = store.getCreatorProfile(alice.user);
   store.manageCreatorProfile(profile.id, profile.version, { status: 'approved', canPublish: false });
+  assert.equal((await call('/v1/me/content', undefined, alice.token)).status, 200);
+  profile = store.getCreatorProfile(alice.user);
+  store.manageCreatorProfile(profile.id, profile.version, { status: 'suspended', note: '暂停投稿资格' });
   assert.equal((await call('/v1/me/content', undefined, alice.token)).status, 403);
 });
 

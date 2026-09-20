@@ -71,7 +71,7 @@ test('review requires reason, validates fields and keeps previous settings when 
   assert.equal(r.status, 200);
   r = await request(path, { version: r.data.version, status: 'suspended', note: '暂停合作' });
   assert.equal(r.status, 200); assert.equal(r.data.management.tier, 'partner'); assert.equal(r.data.management.commissionRate, 15);
-  assert.equal(r.data.management.canPublish, true);
+  assert.equal(r.data.management.canPublish, false);
   assert.equal(r.data.managementHistory.length, 2);
   assert.equal(r.data.managementHistory[1].previousStatus, 'approved');
   assert.equal(r.data.managementHistory[1].actor, 'admin-token');
@@ -80,12 +80,13 @@ test('review requires reason, validates fields and keeps previous settings when 
   assert.equal((await request('/admin/creators/missing', { version: 1, status: 'approved', note: '通过' })).status, 404);
 });
 
-test('approval does not implicitly grant posting permission', async t => {
+test('approval grants posting permission without granting order permissions', async t => {
   const { request, creator, token } = await fixture(t);
   const result = await request(`/admin/creators/${creator.id}`, { version: 1, status: 'approved', note: '仅通过资质' });
   assert.equal(result.status, 200);
-  assert.equal(result.data.management.canPublish, false);
-  assert.equal((await request('/v1/me/content', undefined, token)).status, 403);
+  assert.equal(result.data.management.canPublish, true);
+  assert.equal(result.data.management.canReceiveOrders, false);
+  assert.equal((await request('/v1/me/content', undefined, token)).status, 200);
 });
 
 test('suspension blocks content and tasks, restoration keeps permissions, resubmission preserves audit', async t => {
@@ -103,10 +104,10 @@ test('suspension blocks content and tasks, restoration keeps permissions, resubm
   assert.equal(r.status, 200); assert.equal(r.data.management.manager, '运营甲');
   assert.equal((await request('/v1/me/content', undefined, token)).status, 200);
   r = await request(path, { version: r.data.version, status: 'approved', canPublish: false, canReceiveOrders: false, note: '关闭业务权限' });
-  assert.equal((await request('/v1/me/content', undefined, token)).status, 403);
+  assert.equal((await request('/v1/me/content', undefined, token)).status, 200);
   assert.equal((await request('/v1/me/creator-tasks', undefined, token)).data.code, 'ORDER_CREATOR_INELIGIBLE');
   submission = await request('/v1/me/creator-profile', profile, token);
   assert.equal(submission.data.status, 'approved');
-  assert.equal(store.getCreatorProfile(creator.id).management.canPublish, false);
+  assert.equal(store.getCreatorProfile(creator.id).management.canPublish, true);
   assert.equal(store.getCreatorProfile(creator.id).managementHistory.length, 4);
 });

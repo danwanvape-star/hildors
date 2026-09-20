@@ -5,7 +5,9 @@ import { readFileSync } from 'node:fs';
 
 function fixture() {
   class Element {
-    constructor(tag = '') { this.tagName = tag; this.children = []; this.value = ''; this.dataset = {}; this.classList = { add() {}, toggle() {} }; }
+    constructor(tag = '') { this.tagName = tag; this.children = []; this.dataset = {}; this.classList = { add() {}, toggle() {} }; }
+    get value() { return this._value ?? (this.tagName === 'select' ? this.children.find(option => option.selected)?.value : '') ?? ''; }
+    set value(value) { this._value = value; }
     append(...nodes) { this.children.push(...nodes); }
     prepend(...nodes) { this.children.unshift(...nodes); }
     replaceChildren(...nodes) { this.children = nodes; }
@@ -18,6 +20,7 @@ function fixture() {
     load() { this.reloaded = true; }
     close() { this.open = false; }
     showModal() { this.open = true; }
+    focus() {}
   }
   const elements = new Map(), get = id => { if (!elements.has(id)) elements.set(id, new Element()); return elements.get(id); };
   const context = vm.createContext({ document: { getElementById: get, createElement: tag => new Element(tag), querySelectorAll: () => [] },
@@ -27,9 +30,35 @@ function fixture() {
   const html = readFileSync(new URL('../public/index.html', import.meta.url), 'utf8');
   for (const match of html.matchAll(/<script src="\/console\/([^\"]+)"/g)) vm.runInContext(readFileSync(new URL(`../public/${match[1]}`, import.meta.url), 'utf8'), context);
   const run = source => vm.runInContext(source, context);
+  run('canAdmin = () => true');
   return { get, run, context };
 }
 const emptyPage = { items: [], total: 0, page: 1, summary: { total: 24, pending: 16, approved: 8, suspended: 0 } };
+
+test('creator view-only detail disables review and management and hides save', () => {
+  const {get, run} = fixture();
+  run("canAdmin = key => key === 'creators.view'; renderCreatorDetail({creator:{id:'one',status:'pending',displayName:'运营测试',management:{}},works:[]});");
+  const root = get('creator-detail-body');
+  for (const input of [...root.querySelectorAll('input'), ...root.querySelectorAll('select')]) assert.equal(input.disabled, true);
+  assert.equal(root.querySelectorAll('button').find(button=>button.type==='submit').hidden, true);
+  assert.equal(root.querySelectorAll('button').some(button=>button.textContent==='通过申请'), false);
+});
+
+test('creator review-only and management-only saves omit fields outside their permission', async () => {
+  for (const permission of ['creators.review','creators.manage']) {
+    const {run, context} = fixture(); context.permission = permission;
+    run("canAdmin = key => key === permission || key === 'creators.view'; selectedCreator = {id:'one',version:3,status:'pending',displayName:'测试'}; api = async (path, body) => { if(body) globalThis.saved = body; return {items:[],total:0,page:1,summary:{}}; };");
+    await run("saveCreator({preventDefault(){},target:{status:'approved',abilityLevel:'gold',tier:'partner',commissionRate:'10',manager:'运营',canReceiveOrders:true}},selectedCreator,document.getElementById('fields'),document.getElementById('error'))");
+    assert.equal(context.saved.version, 3);
+    if (permission === 'creators.review') {
+      assert.equal(context.saved.status, 'approved'); assert.equal(context.saved.abilityLevel, 'gold');
+      for (const key of ['tier','commissionRate','manager','canReceiveOrders']) assert.equal(Object.hasOwn(context.saved,key), false);
+    } else {
+      assert.equal(context.saved.tier, 'partner'); assert.equal(context.saved.canReceiveOrders, true);
+      for (const key of ['status','abilityLevel','note']) assert.equal(Object.hasOwn(context.saved,key), false);
+    }
+  }
+});
 
 test('creator filters request server pages and render server totals', async () => {
   const { get, run, context } = fixture();
@@ -128,10 +157,45 @@ test('save submits grade separately from cooperation tier and blocks duplicate s
   const { run, context, get } = fixture(); context.applicant = videoApplicant;
   const initialNotice = get('notice').textContent;
   run('selectedCreator = applicant; let finishSave; let mutations = 0; api = (path, body) => { if (body) { mutations++; globalThis.saved = body; return new Promise(resolve => finishSave = resolve); } return Promise.resolve({items:[],total:0,page:1,summary:{}}); };');
-  const save = () => run('saveCreator({preventDefault(){},target:{status:"approved",abilityLevel:"diamond",tier:"partner",note:"质量、创意符合钻石等级",commissionRate:"15",canPublish:true}},applicant,document.getElementById("fields"),document.getElementById("error"))');
+  const save = () => run('saveCreator({preventDefault(){},target:{status:"approved",abilityLevel:"diamond",tier:"partner",note:"质量、创意符合钻石等级",commissionRate:"15",canPublish:true,canReceiveOrders:true}},applicant,document.getElementById("fields"),document.getElementById("error"))');
   const first = save(); await save(); assert.equal(run('mutations'), 1);
-  assert.equal(context.saved.abilityLevel, 'diamond'); assert.equal(context.saved.tier, 'partner'); assert.equal(context.saved.canPublish, true);
+  assert.equal(context.saved.abilityLevel, 'diamond'); assert.equal(context.saved.tier, 'partner'); assert.equal(Object.hasOwn(context.saved, 'canPublish'), false);
+  assert.equal(context.saved.canReceiveOrders, true);
   assert.equal(get('fields').disabled, true);
   run('epoch++; clearCreatorManagement(); finishSave({});'); await first;
   assert.equal(get('creator-detail-body').children.length, 0); assert.equal(get('notice').textContent, initialNotice);
+});
+
+test('upload eligibility follows certification while paid content follows cooperation tier independently of ability', () => {
+  for (const tier of ['standard', 'verified', 'partner']) {
+    for (const abilityLevel of ['silver', 'legend']) {
+      const { get, run, context } = fixture();
+      context.applicant = { ...videoApplicant, status: 'approved', abilityLevel, management: { tier, canPublish: false, canReceiveOrders: true } };
+      run('renderCreatorDetail({creator:applicant,works:[]})');
+      const root = get('creator-detail-body');
+      assert.equal(root.querySelectorAll('input').some(input => input.name === 'canPublish'), false);
+      assert.equal(root.querySelectorAll('input').find(input => input.name === 'canReceiveOrders').checked, true);
+      assert.match(contents(root), /已认证，可投稿/);
+      assert.match(contents(root), tier === 'partner' ? /可投稿免费及付费内容/ : /仅可投稿免费内容/);
+      assert.match(contents(root), /独立视频和角色视频包均须平台审核通过后上架/);
+      const category = root.querySelectorAll('select').find(select => select.name === 'tier');
+      category.value = tier === 'partner' ? 'standard' : 'partner'; category.onchange();
+      assert.match(contents(root), tier === 'partner' ? /仅可投稿免费内容/ : /可投稿免费及付费内容/);
+      const status = root.querySelectorAll('select').find(select => select.name === 'status');
+      status.value = 'suspended'; status.onchange();
+      assert.match(contents(root), /账号已停用，暂停投稿和接单/);
+      status.value = 'pending'; status.onchange();
+      assert.match(contents(root), /尚未通过认证，暂不可投稿/);
+    }
+  }
+});
+
+test('approval shortcut previews certified upload eligibility without an extra permission toggle', () => {
+  const { get, run, context } = fixture(); context.applicant = videoApplicant;
+  run('renderCreatorDetail({creator:applicant,works:[]})');
+  const root = get('creator-detail-body');
+  assert.match(contents(root), /尚未通过认证，暂不可投稿/);
+  root.querySelectorAll('button').find(button => button.textContent === '通过申请').onclick();
+  assert.match(contents(root), /已认证，可投稿/);
+  assert.equal(root.querySelectorAll('select').find(select => select.name === 'status').value, 'approved');
 });

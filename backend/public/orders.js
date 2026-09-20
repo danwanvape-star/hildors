@@ -6,6 +6,11 @@ const orderEventLabels = {assigned:'指派创作者',applications_opened:'发布
 function orderDate(value) { const date = new Date(value); return value && Number.isFinite(date.getTime()) ? date.toLocaleString('zh-CN') : '未记录'; }
 function orderButton(label, handler, style = 'secondary') { const button = text('button',label,style); button.type='button'; button.onclick=handler; return button; }
 function orderPath(order) { return `/admin/customization-orders/${encodeURIComponent(order.id)}`; }
+function orderPermission(next) {
+  return {free_review:'orders.review',needs_info:'orders.review',approved_for_quote:'orders.review',rejected:'orders.review',quoted:'orders.quote',in_production:'orders.deliver',quality_review:'orders.deliver',user_acceptance:'orders.deliver',delivered:'orders.deliver',withdrawn:'orders.cancel'}[next];
+}
+function canOrderPermission(permission) { return typeof canAdmin === 'function' && canAdmin(permission); }
+function canOrderAction(next) { return Boolean(orderPermission(next)) && canOrderPermission(orderPermission(next)); }
 function orderActionLabel(next, current) {
   if(next==='quality_review') return current==='user_acceptance'?'重新质检':'提交平台质检';
   if(next==='in_production') return current==='quoted'?'开始制作':'退回制作';
@@ -14,7 +19,7 @@ function orderActionLabel(next, current) {
 function resetOrderPage() { orderPage=1; refreshOrders().catch(()=>{}); }
 async function refreshOrders() {
   const request=++orderRequest, session=epoch;
-  const params=new URLSearchParams({page:String(orderPage),pageSize:String(orderPageSize),q:$('order-search').value.trim(),status:$('order-status').value,dispatchMode:$('order-dispatch').value});
+  const params=new URLSearchParams({kind:'legacy',page:String(orderPage),pageSize:String(orderPageSize),q:$('order-search').value.trim(),status:$('order-status').value,dispatchMode:$('order-dispatch').value});
   $('order-cards').replaceChildren(text('p','正在加载订单…','empty'));
   $('orders-prev').disabled=true; $('orders-next').disabled=true;
   try {
@@ -40,7 +45,8 @@ function renderOrders() {
     info.append(text('h2',order.characterName||'未命名角色'),text('p',order.id),text('p',`用户：${order.userId||'未记录'} · 提交于 ${orderDate(order.createdAt)}`));
     const assignment=order.assignedCreatorName || (order.dispatchState==='unassigned'?'创作者已退回 · 待重新派单':order.dispatchMode==='applications'?'等待报名 / 待选人':'待派单');
     const delivery=text('div','','order-row-meta'); delivery.append(text('strong',assignment),text('p',order.dispatchMode==='direct'?'直接派单':order.dispatchMode==='applications'?`公开报名 · ${order.applicantCount??order.applicantCreatorIds?.length??0} 人`:'尚未分配'),text('p',`交付日期：${order.dueAt||order.workflow?.dueAt||'待安排'}`));
-    row.append(info,text('span',orderLabels[order.status]||'未知状态','status'),delivery,orderButton('查看并处理',()=>openOrderDetail(order.id)));
+    const mayProcess = ['orders.review','orders.quote','orders.deliver','orders.cancel','orders.dispatch','orders.recover'].some(canOrderPermission);
+    row.append(info,text('span',orderLabels[order.status]||'未知状态','status'),delivery,orderButton(mayProcess?'查看并处理':'查看详情',()=>openOrderDetail(order.id)));
     target.append(row);
   }
   if(!orders.length) target.append(text('p','没有符合条件的订单，可调整筛选或搜索条件。','empty'));
@@ -61,6 +67,7 @@ function renderOrderDetail(order) {
   const body=$('order-detail-body'); body.replaceChildren();
   body.append(text('h2',order.characterName||'未命名角色'),text('p',`${order.id} · ${orderLabels[order.status]||'未知状态'} · 版本 ${order.version}`));
   const requirements=orderSection('用户需求');
+  requirements.append(text('p',order.verifiedContactEmail?`已验证联系邮箱：${order.verifiedContactEmail}`:'此订单尚未关联已验证邮箱。'));
   requirements.append(text('p',`来源：${({original:'原创角色',existing:'已有角色',licensed:'已授权角色',inspired:'灵感角色'})[order.sourceType]||order.sourceType||'未填写'} · 市场：${order.marketRegion||'未填写'}`),text('p',`功能要求：${(order.requestedFeatures||[]).join(' / ')||'未填写'}`),text('p',order.requirements||'未填写补充需求','order-long-text'));
   body.append(requirements);
   const materials=orderSection('用户上传素材（仅后台与获派创作者可见）');
@@ -78,7 +85,7 @@ function renderOrderDetail(order) {
   body.append(materials);
   const assignment=orderSection('派单与制作安排');
   assignment.append(text('p',`派单方式：${order.dispatchMode==='direct'?'直接派单':order.dispatchMode==='applications'?'公开报名':'未派单'} · 制作人：${order.assignedCreatorName||'尚未选定'} · 报名人数：${order.applicantCreatorIds?.length||0}`));
-  if(order.status==='approved_for_quote') {
+  if(order.status==='approved_for_quote' && canOrderPermission('orders.dispatch')) {
     const actions=text('div','','order-actions');
     actions.append(orderButton(order.assignedCreatorId?'改派给创作者':'直接派给创作者',()=>showDispatchForm(order,'direct',assignment)),orderButton(order.dispatchMode?'重新开放报名':'发布任务 · 开放报名',()=>showDispatchForm(order,'applications',assignment,true)));
     if(order.dispatchMode==='applications') actions.append(orderButton('选择已报名创作者',()=>showDispatchForm(order,'applications',assignment)));
@@ -92,7 +99,7 @@ function renderOrderDetail(order) {
   const actions=orderSection('下一步处理');
   const recoverable=!order.dispatchMode && !order.assignedCreatorId && ['quoted','in_production','quality_review','user_acceptance'].includes(order.status);
   const awaitingMaterials=order.legacyRecoveryAt && !(order.materials?.length>=Math.max(1,order.materialCount??1));
-  if(recoverable) {
+  if(recoverable && canOrderPermission('orders.recover')) {
     actions.append(text('p','历史订单尚未关联创作者。请退回补充真实素材，再重新派单和确认报价。'),orderButton('退回补充资料并重走派单',()=>{
       const context=orderForm(actions,order,'恢复历史订单：退回补充资料');
       context.form.prepend(text('p','保留处理记录；清除旧报价、制作安排和验收状态。补齐素材后重新派单，由用户重新确认报价。'));
@@ -105,6 +112,7 @@ function renderOrderDetail(order) {
   if(order.status==='user_acceptance' && order.dispatchMode) actions.append(text('p','等待用户在 App 中确认验收或提出修改，后台不能代替用户完成交付。'));
   if(order.status==='approved_for_quote' && order.dispatchMode && !order.creatorQuote) actions.append(text('p','创作者提交建议报价后，平台可确认报价并发送给用户。'));
   for(const next of orderTransitions[order.status]||[]) {
+    if(!canOrderAction(next)) continue;
     if(recoverable) continue;
     if(awaitingMaterials && next==='approved_for_quote') continue;
     if(order.legacyRecoveryAt && next==='quoted' && !order.assignedCreatorId) continue;
@@ -132,12 +140,15 @@ function orderForm(target,order,title) {
   return {form,error,save,note,buttons};
 }
 async function saveOrderForm(order,context,path,payload) {
+  const permission = path.endsWith('/dispatch') ? 'orders.dispatch' : path.endsWith('/recover') ? 'orders.recover' : orderPermission(payload.status);
+  if(!permission || !canOrderPermission(permission)) { context.error.textContent='当前账号没有此操作权限。'; return; }
   const session=epoch,request=orderDetailRequest;
   const controls=[...context.form.querySelectorAll('input,select,textarea,button')]; controls.forEach(el=>el.disabled=true); context.error.textContent='正在保存…';
   try { await api(path,payload); if(session!==epoch) return; if(request===orderDetailRequest && $('order-detail').open) await openOrderDetail(order.id); await refreshOrders(); }
   catch(error) { if(session!==epoch || request!==orderDetailRequest) return; context.error.replaceChildren(text('span',`${error.message} 若订单已更新，请重新加载详情后处理。`),orderButton('重新加载详情',()=>openOrderDetail(order.id))); controls.forEach(el=>el.disabled=false); }
 }
 function showOrderAction(order,next,target) {
+  if(!canOrderAction(next)) return;
   const context=orderForm(target,order,`确认：${orderLabels[next]}`);
   const fields=orderFields(next,next==='quoted' && order.creatorQuote?{...order,workflow:{...order.workflow,...order.creatorQuote}}:order); context.form.prepend(fields);
   if(next==='user_acceptance' && order.dispatchMode) fields.append(inputField('最终交付包编号或地址','deliveryReference',order.workflow?.deliveryReference));
@@ -152,6 +163,7 @@ function showOrderAction(order,next,target) {
   context.form.onsubmit=event=>{event.preventDefault();if(needsReason && !context.form.elements.note.value.trim()) {context.error.textContent='请填写退回或不通过的原因。';return;} const values={}; for(const input of fields.querySelectorAll('[name]')) values[input.name]=input.type==='checkbox'?input.checked:input.value; saveOrderForm(order,context,orderPath(order),{version:order.version,status:next,note:needsReason?context.form.elements.note.value:'',fields:values});};
 }
 async function showDispatchForm(order,mode,target,reopen=false) {
+  if(!canOrderPermission('orders.dispatch')) return;
   const request=orderDetailRequest, selecting=mode==='applications' && order.dispatchMode==='applications' && !reopen;
   const context=orderForm(target,order,mode==='direct'?'直接派单':selecting?'选择报名创作者':'发布公开报名任务');
   context.save.disabled=true;
