@@ -1,0 +1,30 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import fsPromises from 'node:fs/promises';
+import {syncBuiltinESMExports} from 'node:module';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
+import {createStore} from '../src/store.mjs';
+import {app} from '../src/server.mjs';
+
+for(const kind of ['covers','media','materials'])test(`plain admin ${kind} rechecks operator permission after delayed file stat`,{timeout:5000},async t=>{
+ const directory=await fsPromises.mkdtemp(join(tmpdir(),'admin-stream-race-'));
+ const id='11111111-1111-1111-1111-111111111111',extension=kind==='media'?'mp4':'jpg';
+ const assetDirectory=kind==='materials'?join(directory,'order-materials'):directory;await fsPromises.mkdir(assetDirectory,{recursive:true});
+ const filename=join(assetDirectory,`${id}.${extension}`),secret='PRIVATE_ASSET_BYTES';await fsPromises.writeFile(filename,secret);
+ const store=createStore(),server=app(store,{mediaDirectory:directory});
+ await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
+ const operator=store.createOperator({username:'asset-reader',displayName:'媒体查看',password:'asset-reader-password',permissions:['content.view','orders.view']},{id:'root'});
+ store.create({title:'私有素材',format:'package',cover:{id,extension:'jpg',contentType:'image/jpeg'},clips:[{id:'clip',title:'视频',media:{id}}]});
+ const order=store.createCustomizationOrder(store.createUser(),{characterName:'测试',materials:[{id,extension:'jpg',contentType:'image/jpeg'}]});
+ const requestPath=kind==='materials'?`/admin/customization-orders/${order.id}/materials/${id}`:`/admin/${kind}/${id}`;
+ const base=`http://127.0.0.1:${server.address().port}`;
+ const login=await fetch(base+'/admin/login',{method:'POST',body:JSON.stringify({username:'asset-reader',password:'asset-reader-password'})});const cookie=login.headers.get('set-cookie').split(';')[0];
+ let entered,release;const started=new Promise(resolve=>entered=resolve),gate=new Promise(resolve=>release=resolve);
+ const realStat=fsPromises.stat;
+ const mock=t.mock.method(fsPromises,'stat',async(path,...args)=>{if(String(path)===filename){entered();await gate;}return realStat(path,...args);});syncBuiltinESMExports();
+ t.after(async()=>{release();mock.mock.restore();syncBuiltinESMExports();await new Promise(resolve=>server.close(resolve));store.close();await fsPromises.rm(directory,{recursive:true,force:true});});
+ const pending=fetch(base+requestPath,{headers:{cookie}});
+ await started;store.updateOperator(operator.id,{version:1,permissions:[]},{id:'root'});release();
+ const response=await pending;assert.equal(response.status,401);const body=await response.text();assert.equal(body.includes(secret),false);assert.equal(JSON.parse(body).code,'UNAUTHORIZED');
+});

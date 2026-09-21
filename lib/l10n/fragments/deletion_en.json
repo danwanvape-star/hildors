@@ -1,0 +1,21 @@
+{
+  "deletionTitle": "Delete account",
+  "deletionExplanation": "Request deletion of your Hildors account and associated data. This submits a request for review; it does not delete data immediately or sign you out. You can check its status here or cancel while it is pending.",
+  "deletionSubmit": "Request account deletion",
+  "deletionConfirm": "Submit this deletion request? Your account remains active while the request is being reviewed.",
+  "deletionNone": "No pending deletion request.",
+  "deletionReceived": "Request received",
+  "deletionReview": "Under review",
+  "deletionInformation": "More information needed",
+  "deletionCancelled": "Request cancelled",
+  "deletionCancel": "Cancel deletion request",
+  "deletionRefresh": "Refresh status",
+  "deletionReference": "Request ID: {id}",
+  "@deletionReference": {
+    "placeholders": {
+      "id": {
+        "type": "String"
+      }
+    }
+  }
+}

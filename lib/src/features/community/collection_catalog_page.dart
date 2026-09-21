@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import '../../config/launch_config.dart';
+import '../customization/cloud_business_intake.dart';
+import 'content_governance.dart';
+import 'catalog_governance.dart';
 import '../customization/character_gate_prototype_pages.dart';
 import '../customization/character_entitlement_repository.dart';
 import '../video/character_package_page.dart';
@@ -103,14 +107,25 @@ class _CollectionCatalogPageState extends State<CollectionCatalogPage> {
   Widget build(BuildContext context) {
     const backendUrl = String.fromEnvironment('HILDORS_API_BASE_URL');
     if (backendUrl.isNotEmpty) {
-      return RemoteCatalogPage(
-        load: () => RemoteCatalogRepository(backendUrl).load(),
+      return ListenableBuilder(
+        listenable: Listenable.merge([ContentGovernanceRepository.changes, CloudBusinessIntake.identityChanges]),
+        builder: (context, _) => RemoteCatalogPage(
+        key: ValueKey('${Localizations.localeOf(context).languageCode}-${ContentGovernanceRepository.changes.value}-${CloudBusinessIntake.identityChanges.value}'),
+        load: () {
+          final language = Localizations.localeOf(context).languageCode;
+          Future<List<RemoteCatalogPackage>> load() => RemoteCatalogRepository(backendUrl).load(language: language);
+          return LaunchConfig.usFree ? loadVisibleCatalog(
+            load: load,
+            blocks: ContentGovernanceRepository().blocks,
+            identityRevision: () => CloudBusinessIntake.identityChanges.value,
+          ) : load();
+        },
         loadLayout: () =>
             RemoteLayoutRepository(backendUrl).loadPage('collection'),
         packageActions: (package) => OwnedDownloadButton(package: package),
         clipActions: (package, clip) =>
             OwnedDownloadButton(package: package, clip: clip),
-      );
+      ));
     }
     final items = filterCollectionCatalog(
         source: source, format: format, topic: topic, query: query);

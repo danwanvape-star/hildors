@@ -1,3 +1,4 @@
+import 'package:hildors_cockpit/src/config/launch_config.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hildors_cockpit/src/device/p20_device_client.dart';
@@ -25,8 +26,14 @@ void main() {
               session: session,
               projection: P20ProjectionService(client, session)),
         )));
-    expect(find.text('Character Portal'), findsOneWidget);
-    for (final label in ['日常展示', '音乐联动', '定制你的专属全息角色']) {
+    expect(find.text('角色之门'), findsNWidgets(LaunchConfig.usFree ? 1 : 2));
+    expect(find.text('定制你的专属全息角色'),
+        LaunchConfig.usFree ? findsNothing : findsOneWidget);
+    for (final label in [
+      '日常展示',
+      '音乐联动',
+      if (!LaunchConfig.usFree) '定制你的专属全息角色'
+    ]) {
       expect(find.text(label).hitTestable(), findsOneWidget);
     }
     final scroll = tester.state<ScrollableState>(find.byType(Scrollable).first);

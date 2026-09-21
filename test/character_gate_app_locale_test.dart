@@ -4,8 +4,10 @@ import 'package:hildors_cockpit/src/app.dart';
 import 'package:hildors_cockpit/src/features/customization/character_gate_ui.dart';
 
 void main() {
-  testWidgets('shipped app keeps current Chinese UI copy in one language',
+  testWidgets('Chinese system keeps the Chinese UI and legacy copy',
       (tester) async {
+    tester.binding.platformDispatcher.localesTestValue = [const Locale('zh')];
+    addTearDown(tester.binding.platformDispatcher.clearLocalesTestValue);
     await tester.pumpWidget(const CockpitApp());
     final context = tester.element(find.byType(Navigator).first);
     expect(Localizations.localeOf(context), const Locale('zh'));
@@ -13,11 +15,10 @@ void main() {
     expect(GateCopy.text(context, 'actionUnconfirmed'), contains('刷新状态'));
   });
 
-  testWidgets('declared expansion locales include English and Japanese',
+  testWidgets('only implemented English and Chinese locales are declared',
       (tester) async {
     await tester.pumpWidget(const CockpitApp());
     final app = tester.widget<MaterialApp>(find.byType(MaterialApp));
-    expect(app.supportedLocales,
-        containsAll(const [Locale('zh'), Locale('en'), Locale('ja')]));
+    expect(app.supportedLocales.toSet(), {const Locale('zh'), const Locale('en')});
   });
 }

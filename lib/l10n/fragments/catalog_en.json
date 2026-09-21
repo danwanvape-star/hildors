@@ -1,0 +1,143 @@
+{
+  "catalogCollection": "Collection",
+  "catalogLibrary": "Library",
+  "catalogMyCharacters": "My characters",
+  "catalogLoadFailed": "Unable to load the library",
+  "catalogCheckNetwork": "Check your connection and try again.",
+  "catalogSearch": "Search characters, videos or genres",
+  "catalogRefresh": "Refresh library",
+  "catalogSource": "Source",
+  "catalogFormat": "Format",
+  "catalogGenre": "Genre",
+  "catalogAll": "All",
+  "catalogOfficial": "By Hildors",
+  "catalogCreatorWorks": "Creator content",
+  "catalogAnonymous": "Anonymous creator",
+  "catalogSingle": "Single video",
+  "catalogPackage": "Character pack",
+  "catalogEmpty": "No matching content",
+  "catalogClear": "Clear filters",
+  "catalogResults": "Results",
+  "catalogDescriptionMissing": "Character description not yet available",
+  "catalogPackVideos": "Videos in this pack",
+  "catalogVideo": "Video",
+  "catalogNoPreview": "Preview is currently unavailable",
+  "catalogDurationUnknown": "Duration unavailable",
+  "catalogStoryMissing": "No background story yet",
+  "catalogStory": "Background story",
+  "catalogStoryCollapse": "Collapse story",
+  "catalogStoryExpand": "Read full story",
+  "catalogImageLoading": "Loading image",
+  "catalogImageRetry": "Image failed to load. Tap to retry",
+  "playerNoSource": "No video available",
+  "playerBuffering": "Buffering video…",
+  "playerLoading": "Loading video…",
+  "playerSlow": "Taking longer than expected. Check your connection or retry.",
+  "playerPause": "Pause preview",
+  "playerPlay": "Play preview",
+  "playerZoom": "Pinch to zoom · Double-tap to reset",
+  "playerFailed": "Playback failed. Please retry.",
+  "playerTimeout": "Video loading timed out. Please retry.",
+  "playerLoadFailed": "Video could not load. Please retry.",
+  "playerAuthFailed": "Access could not be refreshed. Return to your submissions and try again.",
+  "downloadTitle": "Save to my characters",
+  "downloadUnavailable": "Purchases are not available",
+  "downloadFree": "Download free",
+  "downloadInfo": "Free videos can be downloaded and viewed offline in My characters. Purchases are not available.",
+  "downloadCancel": "Cancel download",
+  "downloadAvailable": "Download available videos",
+  "downloadDone": "Downloaded",
+  "downloadRefresh": "Refresh access",
+  "downloadView": "View my characters",
+  "downloadDisabled": "Downloads are temporarily unavailable. Try again later.",
+  "downloadSignIn": "Please sign in again to download.",
+  "downloadDenied": "This video is unavailable for download. Refresh access and try again.",
+  "downloadAccessFailed": "Could not verify download access. Check your connection and account, then retry.",
+  "downloadFinished": "Download complete. Saved to My characters.",
+  "downloadCancelled": "Download cancelled. Completed videos remain in My characters.",
+  "downloadFailed": "Download incomplete. Check your connection, storage and account access, then retry.",
+  "catalogSummary": "{count} items · {creators} creator items",
+  "@catalogSummary": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "creators": {
+        "type": "int"
+      }
+    }
+  },
+  "catalogRefreshed": "Library refreshed: {count} items, including {creators} creator items",
+  "@catalogRefreshed": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "creators": {
+        "type": "int"
+      }
+    }
+  },
+  "catalogCount": "{format} · {count} videos",
+  "@catalogCount": {
+    "placeholders": {
+      "format": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "catalogSeconds": "{seconds} s",
+  "@catalogSeconds": {
+    "placeholders": {
+      "seconds": {
+        "type": "String"
+      }
+    }
+  },
+  "catalogCreatorSpace": "{name}’s work",
+  "@catalogCreatorSpace": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "catalogPublished": "Published works · {count}",
+  "@catalogPublished": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "downloadProgress": "Downloaded {count}/{total}",
+  "@downloadProgress": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "downloadActive": "Downloading: {name}",
+  "@downloadActive": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "downloadPrice": "US$ {price} · Buy to download",
+  "@downloadPrice": {
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  }
+}

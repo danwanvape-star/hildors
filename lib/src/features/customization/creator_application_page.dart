@@ -1,9 +1,10 @@
+import '../../localization/localization.dart';
 import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 import 'cloud_business_intake.dart';
-import 'cloud_orders_page.dart';
+import 'creator_workbench_page.dart';
 import 'creator_application_repository.dart';
 
 class CreatorApplicationPage extends StatefulWidget {
@@ -46,7 +47,7 @@ class _CreatorApplicationPageState extends State<CreatorApplicationPage> {
     final message = validationMessage;
     if (message != null) {
       ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(message)));
+          .showSnackBar(SnackBar(content: Text(_applicationError(context, message))));
       throw FormatException(message);
     }
   }
@@ -158,12 +159,12 @@ class _CreatorApplicationPageState extends State<CreatorApplicationPage> {
     for (final path in files) {
       if (!mounted) return;
       setState(() =>
-          progress = '正在上传并检查：${path.replaceAll('\\', '/').split('/').last}');
+          progress = context.l10n.applicationUploading(path.replaceAll('\\', '/').split('/').last));
       if (!path.toLowerCase().endsWith('.mp4')) {
-        throw const FormatException('请选择 MP4 视频');
+        throw FormatException('请选择 MP4 视频');
       }
       if (await File(path).length() > 15000000) {
-        throw const FormatException('单个视频不能超过 15 MB，请压缩后重新选择');
+        throw FormatException('单个视频不能超过 15 MB，请压缩后重新选择');
       }
       final updated = await repository.upload(path, profile!.version);
       if (!mounted) return;
@@ -187,7 +188,7 @@ class _CreatorApplicationPageState extends State<CreatorApplicationPage> {
                 .toList();
         if (files.isEmpty || !mounted) return;
         if ((profile?.videos.length ?? 0) + files.length > 10) {
-          throw const FormatException('最多上传 10 个作品');
+          throw FormatException('最多上传 10 个作品');
         }
         await _upload(files);
       });
@@ -211,50 +212,49 @@ class _CreatorApplicationPageState extends State<CreatorApplicationPage> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: const Text('创作者认证'), actions: [
+        appBar: AppBar(title: Text(context.l10n.applicationTitle), actions: [
           IconButton(
               onPressed: busy || loading ? null : _load,
-              icon: const Icon(Icons.refresh),
-              tooltip: '刷新审核结果')
+              icon: Icon(Icons.refresh),
+              tooltip: context.l10n.applicationRefresh)
         ]),
         body: loading
-            ? const Center(child: CircularProgressIndicator())
-            : ListView(padding: const EdgeInsets.all(20), children: [
+            ? Center(child: CircularProgressIndicator())
+            : ListView(padding: EdgeInsets.all(20), children: [
                 if (error != null) ...[
-                  Text(error!,
+                  Text(_applicationError(context, error!),
                       style: TextStyle(
                           color: Theme.of(context).colorScheme.error)),
                   TextButton(
-                      onPressed: busy ? null : _load, child: const Text('刷新重试'))
+                      onPressed: busy ? null : _load, child: Text(context.l10n.applicationRetry))
                 ],
-                if (error != null && tags.isEmpty) const Text('加载申请失败，刷新后继续'),
+                if (error != null && tags.isEmpty) Text(context.l10n.applicationLoadFailed),
                 if (error == null && tags.isEmpty && editable)
-                  const Text('平台暂未配置角色标签，请稍后刷新重试'),
+                  Text(context.l10n.applicationNoTags),
                 if (profile?.reason?.isNotEmpty == true) Text(profile!.reason!),
                 if (profile?.status == 'approved') ...[
-                  const Text('已认证创作者', style: TextStyle(fontSize: 24)),
+                  Text(context.l10n.applicationApproved, style: TextStyle(fontSize: 24)),
                   if (profile!.grade != null)
-                    Text('创作等级：${profile!.grade}',
-                        style: const TextStyle(fontSize: 20)),
+                    Text(context.l10n.applicationGrade(_applicationLabel(context, profile!.grade!)),
+                        style: TextStyle(fontSize: 20)),
                   FilledButton(
                       onPressed: () => Navigator.of(context).push(
                           MaterialPageRoute<void>(
-                              builder: (_) =>
-                                  const CloudOrdersPage(creator: true))),
-                      child: const Text('进入创作者工作台')),
+                              builder: (_) => CreatorWorkbenchPage())),
+                      child: Text(context.l10n.applicationOpenStudio)),
                 ] else if (!editable) ...[
-                  Text(profile?.status == 'pending' ? '创作者申请审核中' : '创作者资格已暂停',
-                      style: const TextStyle(fontSize: 24)),
-                  const Text('审核由平台人工完成。可刷新查看审核结果。'),
+                  Text(profile?.status == 'pending' ? context.l10n.applicationPending : context.l10n.applicationSuspended,
+                      style: TextStyle(fontSize: 24)),
+                  Text(context.l10n.applicationReviewNote),
                 ] else if (tags.isNotEmpty) ...[
                   if (profile?.status == 'rejected')
-                    const Text('申请未通过，请根据审核意见修改后重新提交'),
-                  const Text('擅长角色', style: TextStyle(fontSize: 20)),
+                    Text(context.l10n.applicationRejected),
+                  Text(context.l10n.applicationRoles, style: TextStyle(fontSize: 20)),
                   Wrap(
                       spacing: 8,
                       children: tags
                           .map((tag) => FilterChip(
-                              label: Text(tag),
+                              label: Text(repository.tagLabel(tag, context.l10n.localeName)),
                               selected: roles.contains(tag),
                               onSelected: busy
                                   ? null
@@ -264,13 +264,13 @@ class _CreatorApplicationPageState extends State<CreatorApplicationPage> {
                                             : roles.remove(tag);
                                       })))
                           .toList()),
-                  const SizedBox(height: 16),
-                  const Text('擅长内容方向', style: TextStyle(fontSize: 20)),
+                  SizedBox(height: 16),
+                  Text(context.l10n.applicationDirections, style: TextStyle(fontSize: 20)),
                   Wrap(
                       spacing: 8,
                       children: creatorApplicationDirections
                           .map((tag) => FilterChip(
-                              label: Text(tag),
+                              label: Text(_applicationLabel(context, tag)),
                               selected: directions.contains(tag),
                               onSelected: busy
                                   ? null
@@ -281,41 +281,43 @@ class _CreatorApplicationPageState extends State<CreatorApplicationPage> {
                                       })))
                           .toList()),
                   TextField(
-                      key: const Key('application-name'),
+                      key: Key('application-name'),
                       controller: name,
                       enabled: !busy,
                       keyboardType: TextInputType.text,
                       autocorrect: false,
                       decoration: InputDecoration(
-                          labelText: '创作者显示名称',
-                          helperText: '例如 NovaStudio 或 Nova2026',
+                          labelText: context.l10n.applicationName,
+                          helperText: context.l10n.applicationNameHint,
                           errorMaxLines: 2,
                           errorText: name.text.isNotEmpty && !validName
-                              ? '仅限英文和数字，至少包含一个英文字母，最多 80 个字符'
+                              ? context.l10n.applicationNameRule
                               : null),
                       onChanged: (_) => setState(() {})),
                   TextField(
-                      key: const Key('application-email'),
+                      key: Key('application-email'),
                       controller: email,
                       enabled: !busy,
                       keyboardType: TextInputType.emailAddress,
                       decoration:
-                          const InputDecoration(labelText: '邮箱（创作者唯一识别）'),
+                          InputDecoration(labelText: context.l10n.applicationEmail),
                       onChanged: (_) => setState(() {})),
                   DropdownButtonFormField<String>(
+                      isExpanded: true,
+                      itemHeight: null,
                       initialValue: region,
-                      decoration: const InputDecoration(labelText: '创作者所在地'),
-                      items: const {
-                        'cn_mainland': '中国大陆',
-                        'us': '美国',
-                        'eea': '欧洲经济区',
-                        'uk': '英国',
-                        'jp': '日本',
-                        'hk': '中国香港',
-                        'mo': '中国澳门',
-                        'tw': '中国台湾',
-                        'asia_other': '其他亚洲地区',
-                        'other': '其他地区'
+                      decoration: InputDecoration(labelText: context.l10n.applicationRegion),
+                      items: {
+                        'cn_mainland': context.l10n.applicationChina,
+                        'us': context.l10n.applicationUs,
+                        'eea': context.l10n.applicationEea,
+                        'uk': context.l10n.applicationUk,
+                        'jp': context.l10n.applicationJapan,
+                        'hk': context.l10n.applicationHk,
+                        'mo': context.l10n.applicationMo,
+                        'tw': context.l10n.applicationTw,
+                        'asia_other': context.l10n.applicationAsia,
+                        'other': context.l10n.applicationOther
                       }
                           .entries
                           .map((e) => DropdownMenuItem(
@@ -330,54 +332,54 @@ class _CreatorApplicationPageState extends State<CreatorApplicationPage> {
                       onChanged: busy
                           ? null
                           : (value) => setState(() => adult = value!),
-                      title: const Text('我已年满 18 岁')),
+                      title: Text(context.l10n.applicationAdult)),
                   CheckboxListTile(
                       contentPadding: EdgeInsets.zero,
                       value: accepted,
                       onChanged: busy
                           ? null
                           : (value) => setState(() => accepted = value!),
-                      title: const Text('我同意创作者规则、保密要求和禁止私下交易条款')),
-                  const SizedBox(height: 16),
-                  const Text('本人创作的视频作品', style: TextStyle(fontSize: 20)),
-                  const Text(
-                      '请上传至少 1 个本人创作的 MP4 视频，最多 10 个，每个不超过 15 MB。作品仅供认证审核，不会公开发布。人工审核将综合作品数量、质量及创意评定等级。'),
-                  if (validationMessage != null) Text(validationMessage!),
+                      title: Text(context.l10n.applicationAgreement)),
+                  SizedBox(height: 16),
+                  Text(context.l10n.applicationWorks, style: TextStyle(fontSize: 20)),
+                  Text(
+                      context.l10n.applicationWorkNote),
+                  if (validationMessage != null) Text(_applicationError(context, validationMessage!)),
                   OutlinedButton.icon(
                       onPressed: busy ? null : _pick,
-                      icon: const Icon(Icons.upload_file),
-                      label: const Text('上传本人作品')),
+                      icon: Icon(Icons.upload_file),
+                      label: Text(context.l10n.applicationUpload)),
                   for (final file in failedUploads)
                     ListTile(
                         title: Text(file.replaceAll('\\', '/').split('/').last),
-                        subtitle: const Text('上传失败，作品未添加'),
+                        subtitle: Text(context.l10n.applicationUploadFailed),
                         trailing: Wrap(children: [
                           IconButton(
-                              tooltip: '重试上传',
+                              tooltip: context.l10n.applicationRetryUpload,
                               onPressed: busy || !valid
                                   ? null
                                   : () => _run(() => _upload([file])),
-                              icon: const Icon(Icons.refresh)),
+                              icon: Icon(Icons.refresh)),
                           IconButton(
-                              tooltip: '移除失败项',
+                              tooltip: context.l10n.applicationRemoveFailed,
                               onPressed: busy
                                   ? null
                                   : () => setState(
                                       () => failedUploads.remove(file)),
-                              icon: const Icon(Icons.close))
+                              icon: Icon(Icons.close))
                         ])),
                 ],
                 for (final video in profile?.videos ?? <Map<String, dynamic>>[])
                   ListTile(
-                      title: Text(video['name'] as String? ?? '认证作品'),
-                      subtitle: const Text('已上传 · 私有作品'),
+                      title: Text(video['name'] as String? ?? context.l10n.applicationSample),
+                      subtitle: Text(context.l10n.applicationPrivate),
                       leading: IconButton(
-                          tooltip: '预览作品',
+                          tooltip: context.l10n.applicationPreview,
                           onPressed: busy ? null : () => _preview(video),
-                          icon: const Icon(Icons.play_circle_outline)),
+                          icon: Icon(Icons.play_circle_outline)),
                       trailing: editable
                           ? IconButton(
-                              tooltip: '移除作品',
+                              tooltip: context.l10n.applicationRemove,
                               onPressed: busy
                                   ? null
                                   : () => _run(() async {
@@ -388,14 +390,14 @@ class _CreatorApplicationPageState extends State<CreatorApplicationPage> {
                                           setState(() => profile = updated);
                                         }
                                       }),
-                              icon: const Icon(Icons.delete_outline))
+                              icon: Icon(Icons.delete_outline))
                           : null),
                 if (progress != null) Text(progress!),
-                if (busy) const LinearProgressIndicator(),
+                if (busy) LinearProgressIndicator(),
                 if (editable && tags.isNotEmpty) ...[
                   TextButton(
                       onPressed: busy ? null : () => _run(_save),
-                      child: const Text('保存草稿')),
+                      child: Text(context.l10n.applicationSave)),
                   FilledButton(
                       onPressed: busy ||
                               !valid ||
@@ -409,7 +411,7 @@ class _CreatorApplicationPageState extends State<CreatorApplicationPage> {
                                     await repository.submit(profile!.version);
                                 if (mounted) setState(() => profile = updated);
                               }),
-                      child: const Text('提交创作者申请')),
+                      child: Text(context.l10n.applicationSubmit)),
                 ],
               ]),
       );
@@ -451,12 +453,12 @@ class _ApplicationVideoPreviewState extends State<_ApplicationVideoPreview> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-      appBar: AppBar(title: const Text('认证作品预览')),
+      appBar: AppBar(title: Text(context.l10n.applicationPreviewTitle)),
       body: Center(
           child: error != null
-              ? Text(error!)
+              ? Text(_applicationError(context, error!))
               : !controller.value.isInitialized
-                  ? const CircularProgressIndicator()
+                  ? CircularProgressIndicator()
                   : Column(children: [
                       Expanded(
                           child: Center(
@@ -477,3 +479,38 @@ class _ApplicationVideoPreviewState extends State<_ApplicationVideoPreview> {
                               : Icons.play_arrow))
                     ])));
 }
+
+String _applicationError(BuildContext context, String message) => switch(message) {
+  '名称仅限英文字母和数字，至少包含一个英文字母，最多 80 个字符' => context.l10n.applicationInvalidName,
+  '请填写有效邮箱后上传作品' => context.l10n.applicationInvalidEmail,
+  '请至少选择一个擅长角色类型' => context.l10n.applicationRoleRequired,
+  '请至少选择一个擅长内容方向' => context.l10n.applicationDirectionRequired,
+  '请确认已年满 18 岁' => context.l10n.applicationAdultRequired,
+  '请阅读并同意创作者规则' => context.l10n.applicationAgreementRequired,
+  '请选择 MP4 视频' => context.l10n.applicationMp4,
+  '单个视频不能超过 15 MB，请压缩后重新选择' => context.l10n.applicationTooLarge,
+  '最多上传 10 个作品' => context.l10n.applicationLimit,
+  '该邮箱已被其他创作者使用，请更换邮箱' => context.l10n.applicationEmailUsed,
+  '请检查英文名称、角色、方向、邮箱及协议确认' => context.l10n.applicationInvalidFields,
+  '视频检查繁忙，请稍后重试' => context.l10n.applicationProcessorBusy,
+  '申请已锁定，请刷新查看审核状态' => context.l10n.applicationLocked,
+  '最多上传 10 个作品，请移除作品后重试' => context.l10n.applicationVideoLimit,
+  '视频检查未通过，请选择可正常播放的 MP4 视频重试' => context.l10n.applicationVideoInvalid,
+  '请至少上传 1 个检查通过的视频作品' => context.l10n.applicationVideoRequired,
+  '申请已更新，请刷新后重试' => context.l10n.applicationConflict,
+  '视频预览失败，请返回后重试' => context.l10n.applicationPreviewFailed,
+  _ => context.l10n.errorGeneric,
+};
+
+String _applicationLabel(BuildContext context, String value) => switch(value) {
+  '简单动作' => context.l10n.applicationDirectionAction,
+  '歌舞表演' => context.l10n.applicationDirectionDance,
+  '特效炫技' => context.l10n.applicationDirectionEffects,
+  '角色成长' => context.l10n.applicationDirectionGrowth,
+  '白银' => context.l10n.applicationGradeSilver,
+  '黄金' => context.l10n.applicationGradeGold,
+  '钻石' => context.l10n.applicationGradeDiamond,
+  '宗师' => context.l10n.applicationGradeMaster,
+  '大神' => context.l10n.applicationGradeLegend,
+  _ => value,
+};

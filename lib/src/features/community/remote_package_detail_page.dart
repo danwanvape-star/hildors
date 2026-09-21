@@ -1,3 +1,7 @@
+import 'catalog_localization.dart';
+import '../../config/launch_config.dart';
+import 'content_governance.dart';
+import '../../localization/localization.dart';
 import 'catalog_network_image.dart';
 import 'package:flutter/material.dart';
 import 'content_preview_player.dart';
@@ -28,14 +32,14 @@ class RemotePackageDetailPage extends StatelessWidget {
                   catalog: catalog,
                   clipActions: clipActions,
                   packageActions: packageActions))),
-          icon: const Icon(Icons.person_outline, size: 18),
-          label: Text(item.credit))
-      : Text(item.credit);
+          icon: Icon(Icons.person_outline, size: 18),
+          label: Text(catalogCredit(context, item)))
+      : Text(catalogCredit(context, item));
 
   @override
   Widget build(BuildContext context) => Scaffold(
         appBar: AppBar(title: Text(item.title)),
-        body: ListView(padding: const EdgeInsets.all(16), children: [
+        body: ListView(padding: EdgeInsets.all(16), children: [
           LayoutBuilder(builder: (context, constraints) {
             final image = AspectRatio(
                 aspectRatio: 1,
@@ -49,16 +53,16 @@ class RemotePackageDetailPage extends StatelessWidget {
             final intro =
                 Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text(item.title, style: Theme.of(context).textTheme.titleLarge),
-              const SizedBox(height: 8),
+              SizedBox(height: 8),
               Text(
-                item.description.isEmpty ? '角色简介待补充' : item.description,
+                item.description.isEmpty ? context.l10n.catalogDescriptionMissing : item.description,
                 maxLines: 4,
                 overflow: TextOverflow.ellipsis,
               ),
-              const SizedBox(height: 8),
+              SizedBox(height: 8),
               _credit(context),
               if (item.tags.isNotEmpty) ...[
-                const SizedBox(height: 8),
+                SizedBox(height: 8),
                 Text(item.tags.join(' · '),
                     style: Theme.of(context).textTheme.bodySmall)
               ],
@@ -69,21 +73,26 @@ class RemotePackageDetailPage extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     SizedBox(width: 180, child: image),
-                    const SizedBox(height: 12),
+                    SizedBox(height: 12),
                     intro
                   ]);
             }
             return Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Expanded(flex: 5, child: image),
-              const SizedBox(width: 16),
+              SizedBox(width: 16),
               Expanded(flex: 6, child: intro)
             ]);
           }),
-          const SizedBox(height: 24),
+          SizedBox(height: 24),
+          if (LaunchConfig.usFree) ContentGovernanceActions(
+            packageId: item.id,
+            creatorId: item.hasPublicCreator ? item.creatorId : null,
+            onBlocked: (_) => Navigator.of(context).popUntil((route) => route.isFirst),
+          ),
           if (packageActions != null) packageActions!(item),
-          Text(item.format == 'package' ? '包内视频' : '视频',
+          Text(item.format == 'package' ? context.l10n.catalogPackVideos : context.l10n.catalogVideo,
               style: Theme.of(context).textTheme.titleMedium),
-          const SizedBox(height: 12),
+          SizedBox(height: 12),
           LayoutBuilder(
               builder: (context, constraints) =>
                   Wrap(spacing: 12, runSpacing: 12, children: [
@@ -102,7 +111,7 @@ class RemotePackageDetailPage extends StatelessWidget {
                                                   title: Text(clip.title)),
                                               body: ListView(
                                                   padding:
-                                                      const EdgeInsets.all(16),
+                                                      EdgeInsets.all(16),
                                                   children: [
                                                     if (clip.previewUrl != null)
                                                       ContentPreviewPlayer(
@@ -111,19 +120,19 @@ class RemotePackageDetailPage extends StatelessWidget {
                                                           networkUrl:
                                                               clip.previewUrl)
                                                     else
-                                                      const Padding(
+                                                      Padding(
                                                           padding:
                                                               EdgeInsets.all(
                                                                   32),
                                                           child:
-                                                              Text('视频预览暂不可用')),
-                                                    const SizedBox(height: 12),
+                                                              Text(context.l10n.catalogNoPreview)),
+                                                    SizedBox(height: 12),
                                                     _ExpandableStory(
                                                         story:
                                                             item.description),
-                                                    const SizedBox(height: 12),
+                                                    SizedBox(height: 12),
                                                     Text(clip.title),
-                                                    Text(item.credit),
+                                                    Text(catalogCredit(context, item)),
                                                     if (clipActions != null)
                                                       clipActions!(item, clip),
                                                   ])))),
@@ -138,14 +147,14 @@ class RemotePackageDetailPage extends StatelessWidget {
                                                 children: [
                                                   _CatalogImage(
                                                       url: clip.thumbnailUrl),
-                                                  const Center(
+                                                  Center(
                                                       child: Icon(
                                                           Icons
                                                               .play_circle_outline,
                                                           size: 38)),
                                                 ])),
                                         Padding(
-                                            padding: const EdgeInsets.all(10),
+                                            padding: EdgeInsets.all(10),
                                             child: Column(
                                                 crossAxisAlignment:
                                                     CrossAxisAlignment.start,
@@ -154,12 +163,12 @@ class RemotePackageDetailPage extends StatelessWidget {
                                                       maxLines: 2,
                                                       overflow: TextOverflow
                                                           .ellipsis),
-                                                  const SizedBox(height: 4),
+                                                  SizedBox(height: 4),
                                                   Text(
                                                       clip.durationSeconds ==
                                                               null
-                                                          ? '时长待确认'
-                                                          : '${clip.durationSeconds!.toStringAsFixed(1)} 秒',
+                                                          ? context.l10n.catalogDurationUnknown
+                                                          : context.l10n.catalogSeconds(clip.durationSeconds!.toStringAsFixed(1)),
                                                       style: Theme.of(context)
                                                           .textTheme
                                                           .bodySmall),
@@ -186,31 +195,31 @@ class _ExpandableStoryState extends State<_ExpandableStory> {
   Widget build(BuildContext context) {
     final story = widget.story.trim();
     if (story.isEmpty) {
-      return const Card(
+      return Card(
         child: Padding(
           padding: EdgeInsets.all(16),
-          child: Text('背景故事待补充'),
+          child: Text(context.l10n.catalogStoryMissing),
         ),
       );
     }
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('背景故事', style: Theme.of(context).textTheme.titleMedium),
-            const SizedBox(height: 8),
+            Text(context.l10n.catalogStory, style: Theme.of(context).textTheme.titleMedium),
+            SizedBox(height: 8),
             Text(
               story,
-              key: const Key('content-story'),
+              key: Key('content-story'),
               maxLines: expanded ? null : 4,
               overflow: expanded ? TextOverflow.visible : TextOverflow.ellipsis,
             ),
-            const SizedBox(height: 4),
+            SizedBox(height: 4),
             TextButton(
               onPressed: () => setState(() => expanded = !expanded),
-              child: Text(expanded ? '收起背景故事' : '展开背景故事'),
+              child: Text(expanded ? context.l10n.catalogStoryCollapse : context.l10n.catalogStoryExpand),
             ),
           ],
         ),
@@ -236,15 +245,15 @@ class _CreatorWorksPage extends StatelessWidget {
             item.hasPublicCreator && item.creatorId == creator.creatorId)
         .toList();
     return Scaffold(
-        appBar: AppBar(title: Text('${creator.credit} 的空间')),
-        body: ListView(padding: const EdgeInsets.all(16), children: [
-          const Icon(Icons.account_circle_outlined, size: 56),
+        appBar: AppBar(title: Text(context.l10n.catalogCreatorSpace(catalogCredit(context, creator)))),
+        body: ListView(padding: EdgeInsets.all(16), children: [
+          Icon(Icons.account_circle_outlined, size: 56),
           Center(
-              child: Text(creator.credit,
+              child: Text(catalogCredit(context, creator),
                   style: Theme.of(context).textTheme.titleLarge)),
-          const SizedBox(height: 8),
-          Center(child: Text('已发布作品 · ${works.length}')),
-          const SizedBox(height: 20),
+          SizedBox(height: 8),
+          Center(child: Text(context.l10n.catalogPublished(works.length))),
+          SizedBox(height: 20),
           LayoutBuilder(
               builder: (context, constraints) =>
                   Wrap(spacing: 12, runSpacing: 12, children: [
@@ -277,7 +286,7 @@ class _CreatorWorksPage extends StatelessWidget {
                                                     : item.clips.first
                                                         .thumbnailUrl)),
                                         Padding(
-                                            padding: const EdgeInsets.all(10),
+                                            padding: EdgeInsets.all(10),
                                             child: Text(item.title,
                                                 maxLines: 2,
                                                 overflow:
@@ -296,6 +305,6 @@ class _CatalogImage extends StatelessWidget {
   Widget build(BuildContext context) => ClipRRect(
       borderRadius: BorderRadius.circular(12),
       child: ColoredBox(
-          color: const Color(0xff101d2c),
+          color: Color(0xff101d2c),
           child: CatalogNetworkImage(url: url, imageKey: imageKey)));
 }

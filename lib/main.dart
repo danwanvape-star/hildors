@@ -2,9 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:video_player_media_kit/video_player_media_kit.dart';
 
 import 'src/app.dart';
+import 'src/localization/locale_controller.dart';
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   VideoPlayerMediaKit.ensureInitialized(android: true, iOS: true);
-  runApp(const CockpitApp());
+  final localeController = LocaleController();
+  await localeController.load();
+  runApp(CockpitApp(localeController: localeController));
 }

@@ -1,3 +1,4 @@
+import '../../localization/localization.dart';
 import 'package:flutter/material.dart';
 import '../video/character_package_picker.dart';
 import 'collection_catalog_page.dart';
@@ -13,16 +14,16 @@ class _CollectionHubPageState extends State<CollectionHubPage> {
   @override
   Widget build(BuildContext context) => Scaffold(
         appBar: AppBar(
-            title: const Text('藏品'),
+            title: Text(context.l10n.catalogCollection),
             bottom: PreferredSize(
-              preferredSize: const Size.fromHeight(52),
+              preferredSize: Size.fromHeight(52),
               child: Padding(
-                  padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+                  padding: EdgeInsets.fromLTRB(12, 0, 12, 8),
                   child: SegmentedButton<int>(
                     showSelectedIcon: false,
-                    segments: const [
-                      ButtonSegment(value: 0, label: Text('内容库')),
-                      ButtonSegment(value: 1, label: Text('我的角色')),
+                    segments: [
+                      ButtonSegment(value: 0, label: Text(context.l10n.catalogLibrary)),
+                      ButtonSegment(value: 1, label: Text(context.l10n.catalogMyCharacters)),
                     ],
                     selected: {_selected},
                     onSelectionChanged: (value) =>
@@ -31,8 +32,8 @@ class _CollectionHubPageState extends State<CollectionHubPage> {
             )),
         // Recreate on tab changes so newly claimed characters are reloaded.
         body: switch (_selected) {
-          0 => const CollectionCatalogPage(),
-          _ => const CharacterPackagePicker(picking: false, embedded: true),
+          0 => CollectionCatalogPage(),
+          _ => CharacterPackagePicker(picking: false, embedded: true),
         },
       );
 }

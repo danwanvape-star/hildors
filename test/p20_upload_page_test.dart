@@ -1,3 +1,4 @@
+import 'package:hildors_cockpit/src/localization/localization.dart';
 import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
@@ -71,6 +72,9 @@ void main() {
           .setMockMethodCallHandler(paths, null);
     });
     await tester.pumpWidget(MaterialApp(
+        locale: const Locale('en'),
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         home: P20UploadPage(
             client: client,
             session: session,
@@ -114,6 +118,9 @@ void main() {
       final engine = TestEngine();
       String? result;
       await tester.pumpWidget(MaterialApp(
+          locale: const Locale('en'),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
           home: Builder(
               builder: (context) => Scaffold(
                   body: TextButton(
@@ -171,6 +178,9 @@ void main() {
     final client = ConnectedClient();
     final session = TestSession(client, false);
     await tester.pumpWidget(MaterialApp(
+        locale: const Locale('en'),
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         home: P20UploadPage(
             client: client,
             session: session,
@@ -207,14 +217,17 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
     await tester.pumpWidget(MaterialApp(
+        locale: const Locale('en'),
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         home: P20UploadPage(
-      client: client,
-      session: session,
-      source: '/not-accessed.mp4',
-      asset: false,
-      list: P20MediaList.bluetooth,
-      framing: const FanFraming(),
-    )));
+          client: client,
+          session: session,
+          source: '/not-accessed.mp4',
+          asset: false,
+          list: P20MediaList.bluetooth,
+          framing: const FanFraming(),
+        )));
     expect(tester.widget<FilledButton>(find.byType(FilledButton)).onPressed,
         isNull);
     expect(find.textContaining('video only'), findsOneWidget);

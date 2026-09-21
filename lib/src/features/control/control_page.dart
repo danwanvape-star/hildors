@@ -1,3 +1,4 @@
+import '../../localization/localization.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -25,8 +26,8 @@ class _ControlPageState extends State<ControlPage> with WidgetsBindingObserver {
   StreamSubscription<Object?>? _frameSubscription;
   StreamSubscription<Object?>? _connectionSubscription;
   DeviceConnectionState _connection = DeviceConnectionState.disconnected;
-  DeviceStatus _status = const DeviceStatus();
-  final DeviceRuntimeState _runtime = const DeviceRuntimeState();
+  DeviceStatus _status = DeviceStatus();
+  final DeviceRuntimeState _runtime = DeviceRuntimeState();
   double _brightness = 60;
   double _angle = 0;
   String? _error;
@@ -101,35 +102,31 @@ class _ControlPageState extends State<ControlPage> with WidgetsBindingObserver {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('全息座舱控制台'),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 16),
-            child: Center(child: Text(_connectionLabel)),
-          ),
-        ],
+        toolbarHeight: 56 * MediaQuery.textScalerOf(context).scale(1).clamp(1.0, 2.5),
+        title: Text(context.l10n.controlsControlTitle, maxLines: 2),
       ),
       body: SafeArea(
         child: ListView(
-          padding: const EdgeInsets.all(20),
+          padding: EdgeInsets.all(20),
           children: [
+            Text(_connectionLabel),
             _connectionCard(),
-            const SizedBox(height: 12),
+            SizedBox(height: 12),
             DeviceStatusPanel(connection: _connection, runtime: _runtime),
-            const SizedBox(height: 12),
+            SizedBox(height: 12),
             _bluetoothCard(),
             if (_error != null) ...[
-              const SizedBox(height: 12),
+              SizedBox(height: 12),
               Text(
-                _error!,
+                context.l10n.errorNetwork,
                 style: TextStyle(color: Theme.of(context).colorScheme.error),
               ),
             ],
-            const SizedBox(height: 20),
+            SizedBox(height: 20),
             _quickControls(),
-            const SizedBox(height: 20),
+            SizedBox(height: 20),
             _sliderCard(
-              title: '亮度',
+              title: context.l10n.controlsBrightness,
               value: _brightness,
               min: 1,
               max: 100,
@@ -138,9 +135,9 @@ class _ControlPageState extends State<ControlPage> with WidgetsBindingObserver {
               onChangeEnd: (value) =>
                   _guarded(() => _client.setBrightness(value.round())),
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: 12),
             _sliderCard(
-              title: '角度（待厂家确认单位与范围）',
+              title: context.l10n.controlsAngle,
               value: _angle,
               min: 0,
               max: 360,
@@ -173,20 +170,20 @@ class _ControlPageState extends State<ControlPage> with WidgetsBindingObserver {
     final name = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('设置蓝牙音箱名称'),
+        title: Text(context.l10n.controlsSpeakerTitle),
         content: TextField(
           controller: controller,
           autofocus: true,
-          decoration: const InputDecoration(labelText: '音箱名称'),
+          decoration: InputDecoration(labelText: context.l10n.controlsSpeakerName),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('取消'),
+            child: Text(context.l10n.controlsCancel),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, controller.text),
-            child: const Text('保存'),
+            child: Text(context.l10n.controlsSave),
           ),
         ],
       ),
@@ -203,46 +200,46 @@ class _ControlPageState extends State<ControlPage> with WidgetsBindingObserver {
 
   Widget _bluetoothCard() => Card(
         child: ListTile(
-          leading: const Icon(Icons.speaker),
-          title: const Text('蓝牙音箱'),
+          leading: Icon(Icons.speaker),
+          title: Text(context.l10n.controlsSpeaker),
           subtitle: Text(
             !_connected
-                ? '连接设备后读取音箱名称'
+                ? context.l10n.controlsConnectSpeaker
                 : _loadingBluetoothName
-                    ? '正在读取…'
+                    ? context.l10n.controlsReading
                     : _bluetoothSpeakerName?.isNotEmpty == true
                         ? _bluetoothSpeakerName!
-                        : '名称尚未读取',
+                        : context.l10n.controlsNameUnknown,
           ),
           trailing: Wrap(
             spacing: 4,
             children: [
               IconButton(
-                tooltip: '刷新名称',
+                tooltip: context.l10n.controlsRefreshName,
                 onPressed: _connected && !_loadingBluetoothName
                     ? _refreshBluetoothName
                     : null,
-                icon: const Icon(Icons.refresh),
+                icon: Icon(Icons.refresh),
               ),
               IconButton(
-                tooltip: '修改名称',
+                tooltip: context.l10n.controlsEditName,
                 onPressed: _connected ? _editBluetoothName : null,
-                icon: const Icon(Icons.edit_outlined),
+                icon: Icon(Icons.edit_outlined),
               ),
             ],
           ),
         ),
       );
   String get _connectionLabel => switch (_connection) {
-        DeviceConnectionState.disconnected => '未连接',
-        DeviceConnectionState.connecting => '连接中…',
-        DeviceConnectionState.reconnecting => '正在重连…',
-        DeviceConnectionState.connected => '已连接',
+        DeviceConnectionState.disconnected => context.l10n.controlsDisconnected,
+        DeviceConnectionState.connecting => context.l10n.controlsConnecting,
+        DeviceConnectionState.reconnecting => context.l10n.controlsReconnecting,
+        DeviceConnectionState.connected => context.l10n.controlsConnected,
       };
 
   Widget _connectionCard() => Card(
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: EdgeInsets.all(16),
           child: Row(
             children: [
               Expanded(
@@ -250,22 +247,22 @@ class _ControlPageState extends State<ControlPage> with WidgetsBindingObserver {
                   controller: _hostController,
                   enabled: !_connected,
                   keyboardType: TextInputType.url,
-                  decoration: const InputDecoration(
-                    labelText: '设备 IP',
-                    helperText: '默认端口 8900',
+                  decoration: InputDecoration(
+                    labelText: context.l10n.controlsIp,
+                    helperText: context.l10n.controlsPort,
                   ),
                 ),
               ),
-              const SizedBox(width: 12),
+              SizedBox(width: 12),
               FilledButton(
                 onPressed: _connection == DeviceConnectionState.connecting
                     ? null
                     : _toggleConnection,
                 child: Text(_connection == DeviceConnectionState.reconnecting
-                    ? '停止重连'
+                    ? context.l10n.controlsStopReconnect
                     : _connected
-                        ? '断开'
-                        : '连接'),
+                        ? context.l10n.controlsDisconnect
+                        : context.l10n.controlsConnect),
               ),
             ],
           ),
@@ -274,12 +271,12 @@ class _ControlPageState extends State<ControlPage> with WidgetsBindingObserver {
 
   Widget _quickControls() => Card(
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('快捷控制', style: Theme.of(context).textTheme.titleLarge),
-              const SizedBox(height: 12),
+              Text(context.l10n.controlsQuick, style: Theme.of(context).textTheme.titleLarge),
+              SizedBox(height: 12),
               Wrap(
                 spacing: 10,
                 runSpacing: 10,
@@ -288,22 +285,22 @@ class _ControlPageState extends State<ControlPage> with WidgetsBindingObserver {
                     onPressed: _connected
                         ? () => _guarded(() => _client.setPower(true))
                         : null,
-                    icon: const Icon(Icons.power_settings_new),
-                    label: const Text('开机'),
+                    icon: Icon(Icons.power_settings_new),
+                    label: Text(context.l10n.controlsPowerOn),
                   ),
                   FilledButton.tonalIcon(
                     onPressed: _connected
                         ? () => _guarded(() => _client.setPower(false))
                         : null,
-                    icon: const Icon(Icons.power_off),
-                    label: const Text('关机'),
+                    icon: Icon(Icons.power_off),
+                    label: Text(context.l10n.controlsPowerOff),
                   ),
                   IconButton.filledTonal(
                     onPressed: _connected
                         ? () => _guarded(_client.previousTrack)
                         : null,
-                    tooltip: '上一个',
-                    icon: const Icon(Icons.skip_previous),
+                    tooltip: context.l10n.controlsPrevious,
+                    icon: Icon(Icons.skip_previous),
                   ),
                   IconButton.filled(
                     onPressed: _connected
@@ -311,7 +308,7 @@ class _ControlPageState extends State<ControlPage> with WidgetsBindingObserver {
                               !(_status.playing ?? false),
                             ))
                         : null,
-                    tooltip: (_status.playing ?? false) ? '暂停' : '播放',
+                    tooltip: (_status.playing ?? false) ? context.l10n.controlsPause : context.l10n.controlsPlay,
                     icon: Icon((_status.playing ?? false)
                         ? Icons.pause
                         : Icons.play_arrow),
@@ -319,14 +316,14 @@ class _ControlPageState extends State<ControlPage> with WidgetsBindingObserver {
                   IconButton.filledTonal(
                     onPressed:
                         _connected ? () => _guarded(_client.nextTrack) : null,
-                    tooltip: '下一个',
-                    icon: const Icon(Icons.skip_next),
+                    tooltip: context.l10n.controlsNext,
+                    icon: Icon(Icons.skip_next),
                   ),
                   OutlinedButton.icon(
                     onPressed:
                         _connected ? () => _guarded(_client.queryStatus) : null,
-                    icon: const Icon(Icons.refresh),
-                    label: const Text('刷新状态'),
+                    icon: Icon(Icons.refresh),
+                    label: Text(context.l10n.controlsRefreshStatus),
                   ),
                 ],
               ),
@@ -346,7 +343,7 @@ class _ControlPageState extends State<ControlPage> with WidgetsBindingObserver {
   }) =>
       Card(
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [

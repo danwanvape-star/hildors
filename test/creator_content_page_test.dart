@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hildors_cockpit/l10n/generated/app_localizations_zh.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hildors_cockpit/src/features/community/creator_content_page.dart';
 import 'package:hildors_cockpit/src/features/community/creator_content_repository.dart';
@@ -76,9 +77,9 @@ class _Repository implements CreatorContentRepository {
         code: 'TEMPORARY',
       );
     }
-    return _copy(item,
-        version: item.version + 1, submissionStatus: 'pending');
+    return _copy(item, version: item.version + 1, submissionStatus: 'pending');
   }
+
   @override
   Future<CreatorContent> updateMetadata(CreatorContent item,
       {required String title,
@@ -97,6 +98,7 @@ class _Repository implements CreatorContentRepository {
     items = [updated];
     return updated;
   }
+
   @override
   Future<CreatorContent> uploadClip(CreatorContent item,
           {required String clipId, required String filePath}) =>
@@ -150,6 +152,44 @@ CreatorContent _copy(
     );
 
 void main() {
+  testWidgets(
+      'published content uses readable details without rejection or disabled form',
+      (tester) async {
+    tester.view.physicalSize = const Size(360, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    const item = CreatorContent(
+        id: 'live',
+        title: '超级马里奥',
+        format: 'single',
+        status: 'published',
+        submissionStatus: 'approved',
+        version: 9,
+        description: '马里奥来咯',
+        tags: ['游戏世界'],
+        clips: [],
+        reviewNote: '运营审核通过');
+    await tester.pumpWidget(MaterialApp(
+        theme: ThemeData.dark(),
+        home: MediaQuery(
+            data: const MediaQueryData(textScaler: TextScaler.linear(1.3)),
+            child: CreatorContentEditorPage(
+                repository: _Repository(),
+                availableTags: const [
+                  CreatorContentTag(id: 'other', name: '不相关标签', active: true)
+                ],
+                initial: item))));
+    await tester.pumpAndSettle();
+    expect(find.text('退回原因'), findsNothing);
+    expect(find.text('审核说明'), findsOneWidget);
+    expect(find.byType(TextFormField), findsNothing);
+    expect(find.byType(FilterChip), findsNothing);
+    expect(find.text('不相关标签'), findsNothing);
+    expect(find.text('游戏世界'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('list shows rejected status and review reason', (tester) async {
     await tester.pumpWidget(MaterialApp(
       home: CreatorContentPage(repository: _Repository(items: [_rejected()])),
@@ -180,8 +220,7 @@ void main() {
         find.byKey(const Key('creator-content-title')), '星港守望者');
     await tester.enterText(
         find.byKey(const Key('creator-content-story')), '她在星港守护最后一盏灯。');
-    await tester.enterText(
-        find.byKey(const Key('creator-clip-title-0')), '待机');
+    await tester.enterText(find.byKey(const Key('creator-clip-title-0')), '待机');
     await tester.tap(find.widgetWithText(FilterChip, '幻想'));
     await tester.ensureVisible(find.text('保存草稿'));
     await tester.tap(find.text('保存草稿'));
@@ -212,6 +251,8 @@ void main() {
         find.byKey(const Key('creator-content-title')), '退回作品新版');
     await tester.enterText(
         find.byKey(const Key('creator-content-story')), '补充后的完整角色来历。');
+    await tester.ensureVisible(find.widgetWithText(FilterChip, '旧标签（旧标签）'));
+    await tester.pumpAndSettle();
     await tester.tap(find.widgetWithText(FilterChip, '旧标签（旧标签）'));
     await tester.scrollUntilVisible(
       find.text('重新提交审核'),
@@ -269,7 +310,7 @@ void main() {
 
     await tester.tap(find.text('重新提交审核'));
     await tester.pumpAndSettle();
-    expect(find.text('暂时无法提交'), findsOneWidget);
+    expect(find.text(AppLocalizationsZh().errorGeneric), findsOneWidget);
     await tester.tap(find.text('提交审核'));
     await tester.pumpAndSettle();
 

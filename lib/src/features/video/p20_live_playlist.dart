@@ -2,7 +2,6 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import '../../device/p20_device_client.dart';
 import '../../device/p20_command_session.dart';
-import '../../device/device_error_message.dart';
 
 /// A view of the connected device, never populated from local playlist drafts.
 class P20LivePlaylist extends ChangeNotifier {
@@ -70,7 +69,7 @@ class P20LivePlaylist extends ChangeNotifier {
       mode = currentMode;
       loaded = true;
     } catch (failure) {
-      if (_current(generation)) error = friendlyDeviceConnectionError(failure);
+      if (_current(generation)) error = 'read_failed';
     } finally {
       if (_current(generation)) {
         loading = false;
@@ -90,7 +89,7 @@ class P20LivePlaylist extends ChangeNotifier {
     try {
       await action(target, generation);
     } catch (_) {
-      failureMessage = '设备未确认操作，已重新读取实际状态，请检查后重试。';
+      failureMessage = 'operation_unconfirmed';
     } finally {
       if (_current(generation)) {
         busy = false;

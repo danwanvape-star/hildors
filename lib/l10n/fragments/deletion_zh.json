@@ -1,0 +1,21 @@
+{
+  "deletionTitle": "删除账号",
+  "deletionExplanation": "申请删除 Hildors 账号及关联数据。提交后进入审核，不会立即删除数据或退出登录。你可以在此查看处理进度或取消待处理申请。",
+  "deletionSubmit": "提交账号删除申请",
+  "deletionConfirm": "确认提交删除申请？审核期间账号仍可使用。",
+  "deletionNone": "暂无删除申请。",
+  "deletionReceived": "已收到申请",
+  "deletionReview": "审核中",
+  "deletionInformation": "待补充信息",
+  "deletionCancelled": "申请已取消",
+  "deletionCancel": "取消删除申请",
+  "deletionRefresh": "刷新进度",
+  "deletionReference": "申请编号：{id}",
+  "@deletionReference": {
+    "placeholders": {
+      "id": {
+        "type": "String"
+      }
+    }
+  }
+}

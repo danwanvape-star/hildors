@@ -2,6 +2,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'cloud_business_intake.dart';
+import 'cloud_email_identity.dart';
 import 'cloud_order_submission.dart';
 
 const _statuses = {
@@ -19,7 +20,12 @@ const _statuses = {
 
 class CloudOrdersPage extends StatefulWidget {
   const CloudOrdersPage(
-      {this.creator = false, this.request, this.materialRequest, super.key});
+      {this.creator = false,
+      this.request,
+      this.materialRequest,
+      this.emailService,
+      super.key});
+  final CloudBusinessIntake? emailService;
   final bool creator;
   final CloudOrderRequest? request;
   final Future<Uint8List> Function(String path)? materialRequest;
@@ -58,6 +64,15 @@ class _CloudOrdersPageState extends State<CloudOrdersPage> {
     } finally {
       if (mounted) setState(() => loading = false);
     }
+  }
+
+  Future<void> _emailLogin() async {
+    final success =
+        await showCloudEmailSignIn(context, service: widget.emailService);
+    if (!mounted || !success) return;
+    pendingMaterials.clear();
+    setState(() => items = []);
+    await _load();
   }
 
   Future<void> _action(Map<String, dynamic> order, String action,
@@ -365,6 +380,10 @@ class _CloudOrdersPageState extends State<CloudOrdersPage> {
   Widget build(BuildContext context) => Scaffold(
         appBar:
             AppBar(title: Text(widget.creator ? '创作者任务' : '定制订单'), actions: [
+          IconButton(
+              onPressed: busy || loading ? null : _emailLogin,
+              tooltip: '邮箱登录 / 找回订单',
+              icon: const Icon(Icons.mark_email_read_outlined)),
           IconButton(
               onPressed: loading || busy ? null : _load,
               icon: const Icon(Icons.refresh))

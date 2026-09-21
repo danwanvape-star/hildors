@@ -1,8 +1,9 @@
+import {operatorActorContext} from './operators.mjs';
 // Order operations share the existing SQLite connection and optimistic version.
 export function orderOperations(db) {
   const parse = row => row ? ({...JSON.parse(row.document),id:row.id,userId:row.user_id,version:row.version,status:row.status,createdAt:row.created_at,updatedAt:row.updated_at}) : null;
   const summary = o => Object.fromEntries(['id','userId','version','status','characterName','sourceType','materialCount','materialsUploaded','dispatchMode','dispatchState','assignedCreatorId','assignedCreatorName','createdAt','updatedAt','marketRegion'].map(k=>[k,o[k]]).concat([['dueAt',o.workflow?.dueAt],['applicantCount',(o.applicantCreatorIds??[]).length]]));
-  function save(current, patch, action, note = '', actor = 'admin') {
+  function save(current, patch, action, note = '', actor = operatorActorContext.getStore() || 'admin') {
     if (typeof note !== 'string' || note.length > 1000) throw new Error('ORDER_INVALID_NOTE');
     const now = new Date().toISOString(), status = patch.status ?? current.status;
     const document = {...current,...patch,workflowHistory:[...(current.workflowHistory??[]),{from:current.status,to:status,action,note:note.trim(),actor,at:now}]};
@@ -14,7 +15,7 @@ export function orderOperations(db) {
   function requireVersion(order, version) { if(!order || !Number.isInteger(version) || order.version!==version) throw new Error('CONFLICT'); }
   function eligible(creator) { return creator?.status==='approved' && creator.management?.canReceiveOrders===true; }
   function taskView(order, creatorId) {
-    if(order.assignedCreatorId===creatorId) return order;
+    if(order.assignedCreatorId===creatorId) {const view={...order};delete view.verifiedContactEmail;return view;}
     return Object.fromEntries(['id','version','status','characterName','sourceType','requestedFeatures','requirements','dispatchMode','dispatchState','applicantCreatorIds','createdAt'].map(k=>[k,order[k]]));
   }
   return {
@@ -22,6 +23,7 @@ export function orderOperations(db) {
     customerOrderView(order) {
       const view={...order,workflow:{...(order.workflow??{})},workflowHistory:(order.workflowHistory??[]).map(h=>h.action==='creator_submitted'?{...h,note:'创作者已提交成果，等待平台质检'}:h)};
       delete view.workflow.deliverableReference; delete view.workflow.deliveryReference;
+      if(order.productionUpdates)view.productionUpdates=order.productionUpdates.map(({text,at})=>({text,at}));
       delete view.creatorQuote; delete view.applicantCreatorIds;
       return view;
     },
@@ -35,6 +37,9 @@ export function orderOperations(db) {
       const pageSize = Math.min(100,Math.max(1,Number.parseInt(params.get('pageSize')||'20')||20));
       let page = Math.max(1,Number.parseInt(params.get('page')||'1')||1);
       const clauses=[], args=[];
+      const kind=params.get('kind');
+      const kindClause=kind==='plan'?"json_extract(document,'$.planSnapshot') IS NOT NULL":kind==='legacy'?"json_extract(document,'$.planSnapshot') IS NULL":'';
+      if(kindClause) clauses.push(kindClause);
       const status=params.get('status'), mode=params.get('dispatchMode'), q=(params.get('q')||'').trim().slice(0,120);
       if(status) { clauses.push('status=?');args.push(status); }
       if(mode) { clauses.push("json_extract(document,'$.dispatchMode')=?");args.push(mode); }
@@ -42,9 +47,9 @@ export function orderOperations(db) {
       const where=clauses.length?' WHERE '+clauses.join(' AND '):'';
       const total=db.prepare('SELECT count(*) AS n FROM customization_orders'+where).get(...args).n;
       page=Math.min(page,Math.max(1,Math.ceil(total/pageSize)));
-      const items=db.prepare('SELECT * FROM customization_orders'+where+' ORDER BY created_at DESC,id DESC LIMIT ? OFFSET ?').all(...args,pageSize,(page-1)*pageSize).map(parse).map(summary);
+      const items=db.prepare('SELECT * FROM customization_orders'+where+' ORDER BY created_at DESC,id DESC LIMIT ? OFFSET ?').all(...args,pageSize,(page-1)*pageSize).map(parse).map(o => ({...summary(o), ...(o.planSnapshot ? {planSummary:{durationSeconds:o.planSnapshot.durationSeconds,audioMode:o.planSnapshot.audioMode,paymentStatus:o.payment?.status ?? 'unpaid'}} : {})}));
       const counts={total:0,free_review:0,in_production:0};
-      for(const row of db.prepare('SELECT status,count(*) AS n FROM customization_orders GROUP BY status').all()) {counts[row.status]=row.n;counts.total+=row.n;}
+      for(const row of db.prepare('SELECT status,count(*) AS n FROM customization_orders'+(kindClause?' WHERE '+kindClause:'')+' GROUP BY status').all()) {counts[row.status]=row.n;counts.total+=row.n;}
       return {items,total,page,pageSize,counts};
     },
     attachOrderMaterial(id, userId, material, slot) {
@@ -67,7 +72,7 @@ export function orderOperations(db) {
     },
     recoverLegacyOrder(id, value) {
       const order=this.getCustomizationOrder(id);requireVersion(order,value?.version);
-      if(order.dispatchMode || order.assignedCreatorId || !['quoted','in_production','quality_review','user_acceptance'].includes(order.status)) throw new Error('ORDER_RECOVERY_STAGE');
+      if(order.planSnapshot || order.dispatchMode || order.assignedCreatorId || !['quoted','in_production','quality_review','user_acceptance'].includes(order.status)) throw new Error('ORDER_RECOVERY_STAGE');
       if(typeof value.note!=='string'||!value.note.trim()) throw new Error('ORDER_NOTE_REQUIRED');
       return save(order,{status:'needs_info',workflow:{},creatorQuote:null,quoteAcceptedAt:null,acceptedAt:null,
         dispatchMode:null,dispatchState:'unassigned',assignedCreatorId:null,assignedCreatorName:null,applicantCreatorIds:[],
@@ -75,6 +80,7 @@ export function orderOperations(db) {
     },
     dispatchOrder(id, value) {
       const order=this.getCustomizationOrder(id);requireVersion(order,value?.version);
+      if(order.planSnapshot) throw new Error('ORDER_DISPATCH_STAGE');
       if(order.status!=='approved_for_quote') throw new Error('ORDER_DISPATCH_STAGE');
       if(!['direct','applications'].includes(value.mode)) throw new Error('ORDER_DISPATCH_MODE');
       if(value.dueAt && (!/^\d{4}-\d{2}-\d{2}$/.test(value.dueAt)||!Number.isFinite(Date.parse(value.dueAt)))) throw new Error('ORDER_INVALID_DATE');
@@ -91,7 +97,7 @@ export function orderOperations(db) {
     listCreatorTasks(userId) {
       const creator=this.getCreatorProfile(userId);
       if(!eligible(creator)) throw new Error('ORDER_CREATOR_INELIGIBLE');
-      return db.prepare("SELECT * FROM customization_orders WHERE json_extract(document,'$.assignedCreatorId')=? OR (status='approved_for_quote' AND json_extract(document,'$.dispatchMode')='applications' AND json_extract(document,'$.dispatchState')='open' AND user_id<>?) ORDER BY created_at DESC").all(creator.id,userId).map(parse).map(o=>taskView(o,creator.id));
+      return db.prepare("SELECT * FROM customization_orders WHERE json_extract(document,'$.assignedCreatorId')=? OR (status='approved_for_quote' AND json_extract(document,'$.dispatchMode')='applications' AND json_extract(document,'$.dispatchState')='open' AND user_id<>?) ORDER BY created_at DESC").all(creator.id,userId).map(parse).filter(o=>!o.planSnapshot).map(o=>taskView(o,creator.id));
     },
     creatorOrderAction(id,userId,value) {
       const creator=this.getCreatorProfile(userId);
@@ -122,6 +128,7 @@ export function orderOperations(db) {
     },
     customerOrderAction(id,userId,value) {
       const order=this.getCustomizationOrder(id);requireVersion(order,value?.version);
+      if(order.planSnapshot) return this.planOrderAction(id,userId,value);
       if(order.userId!==userId) throw new Error('ORDER_NOT_OWNER');
       if(value.action==='accept_quote' && order.status==='quoted' && order.assignedCreatorId) {
         if(!eligible(this.getCreatorProfile(order.assignedCreatorId))) throw new Error('ORDER_CREATOR_INELIGIBLE');

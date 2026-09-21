@@ -1,0 +1,21 @@
+{
+  "authTitle": "Email sign-in",
+  "authExplanation": "Sign in with your email to access your account on another device and receive service notifications. Signing in switches accounts; it does not merge their data. If an older account has no verified email, contact support for recovery.",
+  "authEmail": "Email",
+  "authSend": "Send code",
+  "authResend": "Resend code",
+  "authSent": "Code sent. It expires in 10 minutes.",
+  "authCode": "6-digit code",
+  "authChange": "Change email",
+  "authVerify": "Verify and sign in",
+  "authInvalidEmail": "Enter a valid email address.",
+  "authInvalidCode": "Enter the 6-digit code.",
+  "authResendSeconds": "Resend in {seconds}s",
+  "@authResendSeconds": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  }
+}

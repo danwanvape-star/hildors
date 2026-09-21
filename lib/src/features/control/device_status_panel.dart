@@ -1,3 +1,4 @@
+import '../../localization/localization.dart';
 import 'package:flutter/material.dart';
 
 import '../../device/device_runtime_state.dart';
@@ -19,54 +20,53 @@ class DeviceStatusPanel extends StatelessWidget {
     return Card(
       clipBehavior: Clip.antiAlias,
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
                 Icon(Icons.hub_outlined, color: colors.primary),
-                const SizedBox(width: 8),
-                Text('设备状态', style: Theme.of(context).textTheme.titleLarge),
+                SizedBox(width: 8),
+                Expanded(child: Text(context.l10n.controlsStatus, style: Theme.of(context).textTheme.titleLarge)),
               ],
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: 16),
             _StatusRow(
               icon: Icons.wifi,
-              title: '局域网控制',
-              value: _connectionLabel,
+              title: context.l10n.controlsLan,
+              value: _connectionLabel(context),
               active: connection == DeviceConnectionState.connected,
             ),
-            const Divider(height: 24),
+            Divider(height: 24),
             _StatusRow(
               icon: Icons.play_circle_outline,
-              title: '工作模式',
-              value: _modeLabel,
+              title: context.l10n.controlsMode,
+              value: _modeLabel(context),
               active: runtime.mode != P20OperatingMode.unknown,
             ),
-            const Divider(height: 24),
+            Divider(height: 24),
             _StatusRow(
               icon: Icons.speaker_outlined,
-              title: '蓝牙音源',
-              value: _bluetoothLabel,
+              title: context.l10n.controlsAudioSource,
+              value: _bluetoothLabel(context),
               active:
                   runtime.bluetooth.state == BluetoothAudioState.connected ||
                       runtime.bluetooth.state == BluetoothAudioState.playing,
             ),
-            const Divider(height: 24),
+            Divider(height: 24),
             _BatteryRow(battery: runtime.battery),
             if (runtime.mode == P20OperatingMode.unknown) ...[
-              const SizedBox(height: 14),
+              SizedBox(height: 14),
               Container(
                 width: double.infinity,
-                padding: const EdgeInsets.all(12),
+                padding: EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   color: colors.surfaceContainerHighest,
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Text(
-                  '当前协议尚未提供工作模式和蓝牙状态。新版协议接入后，'
-                  '这里将实时显示“本机播放”或“蓝牙音响”。',
+                child: Text(
+                  context.l10n.controlsProtocolNote,
                 ),
               ),
             ],
@@ -76,30 +76,30 @@ class DeviceStatusPanel extends StatelessWidget {
     );
   }
 
-  String get _connectionLabel => switch (connection) {
-        DeviceConnectionState.disconnected => '未连接',
-        DeviceConnectionState.connecting => '连接中…',
-        DeviceConnectionState.reconnecting => '正在重连…',
-        DeviceConnectionState.connected => '已连接',
+  String _connectionLabel(BuildContext context) => switch (connection) {
+        DeviceConnectionState.disconnected => context.l10n.controlsDisconnected,
+        DeviceConnectionState.connecting => context.l10n.controlsConnecting,
+        DeviceConnectionState.reconnecting => context.l10n.controlsReconnecting,
+        DeviceConnectionState.connected => context.l10n.controlsConnected,
       };
 
-  String get _modeLabel => switch (runtime.mode) {
-        P20OperatingMode.unknown => '等待新版协议',
-        P20OperatingMode.localPlayback => '本机播放',
-        P20OperatingMode.bluetoothWaiting => '蓝牙等待连接',
-        P20OperatingMode.bluetoothAudio => '蓝牙音响',
+  String _modeLabel(BuildContext context) => switch (runtime.mode) {
+        P20OperatingMode.unknown => context.l10n.controlsProtocol,
+        P20OperatingMode.localPlayback => context.l10n.controlsLocalPlayback,
+        P20OperatingMode.bluetoothWaiting => context.l10n.controlsBluetoothWaiting,
+        P20OperatingMode.bluetoothAudio => context.l10n.controlsBluetoothAudio,
       };
 
-  String get _bluetoothLabel {
+  String _bluetoothLabel(BuildContext context) {
     final name = runtime.bluetooth.sourceName;
     return switch (runtime.bluetooth.state) {
-      BluetoothAudioState.unavailable => '等待新版协议',
-      BluetoothAudioState.waiting => '等待音源连接',
-      BluetoothAudioState.connecting => '连接中…',
-      BluetoothAudioState.connected => name ?? '已连接',
-      BluetoothAudioState.playing => name == null ? '音频播放中' : '$name · 播放中',
-      BluetoothAudioState.paused => name == null ? '音频已暂停' : '$name · 已暂停',
-      BluetoothAudioState.disconnected => '已断开',
+      BluetoothAudioState.unavailable => context.l10n.controlsProtocol,
+      BluetoothAudioState.waiting => context.l10n.controlsWaitingSource,
+      BluetoothAudioState.connecting => context.l10n.controlsConnecting,
+      BluetoothAudioState.connected => name ?? context.l10n.controlsConnected,
+      BluetoothAudioState.playing => name == null ? context.l10n.controlsAudioPlaying : context.l10n.controlsNamedPlaying(name),
+      BluetoothAudioState.paused => name == null ? context.l10n.controlsAudioPaused : context.l10n.controlsNamedPaused(name),
+      BluetoothAudioState.disconnected => context.l10n.controlsWasDisconnected,
     };
   }
 }
@@ -124,19 +124,19 @@ class _BatteryRow extends StatelessWidget {
             ? Icons.battery_alert
             : Icons.battery_std;
     final label = percent == null
-        ? '等待新版协议'
+        ? context.l10n.controlsProtocol
         : battery.chargingState == BatteryChargingState.full
-            ? '已充满'
+            ? context.l10n.controlsBatteryFull
             : battery.isCharging
-                ? '$percent% · 充电中'
+                ? context.l10n.controlsCharging(percent)
                 : '$percent%';
     return Row(
       children: [
         Icon(icon, color: percent == null ? colors.onSurfaceVariant : color),
-        const SizedBox(width: 12),
-        const Expanded(child: Text('设备电量')),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        SizedBox(width: 12),
+        Expanded(child: Text(context.l10n.controlsBattery)),
+        Expanded(child: Container(
+          padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
           decoration: BoxDecoration(
             color: percent == null
                 ? colors.surfaceContainerHighest
@@ -147,7 +147,7 @@ class _BatteryRow extends StatelessWidget {
             label,
             style: TextStyle(color: percent == null ? null : color),
           ),
-        ),
+        )),
       ],
     );
   }
@@ -172,10 +172,10 @@ class _StatusRow extends StatelessWidget {
     return Row(
       children: [
         Icon(icon, color: active ? colors.primary : colors.onSurfaceVariant),
-        const SizedBox(width: 12),
+        SizedBox(width: 12),
         Expanded(child: Text(title)),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        Expanded(child: Container(
+          padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
           decoration: BoxDecoration(
             color: active
                 ? colors.primaryContainer
@@ -183,7 +183,7 @@ class _StatusRow extends StatelessWidget {
             borderRadius: BorderRadius.circular(999),
           ),
           child: Text(value),
-        ),
+        )),
       ],
     );
   }

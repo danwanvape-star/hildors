@@ -39,6 +39,7 @@ class VerifiedVideoDownload {
       {required String packageId,
       required String clipId,
       required String sessionToken,
+      String? customOrderId,
       DownloadCancellation? cancellation,
       void Function()? onVerifying,
       void Function(int received, int total)? onProgress}) async {
@@ -52,8 +53,14 @@ class VerifiedVideoDownload {
     cancellation?._listeners.add(abort);
     try {
       cancellation?.check();
-      final prefix =
-          '/v1/me/packages/${Uri.encodeComponent(packageId)}/clips/${Uri.encodeComponent(clipId)}';
+      if (customOrderId != null &&
+          (packageId != 'custom-order-$customOrderId' ||
+              !RegExp(r'^[A-Za-z0-9_-]{1,128}$').hasMatch(customOrderId))) {
+        throw const FormatException('Invalid custom order');
+      }
+      final prefix = customOrderId != null
+          ? '/v1/me/customization-orders/$customOrderId'
+          : '/v1/me/packages/${Uri.encodeComponent(packageId)}/clips/${Uri.encodeComponent(clipId)}';
       Future<HttpClientResponse> get(String path) async {
         final request = await client.getUrl(baseUri.resolve(path));
         request.followRedirects = false;

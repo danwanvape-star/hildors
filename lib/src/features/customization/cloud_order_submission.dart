@@ -38,8 +38,21 @@ class CloudOrderMaterial {
 
 /// Retains request identity and successfully uploaded slots during a retry.
 class CloudOrderSubmission {
-  CloudOrderSubmission({CloudOrderRequest? request})
-      : request = request ?? CloudBusinessIntake.instance.orderRequest;
+  CloudOrderSubmission(
+      {CloudOrderRequest? request, int Function()? identityRevision})
+      : request = request ?? CloudBusinessIntake.instance.orderRequest,
+        _identityRevision = identityRevision ??
+            (() => CloudBusinessIntake.instance.identityRevision);
+  final int Function() _identityRevision;
+  int? _startedIdentity;
+  void _checkIdentity() {
+    _startedIdentity ??= _identityRevision();
+    if (_startedIdentity != _identityRevision()) {
+      throw const CloudSessionRecoveryRequired(
+          '登录账户已变更，不能继续上传原账户的订单。请登录原账户后在定制订单中补充素材。');
+    }
+  }
+
   final CloudOrderRequest request;
   final String clientRequestId = _uuid();
   String? orderId;
@@ -63,16 +76,19 @@ class CloudOrderSubmission {
     for (final material in materials) {
       material.validate();
     }
+    _checkIdentity();
     _document ??= {...document, 'clientRequestId': clientRequestId};
     _materials ??= List.of(materials);
     if (orderId == null) {
       final response = await request('POST', '/v1/me/customization-orders',
           document: _document);
+      _checkIdentity();
       final id = response['id'];
       if (id is! String || id.isEmpty) throw const FormatException('订单响应缺少编号');
       orderId = id;
     }
     for (final material in _materials!) {
+      _checkIdentity();
       if (_uploaded.contains(material.slot)) continue;
       final query =
           Uri(queryParameters: {'name': material.name, 'slot': material.slot})
@@ -80,6 +96,7 @@ class CloudOrderSubmission {
       await request(
           'POST', '/v1/me/customization-orders/$orderId/materials?$query',
           bytes: material.bytes, contentType: material.contentType);
+      _checkIdentity();
       _uploaded.add(material.slot);
     }
   }

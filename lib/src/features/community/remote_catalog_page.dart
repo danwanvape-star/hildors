@@ -1,3 +1,5 @@
+import 'catalog_localization.dart';
+import '../../localization/localization.dart';
 import 'catalog_network_image.dart';
 import 'package:flutter/material.dart';
 
@@ -37,6 +39,26 @@ class _RemoteCatalogPageState extends State<RemoteCatalogPage> {
 
   void _reload() => _request = _loadData();
 
+  Future<void> _refresh() async {
+    setState(() {
+      _reload();
+    });
+    final request = _request;
+    try {
+      final data = await request;
+      if (!mounted || request != _request) return;
+      final creators = data.packages.where((p) => p.source == 'creator').length;
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(
+          content:
+              Text(context.l10n.catalogRefreshed(data.packages.length, creators)),
+        ));
+    } catch (_) {
+      // The FutureBuilder displays the retry action for a failed refresh.
+    }
+  }
+
   @override
   void dispose() {
     searchController.dispose();
@@ -64,22 +86,24 @@ class _RemoteCatalogPageState extends State<RemoteCatalogPage> {
         future: _request,
         builder: (context, snapshot) {
           if (snapshot.connectionState != ConnectionState.done) {
-            return const Center(child: CircularProgressIndicator());
+            return Center(child: CircularProgressIndicator());
           }
           if (snapshot.hasError) {
             return Center(
                 child: Column(mainAxisSize: MainAxisSize.min, children: [
-              const Text('暂时无法加载内容库'),
-              const Padding(
-                  padding: EdgeInsets.all(16), child: Text('请检查网络连接后重试。')),
+              Text(context.l10n.catalogLoadFailed),
+              Padding(
+                  padding: EdgeInsets.all(16), child: Text(context.l10n.catalogCheckNetwork)),
               FilledButton(
                   onPressed: () => setState(() {
                         _reload();
                       }),
-                  child: const Text('重试')),
+                  child: Text(context.l10n.commonRetry)),
             ]));
           }
           final data = snapshot.data!;
+          final creatorCount =
+              data.packages.where((p) => p.source == 'creator').length;
           final topics = data.packages
               .expand((item) => item.tags)
               .where((tag) => tag.trim().isNotEmpty)
@@ -100,80 +124,79 @@ class _RemoteCatalogPageState extends State<RemoteCatalogPage> {
               format != '全部' ||
               topic != '全部';
           return ListView(
-              padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
+              padding: EdgeInsets.fromLTRB(16, 4, 16, 16),
               children: [
                 Row(children: [
                   Expanded(
                       child: TextField(
                           controller: searchController,
                           onChanged: (value) => setState(() => query = value),
-                          style: const TextStyle(fontSize: 14),
-                          decoration: const InputDecoration(
+                          style: TextStyle(fontSize: 14),
+                          decoration: InputDecoration(
                               isDense: true,
                               contentPadding: EdgeInsets.symmetric(
                                   horizontal: 12, vertical: 10),
-                              hintText: '搜索角色、视频或题材',
+                              hintText: context.l10n.catalogSearch,
                               prefixIconConstraints:
                                   BoxConstraints(minWidth: 36, minHeight: 40),
                               prefixIcon: Icon(Icons.search, size: 20)))),
                   IconButton(
-                      tooltip: '刷新目录',
-                      onPressed: () => setState(() {
-                            _reload();
-                          }),
-                      icon: const Icon(Icons.refresh, size: 22)),
+                      tooltip: context.l10n.catalogRefresh,
+                      onPressed: _refresh,
+                      icon: Icon(Icons.refresh, size: 22)),
                 ]),
-                const SizedBox(height: 4),
+                Padding(
+                  padding: EdgeInsets.symmetric(vertical: 8),
+                  child: Text(
+                      context.l10n.catalogSummary(data.packages.length, creatorCount),
+                      style: TextStyle(fontSize: 12)),
+                ),
+                SizedBox(height: 4),
                 _filterRow(
-                    '出处',
-                    const {
-                      '全部': '全部',
-                      'hildors': 'HILDORS 出品',
-                      'creator': '创作者作品'
+                    context.l10n.catalogSource,
+                    {
+                      '全部': context.l10n.catalogAll,
+                      'hildors': context.l10n.catalogOfficial,
+                      'creator': context.l10n.catalogCreatorWorks
                     },
                     source,
                     (value) => setState(() => source = value)),
                 _filterRow(
-                    '形式',
-                    const {
-                      '全部': '全部',
-                      'single': '单条视频',
-                      'package': '角色视频包',
+                    context.l10n.catalogFormat,
+                    {
+                      '全部': context.l10n.catalogAll,
+                      'single': context.l10n.catalogSingle,
+                      'package': context.l10n.catalogPackage,
                     },
                     format,
                     (value) => setState(() => format = value)),
                 if (topics.isNotEmpty)
                   _filterRow(
-                      '题材',
-                      {'全部': '全部', for (final tag in topics) tag: tag},
+                      context.l10n.catalogGenre,
+                      {'全部': context.l10n.catalogAll, for (final tag in topics) tag: tag},
                       topic,
                       (value) => setState(() => topic = value)),
-                const SizedBox(height: 6),
+                SizedBox(height: 6),
                 if (items.isEmpty)
-                  const Padding(
-                      padding: EdgeInsets.all(24), child: Text('暂无符合条件的内容')),
+                  Padding(
+                      padding: EdgeInsets.all(24), child: Text(context.l10n.catalogEmpty)),
                 if (filtering) ...[
                   Row(children: [
-                    const Expanded(child: _SectionTitle('筛选结果')),
+                    Expanded(child: _SectionTitle(context.l10n.catalogResults)),
                     TextButton(
                         onPressed: () => setState(() {
                               source = format = topic = '全部';
                               query = '';
                               searchController.clear();
                             }),
-                        child: const Text('清除筛选')),
+                        child: Text(context.l10n.catalogClear)),
                   ]),
                   if (items.isNotEmpty) _grid(items, 3, data.packages),
-                ] else
-                  for (final block in data.layout) ...[
-                    if (_itemsFor(block, items).isNotEmpty) ...[
-                      if (!const {'HILDORS 出品', 'HILDORS出品', '创作者作品', ''}
-                          .contains(block.title.trim()))
-                        _SectionTitle(block.title),
-                      _grid(_itemsFor(block, items), block.columns,
-                          data.packages),
-                    ],
-                  ],
+                ] else if (items.isNotEmpty)
+                  _grid(
+                      items,
+                      data.layout.isEmpty ? 3 : data.layout.first.columns,
+                      data.packages),
               ]);
         },
       );
@@ -181,25 +204,25 @@ class _RemoteCatalogPageState extends State<RemoteCatalogPage> {
   Widget _filterRow(String label, Map<String, String> options, String selected,
           ValueChanged<String> onSelected) =>
       Padding(
-        padding: const EdgeInsets.only(top: 2),
+        padding: EdgeInsets.only(top: 2),
         child: Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
           SizedBox(
               width: 38,
               child: Text(label,
                   style:
-                      const TextStyle(fontSize: 12, color: Color(0xff91a6ba)))),
+                      TextStyle(fontSize: 12, color: Color(0xff91a6ba)))),
           Expanded(
               child: SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: Row(children: [
               for (final entry in options.entries)
                 Padding(
-                  padding: const EdgeInsets.only(right: 6),
+                  padding: EdgeInsets.only(right: 6),
                   child: ChoiceChip(
                       visualDensity: VisualDensity.compact,
                       materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       label: Text(entry.value,
-                          style: const TextStyle(fontSize: 12)),
+                          style: TextStyle(fontSize: 12)),
                       selected: selected == entry.key,
                       onSelected: (_) => onSelected(entry.key)),
                 ),
@@ -207,17 +230,6 @@ class _RemoteCatalogPageState extends State<RemoteCatalogPage> {
           )),
         ]),
       );
-
-  List<RemoteCatalogPackage> _itemsFor(
-      RemoteLayoutBlock block, List<RemoteCatalogPackage> items) {
-    return switch (block.type) {
-      'hildors' =>
-        items.where((item) => item.source == 'hildors').toList(growable: false),
-      'creators' =>
-        items.where((item) => item.source == 'creator').toList(growable: false),
-      _ => const [],
-    };
-  }
 
   Widget _grid(List<RemoteCatalogPackage> items, int requestedColumns,
           List<RemoteCatalogPackage> catalog) =>
@@ -246,7 +258,7 @@ class _RemoteCatalogPageState extends State<RemoteCatalogPage> {
                       AspectRatio(
                           aspectRatio: 1,
                           child: ColoredBox(
-                              color: const Color(0xff101d2c),
+                              color: Color(0xff101d2c),
                               child: CatalogNetworkImage(
                                   url: item.format == 'package'
                                       ? (item.coverThumbnailUrl ??
@@ -265,23 +277,23 @@ class _RemoteCatalogPageState extends State<RemoteCatalogPage> {
                                       ? Icons.folder_copy_outlined
                                       : Icons.video_library_outlined))),
                       Padding(
-                          padding: const EdgeInsets.all(8),
+                          padding: EdgeInsets.all(8),
                           child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(item.title,
                                     maxLines: 2,
                                     overflow: TextOverflow.ellipsis),
-                                const SizedBox(height: 6),
-                                Text(item.credit,
+                                SizedBox(height: 6),
+                                Text(catalogCredit(context, item),
                                     key: ValueKey('credit-${item.id}'),
                                     maxLines: 2,
                                     overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(fontSize: 12)),
-                                const SizedBox(height: 6),
+                                    style: TextStyle(fontSize: 12)),
+                                SizedBox(height: 6),
                                 Text(
-                                    '${item.format == 'single' ? '单条视频' : '角色视频包'} · ${item.clips.length}条',
-                                    style: const TextStyle(fontSize: 11)),
+                                    context.l10n.catalogCount(item.format == 'single' ? context.l10n.catalogSingle : context.l10n.catalogPackage, item.clips.length),
+                                    style: TextStyle(fontSize: 11)),
                               ])),
                     ]))),
       );
@@ -302,9 +314,9 @@ class _SectionTitle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.only(top: 18, bottom: 10),
+        padding: EdgeInsets.only(top: 18, bottom: 10),
         child: Text(text,
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
       );
 }
 

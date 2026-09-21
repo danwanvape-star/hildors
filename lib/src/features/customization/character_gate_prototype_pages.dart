@@ -12,9 +12,11 @@ import 'customization_order_repository.dart';
 import 'creator_profile_repository.dart';
 import 'creator_application_page.dart';
 import 'cloud_business_intake.dart';
+import 'cloud_email_identity.dart';
 import 'cloud_order_submission.dart';
 import 'cloud_orders_page.dart';
 import '../community/creator_content_page.dart';
+import 'creator_workbench_page.dart';
 import '../community/creator_content_repository.dart';
 import '../video/character_video_package.dart';
 import '../video/character_package_page.dart';
@@ -1645,7 +1647,7 @@ class _CreatorHubPageState extends State<CreatorHubPage>
     }
     if (profile?.status == '已认证') {
       if (CloudBusinessIntake.instance.isConfigured) {
-        return const CloudOrdersPage(creator: true);
+        return const CreatorWorkbenchPage();
       }
       return CreatorTaskBoardPage(
         orderRepository: widget.orderRepository,
@@ -5614,6 +5616,7 @@ class _PrototypeReviewPageState extends State<PrototypeReviewPage> {
         if (cloudMaterials.length != materialFileNames.length) {
           throw const FormatException('请选择真实图片文件后上传');
         }
+        if (!await ensureCloudOrderEmail(context) || !mounted) return;
         await cloudSubmission.submit({
           'characterName': name,
           'sourceType': widget.type,

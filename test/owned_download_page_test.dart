@@ -1,3 +1,4 @@
+import 'package:hildors_cockpit/src/config/launch_config.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hildors_cockpit/src/features/community/owned_download_page.dart';
@@ -38,7 +39,7 @@ void main() {
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
-    final task = PageController()..message = '当前视频暂不可下载';
+    final task = PageController()..message = '当前视频暂不可下载，请刷新权限后重试';
     await tester.pumpWidget(MaterialApp(
         builder: (context, child) => MediaQuery(
             data: MediaQuery.of(context)
@@ -53,7 +54,7 @@ void main() {
         in tester.widgetList<OutlinedButton>(find.byType(OutlinedButton))) {
       expect(button.onPressed, isNull);
     }
-    expect(find.text('当前视频暂不可下载'), findsOneWidget);
+    expect(find.text('当前视频暂不可下载，请刷新权限后重试'), findsOneWidget);
     expect(find.textContaining('领取'), findsNothing);
     expect(tester.takeException(), isNull);
   });
@@ -95,9 +96,18 @@ void main() {
                     format: 'single',
                     tags: [],
                     clips: [paid])))));
-    await tester.tap(find.text('US\$ 12.99 · 购买下载'));
-    await tester.pumpAndSettle();
-    expect(find.text('暂未开放购买'), findsOneWidget);
+    final purchase = find.widgetWithText(
+        FilledButton, LaunchConfig.usFree ? '暂未开放购买' : 'US\$ 12.99 · 购买下载');
+    expect(purchase, findsOneWidget);
+    if (LaunchConfig.usFree) {
+      expect(tester.widget<FilledButton>(purchase).onPressed, isNull);
+      expect(find.byType(SnackBar), findsNothing);
+    } else {
+      expect(tester.widget<FilledButton>(purchase).onPressed, isNotNull);
+      await tester.tap(purchase);
+      await tester.pumpAndSettle();
+      expect(find.text('暂未开放购买'), findsOneWidget);
+    }
     expect(find.byType(OwnedDownloadPage), findsNothing);
   });
 }

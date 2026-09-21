@@ -1,0 +1,105 @@
+{
+  "customPlansTitle": "定制视频套餐",
+  "customOrdersTitle": "我的定制订单",
+  "customUnavailable": "商店支付尚未接通，目前不会收款。",
+  "customBase": "美元基准参考价：{price}；购买时以商店价格为准。",
+  "customSeconds": "{seconds} 秒视频",
+  "customRequest": "提交需求审核",
+  "customName": "角色／项目名称",
+  "customRequirements": "定制需求",
+  "customMaterials": "添加参考图片",
+  "customMaterialCount": "{count} 张参考图片",
+  "customPrivacy": "参考素材用于评估及制作此私人订单；公开展示需另行获得同意。",
+  "customConsent": "我同意将这些素材用于此订单。",
+  "customValidation": "请填写项目名称及需求，并确认素材使用说明。",
+  "customImageError": "最多选择 8 张 JPG／PNG 图片，每张不超过 8 MB。",
+  "customSubmitted": "需求已提交审核，尚未付款。",
+  "customTerms": "付款前核对确认内容",
+  "customContent": "交付内容",
+  "customPeriod": "交付周期",
+  "customRevisions": "修改范围",
+  "customRights": "使用权限",
+  "customAcceptTerms": "我接受本次确认的交付范围与条款。",
+  "customPay": "支付 {price}",
+  "customRestore": "检查未完成的购买",
+  "customTestMode": "测试支付模式——不产生真实扣款",
+  "customAccept": "确认交付",
+  "customRevise": "申请修改",
+  "customRevisionNote": "请说明需要修改的内容",
+  "customStatusReview": "需求审核中",
+  "customStatusInfo": "待补充信息",
+  "customStatusQuote": "范围已确认，等待付款",
+  "customStatusMaking": "制作中",
+  "customStatusQc": "质量审核中",
+  "customStatusAccept": "等待验收",
+  "customStatusDelivered": "已交付",
+  "customStatusRejected": "需求未通过",
+  "customStatusWithdrawn": "已撤回／退款",
+  "customPending": "付款待处理；服务端验证成功后才开始制作。",
+  "customEmpty": "暂无可用内容。",
+  "@customBase": {
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "@customPay": {
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "@customSeconds": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "@customMaterialCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "customAudioNone": "无音频 · 基础套餐",
+  "customAudioMatched": "平台搭配音频",
+  "customAudioHelp": "平台根据视频内容搭配背景音乐或简单音效，不支持指定歌曲、配音或上传音频。",
+  "customAudioTotal": "美元参考总价：{price}",
+  "customAudioRate": "音频搭配加价：{percent}%",
+  "@customAudioTotal": {
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "@customAudioRate": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "customSupplement": "补充需求并重新提交",
+  "customSupplementSaved": "已重新提交需求，等待审核。",
+  "customSaveDelivery": "保存成品到我的角色",
+  "customSavedDelivery": "已保存到我的角色，可离线查看。",
+  "customSavingDelivery": "正在下载私密成品…",
+  "customConfirmDelivery": "确认将此版本作为最终交付？",
+  "customRevisionLimit": "已申请修改 {used} 次，可用总次数 {limit} 次",
+  "@customRevisionLimit": {
+    "placeholders": {
+      "used": {
+        "type": "int"
+      },
+      "limit": {
+        "type": "int"
+      }
+    }
+  },
+  "customProgress": "制作进展"
+}

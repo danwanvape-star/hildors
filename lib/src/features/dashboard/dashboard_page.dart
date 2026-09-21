@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hildors_cockpit/src/localization/localization.dart';
 
 import '../../device/p20_command_session.dart';
 import '../../device/p20_device_client.dart';
@@ -37,7 +38,7 @@ class _DashboardPageState extends State<DashboardPage> {
         session: _session,
         projection: _projection,
       ),
-      const CollectionHubPage(),
+      CollectionHubPage(),
       ExplorePage(projection: _projection),
       ProfilePage(client: _client, session: _session),
     ];
@@ -45,14 +46,14 @@ class _DashboardPageState extends State<DashboardPage> {
       body: IndexedStack(index: _index, children: pages),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
-          color: const Color(0xFA090E15),
+          color: Color(0xFA090E15),
           border: Border(
             top: BorderSide(
               color:
                   Theme.of(context).colorScheme.outline.withValues(alpha: 0.8),
             ),
           ),
-          boxShadow: const [
+          boxShadow: [
             BoxShadow(
               color: Color(0x66000000),
               blurRadius: 28,
@@ -63,26 +64,26 @@ class _DashboardPageState extends State<DashboardPage> {
         child: NavigationBar(
           selectedIndex: _index,
           onDestinationSelected: (value) => setState(() => _index = value),
-          destinations: const [
+          destinations: [
             NavigationDestination(
               icon: Icon(Icons.home_outlined),
               selectedIcon: Icon(Icons.home_rounded),
-              label: '首页',
+              label: context.l10n.coreHome,
             ),
             NavigationDestination(
               icon: Icon(Icons.collections_bookmark_outlined),
               selectedIcon: Icon(Icons.collections_bookmark),
-              label: '藏品',
+              label: context.l10n.coreCollection,
             ),
             NavigationDestination(
               icon: Icon(Icons.explore_outlined),
               selectedIcon: Icon(Icons.explore),
-              label: '发现',
+              label: context.l10n.coreExplore,
             ),
             NavigationDestination(
               icon: Icon(Icons.person_outline),
               selectedIcon: Icon(Icons.person),
-              label: '我的',
+              label: context.l10n.coreProfile,
             ),
           ],
         ),

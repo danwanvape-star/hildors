@@ -1,0 +1,54 @@
+{
+  "devicePlayingDelete": "Play a different video before deleting this one.",
+  "deviceDeleteTitle": "Permanently delete this device file?",
+  "deviceDeleteIntro": "This video will be permanently deleted from the holographic device:",
+  "deviceDeleteNote": "This cannot be undone. Downloaded copies on your phone and purchase records will remain.",
+  "deviceCancel": "Cancel",
+  "deviceDelete": "Delete permanently",
+  "deviceVideoLibrary": "Device videos",
+  "deviceRefresh": "Refresh",
+  "deviceConnectFirst": "Connect your device in Controls first.",
+  "deviceReadVideos": "Load device videos",
+  "devicePlaying": "Playing",
+  "devicePlay": "Play",
+  "deviceMore": "More actions",
+  "deviceDeleteFrom": "Delete from device",
+  "frameSaved": "Framing saved. The original video is unchanged; it has not been converted or uploaded.",
+  "frameSaveFailed": "Could not save. Please try again.",
+  "frameTitle": "Adjust circular framing",
+  "frameCircle": "The circle marks the device display area.",
+  "frameInstructions": "Pinch to zoom and drag to reposition. Play the full video to check that the character and movements stay inside the circle.",
+  "framePause": "Pause preview",
+  "framePlay": "Play preview",
+  "framePlaybackFailed": "Playback failed. Go back and try again.",
+  "frameZoom": "Zoom",
+  "frameFit": "Fit whole frame",
+  "frameFill": "Fill circle",
+  "frameReset": "Reset",
+  "frameFitNote": "Fit keeps the entire frame. Fill crops the edges.",
+  "frameRestoreFailed": "Saved framing could not be loaded. Adjust and save it again.",
+  "frameSaving": "Saving…",
+  "frameSave": "Save framing",
+  "frameUnavailable": "Convert and upload · Unavailable",
+  "framePending": "Only framing is saved for now. Device video conversion is not yet available.",
+  "framePreviewFailed": "Preview could not load. Go back and try again.",
+  "deviceDeleted": "Deleted {name} from the device.",
+  "frameTime": "{position} / {duration} seconds",
+  "@deviceDeleted": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@frameTime": {
+    "placeholders": {
+      "position": {
+        "type": "int"
+      },
+      "duration": {
+        "type": "int"
+      }
+    }
+  }
+}

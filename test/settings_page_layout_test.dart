@@ -16,7 +16,7 @@ void main() {
       home: SettingsPage(client: client, session: session),
     ));
     expect(find.text('座舱在线'), findsOneWidget);
-    expect(find.text('ONLINE'), findsOneWidget);
+    expect(find.text('在线'), findsOneWidget);
     expect(find.text('设备未连接'), findsNothing);
     final button = tester.widget<FilledButton>(
       find.widgetWithText(FilledButton, '同步设备状态'),
@@ -43,7 +43,7 @@ void main() {
     );
 
     expect(find.text('设备未连接'), findsOneWidget);
-    expect(find.text('OFFLINE'), findsOneWidget);
+    expect(find.text('离线'), findsOneWidget);
     expect(find.text('单曲循环'), findsOneWidget);
     expect(find.text('顺序循环'), findsOneWidget);
     expect(find.textContaining('SocketException'), findsNothing);

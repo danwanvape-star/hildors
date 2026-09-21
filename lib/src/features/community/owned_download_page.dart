@@ -1,3 +1,6 @@
+import '../../localization/localization.dart';
+import '../../config/launch_config.dart';
+import 'catalog_localization.dart';
 import 'package:flutter/material.dart';
 import '../video/character_package_picker.dart';
 import 'owned_package_download.dart';
@@ -14,9 +17,9 @@ class OwnedDownloadButton extends StatelessWidget {
           : null);
   @override
   Widget build(BuildContext context) => FilledButton.tonalIcon(
-        icon: const Icon(Icons.download_for_offline_outlined),
-        label: Text(effectiveClip?.downloadLabel ?? '下载到我的角色'),
-        onPressed: () {
+        icon: Icon(Icons.download_for_offline_outlined),
+        label: Text(downloadLabel(context, effectiveClip)),
+        onPressed: LaunchConfig.usFree && effectiveClip?.pricing?.isPaid == true ? null : () {
           if (effectiveClip?.pricing?.isPaid == true) {
             _purchaseUnavailable(context);
             return;
@@ -28,7 +31,7 @@ class OwnedDownloadButton extends StatelessWidget {
 }
 
 void _purchaseUnavailable(BuildContext context) => ScaffoldMessenger.of(context)
-    .showSnackBar(const SnackBar(content: Text('暂未开放购买')));
+    .showSnackBar(SnackBar(content: Text(context.l10n.downloadUnavailable)));
 
 class OwnedDownloadPage extends StatefulWidget {
   const OwnedDownloadPage(
@@ -57,7 +60,7 @@ class _OwnedDownloadPageState extends State<OwnedDownloadPage> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: const Text('下载到我的角色')),
+        appBar: AppBar(title: Text(context.l10n.downloadTitle)),
         body: AnimatedBuilder(
             animation: task,
             builder: (context, _) {
@@ -69,49 +72,49 @@ class _OwnedDownloadPageState extends State<OwnedDownloadPage> {
                       task.allowed.contains(c.id) &&
                       c.pricing?.isPaid != true)
                   .toList();
-              return ListView(padding: const EdgeInsets.all(16), children: [
+              return ListView(padding: EdgeInsets.all(16), children: [
                 Text(widget.package.title,
                     style: Theme.of(context).textTheme.titleLarge),
-                const SizedBox(height: 8),
-                Text(widget.package.credit),
-                const SizedBox(height: 8),
-                const Text('视频按条定价，免费内容可直接下载。付费视频暂未开放购买。下载后可在“我的角色”离线查看。'),
-                const SizedBox(height: 12),
+                SizedBox(height: 8),
+                Text(catalogCredit(context, widget.package)),
+                SizedBox(height: 8),
+                Text(context.l10n.downloadInfo),
+                SizedBox(height: 12),
                 Text(
-                    '已下载 ${task.completed.length}/${widget.package.clips.length}'),
-                if (task.preparing) const LinearProgressIndicator(),
+                    context.l10n.downloadProgress(task.completed.length, widget.package.clips.length)),
+                if (task.preparing) LinearProgressIndicator(),
                 if (task.busy) ...[
-                  Text('正在下载：${task.activeTitle}'),
+                  Text(context.l10n.downloadActive(task.activeTitle)),
                   LinearProgressIndicator(
                       value: task.total > 0
                           ? (task.received / task.total).clamp(0, 1)
                           : null),
-                  TextButton(onPressed: task.cancel, child: const Text('取消下载')),
+                  TextButton(onPressed: task.cancel, child: Text(context.l10n.downloadCancel)),
                 ],
                 if (task.message.isNotEmpty)
                   Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      child: Text(task.message)),
+                      padding: EdgeInsets.symmetric(vertical: 12),
+                      child: Text(downloadMessage(context, task.message))),
                 if (clips.length > 1)
                   FilledButton(
                       onPressed:
                           task.busy || task.preparing || remaining.isEmpty
                               ? null
                               : () => task.download(remaining),
-                      child: const Text('下载可用视频')),
+                      child: Text(context.l10n.downloadAvailable)),
                 for (final clip in clips)
                   Card(
                       child: Padding(
-                          padding: const EdgeInsets.all(12),
+                          padding: EdgeInsets.all(12),
                           child: Column(
                               crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
                                 Text(clip.title),
                                 if (task.completed.contains(clip.id))
-                                  const Text('已下载')
+                                  Text(context.l10n.downloadDone)
                                 else
                                   OutlinedButton(
-                                      onPressed: task.busy ||
+                                      onPressed: (LaunchConfig.usFree && clip.pricing?.isPaid == true) || task.busy ||
                                               task.preparing ||
                                               (clip.pricing?.isPaid != true &&
                                                   !task.allowed
@@ -120,20 +123,20 @@ class _OwnedDownloadPageState extends State<OwnedDownloadPage> {
                                           : () => clip.pricing?.isPaid == true
                                               ? _purchaseUnavailable(context)
                                               : task.download([clip]),
-                                      child: Text(clip.downloadLabel)),
+                                      child: Text(downloadLabel(context, clip))),
                               ]))),
                 if (!task.busy && !task.preparing)
                   TextButton(
-                      onPressed: task.prepare, child: const Text('刷新下载权限')),
+                      onPressed: task.prepare, child: Text(context.l10n.downloadRefresh)),
                 if (task.completed.isNotEmpty)
                   FilledButton.tonal(
                       onPressed: task.busy
                           ? null
                           : () => Navigator.of(context).push(
                               MaterialPageRoute<void>(
-                                  builder: (_) => const CharacterPackagePicker(
+                                  builder: (_) => CharacterPackagePicker(
                                       picking: false))),
-                      child: const Text('查看我的角色')),
+                      child: Text(context.l10n.downloadView)),
               ]);
             }),
       );

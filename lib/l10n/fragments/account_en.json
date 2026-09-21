@@ -1,0 +1,10 @@
+{
+  "accountTitle": "Account",
+  "accountGuest": "Guest account",
+  "accountNone": "Not signed in",
+  "accountSignOut": "Sign out on all devices",
+  "accountSignOutConfirm": "This signs out your account on every device. It does not delete your account or local videos. Cloud content may require you to sign in again.",
+  "accountGuestWarning": "This guest account has no verified email. Signing out may prevent you from recovering its cloud content. Verify an email before signing out.",
+  "accountSignedOut": "Signed out on all devices.",
+  "accountCancel": "Cancel"
+}

@@ -1,10 +1,12 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:hildors_cockpit/src/localization/localization.dart';
 
 import '../../device/p20_command_session.dart';
 import '../../device/p20_device_client.dart';
 import '../../theme/hildors_theme.dart';
+import 'package:hildors_cockpit/src/localization/language_settings_tile.dart';
 import 'lan_connection_guide.dart';
 import 'playback_mode_guide.dart';
 
@@ -62,7 +64,7 @@ class _SettingsPageState extends State<SettingsPage> {
       }
     } catch (_) {
       if (mounted) {
-        setState(() => _message = '读取失败，请确认手机已连接设备 Wi-Fi 后重试。');
+        setState(() => _message = 'read');
       }
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -80,7 +82,7 @@ class _SettingsPageState extends State<SettingsPage> {
       if (mounted) setState(() => _playMode = mode);
     } catch (_) {
       if (mounted) {
-        setState(() => _message = '设置未生效，请检查设备连接后重试。');
+        setState(() => _message = 'setting');
       }
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -90,12 +92,14 @@ class _SettingsPageState extends State<SettingsPage> {
   @override
   Widget build(BuildContext context) => Scaffold(
         appBar: AppBar(
-          title: const Column(
+          toolbarHeight:
+              56 * MediaQuery.textScalerOf(context).scale(1).clamp(1.0, 2.5),
+          title: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('设备设置'),
+              Text(context.l10n.coreDeviceSettings),
               Text(
-                'COCKPIT SYSTEM',
+                context.l10n.coreSystemLabel,
                 style: TextStyle(
                   color: HildorsColors.teal,
                   fontSize: 10,
@@ -107,7 +111,7 @@ class _SettingsPageState extends State<SettingsPage> {
           ),
         ),
         body: DecoratedBox(
-          decoration: const BoxDecoration(
+          decoration: BoxDecoration(
             gradient: RadialGradient(
               center: Alignment(0.9, -0.85),
               radius: 1.1,
@@ -115,62 +119,72 @@ class _SettingsPageState extends State<SettingsPage> {
             ),
           ),
           child: ListView(
-            padding: const EdgeInsets.fromLTRB(18, 8, 18, 32),
+            padding: EdgeInsets.fromLTRB(18, 8, 18, 32),
             children: [
+              const LanguageSettingsTile(),
               _ConnectionPanel(
                 state: _connection,
                 busy: _busy,
                 onRead: _connected && !_busy ? _load : null,
               ),
               if (_message != null) ...[
-                const SizedBox(height: 10),
-                _InlineMessage(message: _message!),
+                SizedBox(height: 10),
+                _InlineMessage(
+                    message: _message == 'read'
+                        ? context.l10n.coreReadFailed
+                        : context.l10n.coreSettingFailed),
               ],
-              const SizedBox(height: 24),
-              const _SectionLabel(index: '01', title: '播放行为'),
-              const SizedBox(height: 10),
+              SizedBox(height: 24),
+              _SectionLabel(
+                  index: '01', title: context.l10n.corePlaybackBehavior),
+              SizedBox(height: 10),
               _SystemPanel(
-                title: '循环模式',
-                subtitle: _connected ? '选择设备当前播放列表的循环方式' : '连接设备后可读取并修改',
+                title: context.l10n.coreLoopMode,
+                subtitle: _connected
+                    ? context.l10n.coreLoopSubtitle
+                    : context.l10n.coreConnectToChange,
                 child: _ModeGrid(
                   selected: _playMode,
                   enabled: _connected && !_busy,
                   onSelected: _changePlayMode,
                 ),
               ),
-              const SizedBox(height: 24),
-              const _SectionLabel(index: '02', title: '设备信息'),
-              const SizedBox(height: 10),
+              SizedBox(height: 24),
+              _SectionLabel(index: '02', title: context.l10n.coreDeviceInfo),
+              SizedBox(height: 10),
               _SystemPanel(
                 title: 'P20 / P11',
-                subtitle: '局域网全息座舱',
+                subtitle: context.l10n.coreLanCockpit,
                 trailing: _StatusPill(
-                  label: _version ?? (_connected ? '待读取' : '未连接'),
+                  label: _version ??
+                      (_connected
+                          ? context.l10n.coreNotRead
+                          : context.l10n.coreDisconnected),
                   active: _version != null,
                 ),
                 child: SizedBox(
                   width: double.infinity,
                   child: OutlinedButton.icon(
                     onPressed: _connected && !_busy ? _load : null,
-                    icon: const Icon(Icons.sync_rounded),
-                    label: const Text('读取设备信息'),
+                    icon: Icon(Icons.sync_rounded),
+                    label: Text(context.l10n.coreReadInfo),
                   ),
                 ),
               ),
-              const SizedBox(height: 24),
-              const _SectionLabel(index: '03', title: '帮助与说明'),
-              const SizedBox(height: 10),
+              SizedBox(height: 24),
+              _SectionLabel(index: '03', title: context.l10n.coreHelp),
+              SizedBox(height: 10),
               _HelpEntry(
                 icon: Icons.play_circle_outline_rounded,
-                title: '播放模式说明',
-                subtitle: '日常展示与音乐联动的自动切换逻辑',
-                onTap: () => _open(context, const PlaybackModeGuide()),
+                title: context.l10n.corePlaybackGuide,
+                subtitle: context.l10n.coreModesHelpSubtitle,
+                onTap: () => _open(context, PlaybackModeGuide()),
               ),
               _HelpEntry(
                 icon: Icons.wifi_find_rounded,
-                title: '局域网连接帮助',
-                subtitle: '设备热点连接与常见故障排查',
-                onTap: () => _open(context, const LanConnectionGuide()),
+                title: context.l10n.coreLanHelp,
+                subtitle: context.l10n.coreHotspotHelp,
+                onTap: () => _open(context, LanConnectionGuide()),
               ),
             ],
           ),
@@ -201,18 +215,20 @@ class _ConnectionPanel extends StatelessWidget {
 
   bool get _connected => state == DeviceConnectionState.connected;
 
-  String get _title => switch (state) {
-        DeviceConnectionState.disconnected => '设备未连接',
-        DeviceConnectionState.connecting => '正在连接设备',
-        DeviceConnectionState.reconnecting => '正在恢复连接',
-        DeviceConnectionState.connected => '座舱在线',
+  String _title(BuildContext context) => switch (state) {
+        DeviceConnectionState.disconnected =>
+          context.l10n.coreDeviceDisconnected,
+        DeviceConnectionState.connecting => context.l10n.coreDeviceConnecting,
+        DeviceConnectionState.reconnecting =>
+          context.l10n.coreDeviceReconnecting,
+        DeviceConnectionState.connected => context.l10n.coreCockpitOnline,
       };
 
-  String get _subtitle => switch (state) {
-        DeviceConnectionState.disconnected => '请先返回首页连接 P20 / P11',
-        DeviceConnectionState.connecting => '正在建立局域网控制通道',
-        DeviceConnectionState.reconnecting => '连接中断，正在自动重试',
-        DeviceConnectionState.connected => '局域网控制通道已建立',
+  String _subtitle(BuildContext context) => switch (state) {
+        DeviceConnectionState.disconnected => context.l10n.coreGoHomeConnect,
+        DeviceConnectionState.connecting => context.l10n.coreOpeningLan,
+        DeviceConnectionState.reconnecting => context.l10n.coreRetryingLan,
+        DeviceConnectionState.connected => context.l10n.coreLanReady,
       };
 
   @override
@@ -220,7 +236,7 @@ class _ConnectionPanel extends StatelessWidget {
     final accent =
         _connected ? HildorsColors.teal : HildorsColors.textSecondary;
     return Container(
-      padding: const EdgeInsets.all(18),
+      padding: EdgeInsets.all(18),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
@@ -249,46 +265,50 @@ class _ConnectionPanel extends StatelessWidget {
                   color: accent,
                 ),
               ),
-              const SizedBox(width: 14),
+              SizedBox(width: 14),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(_title,
-                        style: const TextStyle(
+                    Text(_title(context),
+                        style: TextStyle(
                             fontSize: 18, fontWeight: FontWeight.w700)),
-                    const SizedBox(height: 3),
-                    Text(_subtitle,
-                        style: const TextStyle(
+                    SizedBox(height: 3),
+                    Text(_subtitle(context),
+                        style: TextStyle(
                             color: HildorsColors.textSecondary, fontSize: 12)),
                   ],
                 ),
               ),
               _StatusPill(
                 label: switch (state) {
-                  DeviceConnectionState.connected => 'ONLINE',
-                  DeviceConnectionState.connecting => 'CONNECTING',
-                  DeviceConnectionState.reconnecting => 'RECONNECTING',
-                  DeviceConnectionState.disconnected => 'OFFLINE',
+                  DeviceConnectionState.connected =>
+                    context.l10n.coreOnlineLabel,
+                  DeviceConnectionState.connecting =>
+                    context.l10n.coreConnectingLabel,
+                  DeviceConnectionState.reconnecting =>
+                    context.l10n.coreReconnectingLabel,
+                  DeviceConnectionState.disconnected =>
+                    context.l10n.coreOfflineLabel,
                 },
                 active: _connected,
               ),
             ],
           ),
           if (busy) ...[
-            const SizedBox(height: 16),
+            SizedBox(height: 16),
             ClipRRect(
               borderRadius: BorderRadius.circular(99),
-              child: const LinearProgressIndicator(minHeight: 3),
+              child: LinearProgressIndicator(minHeight: 3),
             ),
           ] else if (_connected) ...[
-            const SizedBox(height: 16),
+            SizedBox(height: 16),
             SizedBox(
               width: double.infinity,
               child: FilledButton.icon(
                 onPressed: onRead,
-                icon: const Icon(Icons.sync_rounded),
-                label: const Text('同步设备状态'),
+                icon: Icon(Icons.sync_rounded),
+                label: Text(context.l10n.coreSync),
               ),
             ),
           ],
@@ -355,8 +375,8 @@ class _ModeOption extends StatelessWidget {
           onTap: enabled ? onTap : null,
           borderRadius: BorderRadius.circular(14),
           child: Container(
-            height: 52,
-            padding: const EdgeInsets.symmetric(horizontal: 11),
+            constraints: const BoxConstraints(minHeight: 52),
+            padding: EdgeInsets.symmetric(horizontal: 11),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(14),
               border: Border.all(
@@ -374,11 +394,11 @@ class _ModeOption extends StatelessWidget {
                           : HildorsColors.textSecondary)
                       : HildorsColors.hairline,
                 ),
-                const SizedBox(width: 8),
+                SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    _playModeLabel(mode),
-                    maxLines: 1,
+                    _playModeLabel(context, mode),
+                    maxLines: 3,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       color: enabled
@@ -411,7 +431,7 @@ class _SystemPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: HildorsColors.surface,
           borderRadius: BorderRadius.circular(18),
@@ -427,11 +447,11 @@ class _SystemPanel extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(title,
-                          style: const TextStyle(
+                          style: TextStyle(
                               fontSize: 16, fontWeight: FontWeight.w700)),
-                      const SizedBox(height: 3),
+                      SizedBox(height: 3),
                       Text(subtitle,
-                          style: const TextStyle(
+                          style: TextStyle(
                               color: HildorsColors.textSecondary,
                               fontSize: 12)),
                     ],
@@ -440,7 +460,7 @@ class _SystemPanel extends StatelessWidget {
                 if (trailing != null) trailing!,
               ],
             ),
-            const SizedBox(height: 15),
+            SizedBox(height: 15),
             child,
           ],
         ),
@@ -455,8 +475,8 @@ class _StatusPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-        constraints: const BoxConstraints(maxWidth: 130),
-        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+        constraints: BoxConstraints(maxWidth: 130),
+        padding: EdgeInsets.symmetric(horizontal: 9, vertical: 5),
         decoration: BoxDecoration(
           color: (active ? HildorsColors.teal : HildorsColors.surfaceHighlight)
               .withValues(alpha: active ? 0.14 : 1),
@@ -464,7 +484,7 @@ class _StatusPill extends StatelessWidget {
         ),
         child: Text(
           label,
-          maxLines: 1,
+          maxLines: 3,
           overflow: TextOverflow.ellipsis,
           style: TextStyle(
             color: active ? HildorsColors.teal : HildorsColors.textSecondary,
@@ -486,20 +506,21 @@ class _SectionLabel extends StatelessWidget {
   Widget build(BuildContext context) => Row(
         children: [
           Text(index,
-              style: const TextStyle(
+              style: TextStyle(
                 color: HildorsColors.teal,
                 fontSize: 11,
                 fontWeight: FontWeight.w800,
                 letterSpacing: 1.8,
               )),
-          const SizedBox(width: 10),
+          SizedBox(width: 10),
           Container(width: 20, height: 1, color: HildorsColors.teal),
-          const SizedBox(width: 10),
-          Text(title,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 0.8,
-                  )),
+          SizedBox(width: 10),
+          Expanded(
+              child: Text(title,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 0.8,
+                      ))),
         ],
       );
 }
@@ -519,7 +540,7 @@ class _HelpEntry extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.only(bottom: 10),
+        padding: EdgeInsets.only(bottom: 10),
         child: Material(
           color: HildorsColors.surface,
           borderRadius: BorderRadius.circular(18),
@@ -528,7 +549,7 @@ class _HelpEntry extends StatelessWidget {
             minTileHeight: 76,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(18),
-              side: const BorderSide(color: HildorsColors.hairline),
+              side: BorderSide(color: HildorsColors.hairline),
             ),
             leading: Container(
               width: 44,
@@ -542,7 +563,7 @@ class _HelpEntry extends StatelessWidget {
             title: Text(title),
             subtitle:
                 Text(subtitle, maxLines: 2, overflow: TextOverflow.ellipsis),
-            trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 15),
+            trailing: Icon(Icons.arrow_forward_ios_rounded, size: 15),
           ),
         ),
       );
@@ -555,30 +576,29 @@ class _InlineMessage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.all(13),
+        padding: EdgeInsets.all(13),
         decoration: BoxDecoration(
-          color: const Color(0xFF2B1719),
+          color: Color(0xFF2B1719),
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: const Color(0xFF713D42)),
+          border: Border.all(color: Color(0xFF713D42)),
         ),
         child: Row(
           children: [
-            const Icon(Icons.info_outline_rounded,
+            Icon(Icons.info_outline_rounded,
                 color: Color(0xFFFFA8AE), size: 19),
-            const SizedBox(width: 10),
+            SizedBox(width: 10),
             Expanded(
               child: Text(message,
-                  style:
-                      const TextStyle(color: Color(0xFFFFC8CC), fontSize: 12)),
+                  style: TextStyle(color: Color(0xFFFFC8CC), fontSize: 12)),
             ),
           ],
         ),
       );
 }
 
-String _playModeLabel(P20PlayMode mode) => switch (mode) {
-      P20PlayMode.singleLoop => '单曲循环',
-      P20PlayMode.sequenceLoop => '顺序循环',
-      P20PlayMode.randomLoop => '随机循环',
-      P20PlayMode.singleOnce => '单曲一次',
+String _playModeLabel(BuildContext context, P20PlayMode mode) => switch (mode) {
+      P20PlayMode.singleLoop => context.l10n.coreSingleLoop,
+      P20PlayMode.sequenceLoop => context.l10n.coreSequenceLoop,
+      P20PlayMode.randomLoop => context.l10n.coreRandomLoop,
+      P20PlayMode.singleOnce => context.l10n.coreSingleOnce,
     };

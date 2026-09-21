@@ -1,0 +1,96 @@
+{
+  "p20Refresh": "刷新设备列表",
+  "p20Daily": "A 日常播放",
+  "p20Bluetooth": "B 蓝牙播放",
+  "p20ConnectNote": "连接设备后显示机器内的播放列表",
+  "p20ConnectWifi": "手机先连接产品 Wi-Fi，再点击连接设备。",
+  "p20Connecting": "连接中…",
+  "p20Connect": "连接设备",
+  "p20Reading": "正在读取设备列表…",
+  "p20ReadFailed": "设备列表读取失败",
+  "p20Mode": "设备播放方式（A/B 共用）",
+  "p20OrderNote": "播放顺序来自设备。上移或下移后立即下发，并重新读取确认。",
+  "p20Empty": "设备当前列表为空",
+  "p20Pending": "手机待上传视频",
+  "p20PendingNote": "以下是手机待上传记录，不代表设备中已有内容。",
+  "p20Unconfirmed": "设备未确认操作，已重新读取实际状态，请检查后重试。",
+  "p20UploadEntry": "请从设备播放列表进入上传",
+  "p20UploadAction": "转码并上传",
+  "p20FramingNote": "保存只记录展示范围；点击转码并上传后，才会处理并传输设备文件。",
+  "p20ConnectedCount": "设备已连接 · {count} 个视频",
+  "p20UploadTitle": "上传到设备",
+  "p20UploadStart": "开始处理并上传",
+  "p20UploadCancel": "取消上传",
+  "p20UploadClose": "返回列表",
+  "p20UploadDisconnected": "请先返回首页连接设备 Wi-Fi，再进行上传。",
+  "p20UploadDaily": "A 日常列表：支持有声和无声视频。有音轨时先提取 MP3，转码后先上传音频再上传视频；无音轨时仅转码并上传视频。",
+  "p20UploadBluetooth": "B 蓝牙列表：支持有声和无声视频，均只转码并上传视频，不读取原视频音频。",
+  "p20UploadSettings": "298 × 298 · 20 帧/秒 · 使用当前取景范围",
+  "p20UploadDownloadFirst": "请先将视频下载到“我的角色”，再上传到设备。",
+  "p20UploadFailed": "处理或上传失败。请检查视频、设备连接和存储空间后重试。",
+  "p20UploadConfirmedProgress": "设备已确认接收进度",
+  "p20UploadFailureStageLabel": "失败阶段",
+  "p20UploadConfirmedLabel": "已确认",
+  "p20UploadBytesLabel": "字节",
+  "p20UploadBusy": "设备忙，请稍后重试。",
+  "p20UploadWriteFailed": "设备写入失败，请检查存储卡。",
+  "p20UploadAlreadyExists": "设备中已存在同名文件。",
+  "p20UploadStorageFull": "设备存储或列表已满。",
+  "p20UploadBatteryLow": "设备电量过低，请充电后重试。",
+  "p20UploadRejected": "设备拒绝接收文件。",
+  "p20UploadConfirmationTimeout": "等待设备确认超时。请记录下方阶段和进度，重新连接后再试。",
+  "p20UploadProcessingTimeout": "处理等待超时，请尝试较短的视频。",
+  "p20UploadConnectionLost": "设备连接已断开，请重新连接后重试。",
+  "p20UploadLocalFileError": "无法读取或写入本机文件，请检查源文件和手机可用空间。",
+  "p20UploadInvalidReply": "设备上传应答格式或进度序号不匹配，请核对设备固件协议。",
+  "p20UploadPartial": "音频已上传，视频未完成。本次不会自动重试或删除设备文件。",
+  "p20UploadRefreshFailed": "设备已确认文件上传成功，但列表读取失败。请重新连接后刷新列表，不要重复上传。",
+  "p20UploadCleanupPending": "临时文件仍被转码任务占用，将保留以避免中断写入。",
+  "p20UploadWaitingAcceptance": "等待设备允许接收",
+  "p20UploadTransferring": "文件传输",
+  "p20UploadWaitingCompletion": "等待设备完成确认",
+  "p20UploadConfirmedCompletion": "设备已确认完成",
+  "p20UploadReady": "准备就绪",
+  "p20UploadExtractingAudio": "正在检查并提取音频（如有）",
+  "p20UploadConvertingVideo": "正在转码视频",
+  "p20UploadUploadingAudio": "正在上传音频",
+  "p20UploadUploadingVideo": "正在上传视频",
+  "p20UploadRefreshing": "正在刷新设备列表",
+  "p20UploadComplete": "上传完成",
+  "p20UploadIncomplete": "上传未完成",
+  "p20UploadCancelled": "已取消",
+  "p20SingleOnce": "单次播放",
+  "p20UploadFailureStage": "失败阶段：{stage}",
+  "@p20UploadFailureStage": {
+    "placeholders": {
+      "stage": {
+        "type": "String"
+      }
+    }
+  },
+  "p20UploadTransferDetails": "{phase} · 已确认 {acknowledged} / {total} 字节",
+  "@p20UploadTransferDetails": {
+    "placeholders": {
+      "phase": {
+        "type": "String"
+      },
+      "acknowledged": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "creatorMediaOpenFailed": "无法打开视频，请刷新投稿后重试",
+  "creatorMediaPreviewLabel": "预览视频：{title}",
+  "@creatorMediaPreviewLabel": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "creatorMediaThumbnailPending": "缩略图暂未就绪，点击预览",
+  "creatorMediaPreview": "预览视频"
+}

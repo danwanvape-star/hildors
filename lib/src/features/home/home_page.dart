@@ -1,8 +1,8 @@
 import 'dart:async';
-import 'dart:ui';
 
 import 'package:flutter/material.dart';
-import '../../device/device_error_message.dart';
+import '../../config/launch_config.dart';
+import 'package:hildors_cockpit/src/localization/localization.dart';
 import '../../device/p20_command_session.dart';
 import '../../device/p20_device_client.dart';
 import '../../experience/projection_service.dart';
@@ -54,7 +54,7 @@ class _HomePageState extends State<HomePage> {
       debugPrint('Device connection failed: $error');
       debugPrintStack(stackTrace: stackTrace);
       if (mounted) {
-        setState(() => _error = friendlyDeviceConnectionError(error));
+        setState(() => _error = 'connection');
       }
     }
   }
@@ -78,6 +78,8 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) => Scaffold(
         appBar: AppBar(
+          toolbarHeight:
+              56 * MediaQuery.textScalerOf(context).scale(1).clamp(1.0, 2.5),
           title: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -90,13 +92,13 @@ class _HomePageState extends State<HomePage> {
                   fit: BoxFit.cover,
                 ),
               ),
-              const SizedBox(width: 10),
-              const Column(
+              SizedBox(width: 10),
+              Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text('HILDORS'),
                   Text(
-                    'Character Portal',
+                    context.l10n.coreCharacterPortal,
                     style: TextStyle(
                       color: HildorsColors.textSecondary,
                       fontSize: 8,
@@ -110,14 +112,14 @@ class _HomePageState extends State<HomePage> {
           ),
           actions: [
             IconButton(
-              tooltip: '设备控制',
+              tooltip: context.l10n.coreDeviceControl,
               onPressed: _openControl,
-              icon: const Icon(Icons.tune),
+              icon: Icon(Icons.tune),
             ),
           ],
         ),
         body: DecoratedBox(
-          decoration: const BoxDecoration(
+          decoration: BoxDecoration(
             gradient: RadialGradient(
               center: Alignment(0.9, -0.85),
               radius: 1.15,
@@ -134,7 +136,7 @@ class _HomePageState extends State<HomePage> {
                       constraints:
                           BoxConstraints(minHeight: constraints.maxHeight),
                       child: Padding(
-                          padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+                          padding: EdgeInsets.fromLTRB(16, 4, 16, 8),
                           child: Column(
                             children: [
                               _DeviceCard(
@@ -144,10 +146,13 @@ class _HomePageState extends State<HomePage> {
                                 onConnect: _connect,
                                 onControl: _openControl,
                               ),
-                              const SizedBox(height: 10),
+                              SizedBox(height: 10),
                               _NowPlayingCard(
                                 height: (constraints.maxHeight - 258)
-                                    .clamp(286.0, 600.0),
+                                        .clamp(286.0, 600.0) *
+                                    MediaQuery.textScalerOf(context)
+                                        .scale(1)
+                                        .clamp(1.0, 2.5),
                                 connected: _connection ==
                                     DeviceConnectionState.connected,
                                 onOpenStartup: () =>
@@ -155,8 +160,9 @@ class _HomePageState extends State<HomePage> {
                                 onOpenBluetooth: () =>
                                     _openPlaylist(DevicePlaylistKind.bluetooth),
                               ),
-                              const SizedBox(height: 10),
-                              const _CustomizationShortcut(),
+                              SizedBox(height: 10),
+                              if (!LaunchConfig.usFree)
+                                const _CustomizationShortcut(),
                             ],
                           ))))),
         ),
@@ -177,13 +183,13 @@ class _CustomizationShortcut extends StatelessWidget {
     final colors = Theme.of(context).colorScheme;
     return Container(
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
+        gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [Color(0xFF123C3D), Color(0xFF111B2C), Color(0xFF241A35)],
         ),
         borderRadius: BorderRadius.circular(22),
-        boxShadow: const [
+        boxShadow: [
           BoxShadow(
               color: Color(0x3327E7D4), blurRadius: 26, offset: Offset(0, 10)),
         ],
@@ -197,11 +203,10 @@ class _CustomizationShortcut extends StatelessWidget {
         clipBehavior: Clip.antiAlias,
         child: InkWell(
           onTap: () => Navigator.of(context).push(
-            MaterialPageRoute<void>(
-                builder: (_) => const CharacterSourcePage()),
+            MaterialPageRoute<void>(builder: (_) => CharacterSourcePage()),
           ),
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(14, 10, 12, 10),
+            padding: EdgeInsets.fromLTRB(14, 10, 12, 10),
             child: Row(
               children: [
                 Container(
@@ -213,13 +218,13 @@ class _CustomizationShortcut extends StatelessWidget {
                   ),
                   child: Icon(Icons.auto_awesome, color: colors.secondary),
                 ),
-                const SizedBox(width: 14),
+                SizedBox(width: 14),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'CHARACTER PORTAL',
+                      Text(
+                        context.l10n.coreCharacterPortal,
                         style: TextStyle(
                           color: HildorsColors.teal,
                           fontSize: 9,
@@ -227,9 +232,9 @@ class _CustomizationShortcut extends StatelessWidget {
                           letterSpacing: 1.8,
                         ),
                       ),
-                      const SizedBox(height: 4),
+                      SizedBox(height: 4),
                       Text(
-                        '定制你的专属全息角色',
+                        context.l10n.coreCustomCharacter,
                         style: Theme.of(context)
                             .textTheme
                             .titleMedium
@@ -238,8 +243,8 @@ class _CustomizationShortcut extends StatelessWidget {
                     ],
                   ),
                 ),
-                const SizedBox(width: 8),
-                const Icon(Icons.chevron_right),
+                SizedBox(width: 8),
+                Icon(Icons.chevron_right),
               ],
             ),
           ),
@@ -266,91 +271,42 @@ class _NowPlayingCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     return Container(
-      height: height,
-      clipBehavior: Clip.antiAlias,
+      constraints: BoxConstraints(minHeight: height),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
+        color: const Color(0xFF090E13),
+        image: const DecorationImage(
+          image: AssetImage('assets/images/p20_product_showcase.jpg'),
+          fit: BoxFit.contain,
+          alignment: Alignment.bottomCenter,
+          opacity: 0.35,
+        ),
         borderRadius: BorderRadius.circular(28),
         border: Border.all(color: colors.secondary.withValues(alpha: 0.35)),
-        boxShadow: [
-          BoxShadow(
-            color: colors.secondary.withValues(alpha: 0.12),
-            blurRadius: 28,
-            offset: const Offset(0, 12),
-          ),
-        ],
       ),
-      child: Stack(
-        fit: StackFit.expand,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          ColoredBox(
-            color: const Color(0xFF090E13),
-            child: ImageFiltered(
-              imageFilter: ImageFilter.blur(sigmaX: 1.8, sigmaY: 1.8),
-              child: Image.asset(
-                'assets/images/p20_product_showcase.jpg',
-                fit: BoxFit.contain,
-                alignment: Alignment.bottomCenter,
-              ),
-            ),
+          Text(context.l10n.corePlaylists,
+              style: Theme.of(context).textTheme.headlineSmall),
+          const SizedBox(height: 4),
+          Text(context.l10n.corePlaylistSubtitle,
+              style: const TextStyle(fontSize: 12)),
+          const SizedBox(height: 8),
+          _StatusPill(connected: connected),
+          const SizedBox(height: 16),
+          _PlaylistShortcut(
+            icon: Icons.wb_sunny_outlined,
+            title: context.l10n.coreDisplay,
+            subtitle: context.l10n.coreStartupSubtitle,
+            onTap: onOpenStartup,
           ),
-          const DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  Color(0x80080D12),
-                  Color(0x4D080D12),
-                  Color(0x730A1015),
-                ],
-                stops: [0, 0.48, 0.78],
-              ),
-            ),
-          ),
-          Positioned(
-            left: 20,
-            right: 20,
-            top: 18,
-            child: Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        '设备播放列表',
-                        style: Theme.of(context).textTheme.headlineSmall,
-                      ),
-                      const SizedBox(height: 3),
-                      const Text('日常展示与音乐联动', style: TextStyle(fontSize: 12)),
-                    ],
-                  ),
-                ),
-                _StatusPill(connected: connected),
-              ],
-            ),
-          ),
-          Positioned(
-            left: 16,
-            right: 16,
-            top: 88,
-            child: Column(
-              children: [
-                _PlaylistShortcut(
-                  icon: Icons.wb_sunny_outlined,
-                  title: '日常展示',
-                  subtitle: '管理开机后自动播放的内容',
-                  onTap: onOpenStartup,
-                ),
-                const SizedBox(height: 10),
-                _PlaylistShortcut(
-                  icon: Icons.graphic_eq,
-                  title: '音乐联动',
-                  subtitle: '管理连接蓝牙后播放的内容',
-                  onTap: onOpenBluetooth,
-                ),
-              ],
-            ),
+          const SizedBox(height: 10),
+          _PlaylistShortcut(
+            icon: Icons.graphic_eq,
+            title: context.l10n.coreMusic,
+            subtitle: context.l10n.coreBluetoothSubtitle,
+            onTap: onOpenBluetooth,
           ),
         ],
       ),
@@ -364,7 +320,7 @@ class _StatusPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         decoration: BoxDecoration(
           color: connected
               ? Theme.of(context).colorScheme.secondary.withValues(alpha: 0.16)
@@ -373,8 +329,11 @@ class _StatusPill extends StatelessWidget {
         ),
         child: Row(mainAxisSize: MainAxisSize.min, children: [
           Icon(connected ? Icons.wifi : Icons.wifi_off, size: 14),
-          const SizedBox(width: 5),
-          Text(connected ? '在线' : '未连接'),
+          SizedBox(width: 5),
+          Flexible(
+              child: Text(connected
+                  ? context.l10n.coreOnline
+                  : context.l10n.coreDisconnected)),
         ]),
       );
 }
@@ -393,7 +352,7 @@ class _PlaylistShortcut extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Material(
-        color: const Color(0xE61A2229),
+        color: Color(0xE61A2229),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
           side: BorderSide(color: Colors.white.withValues(alpha: 0.12)),
@@ -401,10 +360,10 @@ class _PlaylistShortcut extends StatelessWidget {
         child: InkWell(
           borderRadius: BorderRadius.circular(16),
           onTap: onTap,
-          child: SizedBox(
-            height: 88,
+          child: Container(
+            constraints: const BoxConstraints(minHeight: 76),
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 18),
+              padding: EdgeInsets.symmetric(horizontal: 14, vertical: 8),
               child: Row(
                 children: [
                   Container(
@@ -423,7 +382,7 @@ class _PlaylistShortcut extends StatelessWidget {
                       color: Theme.of(context).colorScheme.secondary,
                     ),
                   ),
-                  const SizedBox(width: 16),
+                  SizedBox(width: 16),
                   Expanded(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -431,25 +390,25 @@ class _PlaylistShortcut extends StatelessWidget {
                       children: [
                         Text(
                           title,
-                          maxLines: 1,
+                          maxLines: 3,
                           overflow: TextOverflow.ellipsis,
                           style: Theme.of(context)
                               .textTheme
                               .titleMedium
                               ?.copyWith(fontWeight: FontWeight.w700),
                         ),
-                        const SizedBox(height: 4),
+                        SizedBox(height: 4),
                         Text(
                           subtitle,
-                          maxLines: 1,
+                          maxLines: 3,
                           overflow: TextOverflow.ellipsis,
                           style: Theme.of(context).textTheme.bodyMedium,
                         ),
                       ],
                     ),
                   ),
-                  const SizedBox(width: 8),
-                  const Icon(Icons.chevron_right, size: 28),
+                  SizedBox(width: 8),
+                  Icon(Icons.chevron_right, size: 28),
                 ],
               ),
             ),
@@ -476,14 +435,14 @@ class _DeviceCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final connected = connection == DeviceConnectionState.connected;
     final status = switch (connection) {
-      DeviceConnectionState.connected => '设备已连接',
-      DeviceConnectionState.connecting => '正在连接…',
-      DeviceConnectionState.reconnecting => '正在重连…',
-      DeviceConnectionState.disconnected => '设备未连接',
+      DeviceConnectionState.connected => context.l10n.coreDeviceConnected,
+      DeviceConnectionState.connecting => context.l10n.coreConnecting,
+      DeviceConnectionState.reconnecting => context.l10n.coreReconnecting,
+      DeviceConnectionState.disconnected => context.l10n.coreDeviceDisconnected,
     };
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -493,43 +452,44 @@ class _DeviceCard extends StatelessWidget {
                     color: connected
                         ? Theme.of(context).colorScheme.primary
                         : null),
-                const SizedBox(width: 12),
+                SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(status,
                           style: Theme.of(context).textTheme.titleMedium),
-                      const Text('局域网控制 · P20 / P11'),
+                      Text(context.l10n.coreLanControl),
                     ],
                   ),
                 ),
               ],
             ),
             if (error != null) ...[
-              const SizedBox(height: 10),
-              Text(error!,
+              SizedBox(height: 10),
+              Text(context.l10n.coreConnectionFailed,
                   style: TextStyle(color: Theme.of(context).colorScheme.error)),
             ],
-            const SizedBox(height: 14),
-            Row(
+            SizedBox(height: 14),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
               children: [
-                Expanded(
-                  child: FilledButton.icon(
-                    onPressed:
-                        busy ? null : (connected ? onControl : onConnect),
-                    icon: busy
-                        ? const SizedBox.square(
-                            dimension: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2))
-                        : Icon(connected ? Icons.tune : Icons.link),
-                    label: Text(connected ? '设备控制' : '连接 P20'),
-                  ),
+                FilledButton.icon(
+                  onPressed: busy ? null : (connected ? onControl : onConnect),
+                  icon: busy
+                      ? SizedBox.square(
+                          dimension: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2))
+                      : Icon(connected ? Icons.tune : Icons.link),
+                  label: Text(connected
+                      ? context.l10n.coreDeviceControl
+                      : context.l10n.coreConnectP20),
                 ),
                 if (!connected) ...[
-                  const SizedBox(width: 10),
                   OutlinedButton(
-                      onPressed: onControl, child: const Text('连接设置')),
+                      onPressed: onControl,
+                      child: Text(context.l10n.coreConnectionSettings)),
                 ],
               ],
             ),

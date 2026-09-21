@@ -1,8 +1,17 @@
+import { operatorOperations } from './operators.mjs';
+import { customizationOrderOperations, assertPlanTransition } from './customization-billing.mjs';
+import { customizationPlanOperations } from './customization-plans.mjs';
+import { accountDeletionOperations } from './account-deletion.mjs';
+import { validTranslations, validClipTranslations } from './content-localization.mjs';
+import { migrateGovernance, governanceOperations } from './content-governance.mjs';
 import { validPricing, publicPricing } from './clip-pricing.mjs';
 import { DatabaseSync } from 'node:sqlite';
+import { emailIdentityOperations } from './email-identity.mjs';
+import { orderEmailOutboxOperations } from './order-email-outbox.mjs';
 import { randomUUID, randomBytes, createHash } from 'node:crypto';
 import { orderOperations } from './order-operations.mjs';
 import { creatorManagementUpdate } from './creator-management.mjs';
+import { creatorContentCapabilities, creatorPricing, assertCreatorContentPricing } from './creator-content-policy.mjs';
 import { creatorApplicationOperations } from './creator-application-store.mjs';
 import { checkedClips, editableClip } from './package-clips.mjs';
 
@@ -21,11 +30,12 @@ const defaultLayout = () => ({
   },
 });
 
-export function createStore(path = ':memory:') {
+export function createStore(path = ':memory:', {emailCodeSecret} = {}) {
   const db = new DatabaseSync(path);
   const needsTagSetup = !db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='content_tags'").get();
   db.exec(`PRAGMA foreign_keys=ON;
     CREATE TABLE IF NOT EXISTS content_tags (id TEXT PRIMARY KEY, name TEXT NOT NULL UNIQUE, active INTEGER NOT NULL);
+    CREATE TABLE IF NOT EXISTS content_tag_translations (tag_id TEXT PRIMARY KEY REFERENCES content_tags(id), document TEXT NOT NULL);
     CREATE TABLE IF NOT EXISTS packages (
       id TEXT PRIMARY KEY, version INTEGER NOT NULL CHECK(version > 0),
       status TEXT NOT NULL CHECK(status IN ('draft','published','withdrawn')),
@@ -50,6 +60,7 @@ export function createStore(path = ':memory:') {
     CREATE TABLE IF NOT EXISTS app_layouts (
       id TEXT PRIMARY KEY, version INTEGER NOT NULL, draft TEXT NOT NULL, published TEXT NOT NULL,
       previous_published TEXT, updated_at TEXT NOT NULL);`);
+  migrateGovernance(db);
   if (needsTagSetup) {
     const genres = ['神话传说','东方仙侠','奇幻魔法','科幻未来','赛博朋克','历史古风','现代都市','二次元','游戏世界','童话萌宠'];
     const insertTag = db.prepare('INSERT INTO content_tags VALUES (?,?,1)');
@@ -82,19 +93,38 @@ export function createStore(path = ':memory:') {
     .run(withoutFeatured(layoutRow.draft), withoutFeatured(layoutRow.published),
       withoutFeatured(layoutRow.previous_published), 'main');
   const tokenHash = token => createHash('sha256').update(token).digest('hex');
-  const decode = row => row ? { ...JSON.parse(row.document), id: row.id, contentCode: `HD-${row.id.toUpperCase()}`,
-    version: row.version, status: row.status } : null;
-  function get(id) { return decode(db.prepare('SELECT * FROM packages WHERE id=?').get(id)); }
+  const tagIdsFor = (tags = [], previous = {}) => tags.map(name => {
+    const index = previous.tags?.indexOf(name) ?? -1;
+    return (index >= 0 ? previous.tagIds?.[index] : null) || db.prepare('SELECT id FROM content_tags WHERE name=?').get(name)?.id || null;
+  });
+  const decode = row => {
+    if (!row) return null;
+    const document = JSON.parse(row.document);
+    return {...document, tagIds:document.tagIds || tagIdsFor(document.tags), id:row.id,
+      contentCode:`HD-${row.id.toUpperCase()}`, version:row.version, status:row.status};
+  };
+  function get(id, { includeDeleted = false } = {}) {
+    const item = decode(db.prepare('SELECT * FROM packages WHERE id=?').get(id));
+    return item?.deletedAt && !includeDeleted ? null : item;
+  }
   function audit(id, action) {
     db.prepare('INSERT INTO audit VALUES (?,?,?,?)').run(randomUUID(), id, action, new Date().toISOString());
   }
   function transaction(fn) {
-    db.exec('BEGIN');
-    try { const result = fn(); db.exec('COMMIT'); return result; }
-    catch (error) { db.exec('ROLLBACK'); throw error; }
+    const name=`tx_${randomUUID().replaceAll('-','')}`;
+    db.exec(`SAVEPOINT ${name}`);
+    try { const result = fn(); db.exec(`RELEASE ${name}`); return result; }
+    catch (error) { db.exec(`ROLLBACK TO ${name}; RELEASE ${name}`); throw error; }
   }
   return {
+    ...operatorOperations(db),
+    ...emailIdentityOperations(db,{codeSecret:emailCodeSecret}),
+    ...orderEmailOutboxOperations(db),
+    ...governanceOperations(db),
     ...orderOperations(db),
+    ...accountDeletionOperations(db),
+    ...customizationPlanOperations(db),
+    ...customizationOrderOperations(db),
     ...creatorApplicationOperations(db),
     get,
     updateClipPricing(id, clipId, version, pricing) {
@@ -102,15 +132,31 @@ export function createStore(path = ':memory:') {
       return transaction(() => {
         const current = get(id), clip = current?.clips.find(c => c.id === clipId);
         if (!clip || current.version !== version) throw new Error('CONFLICT');
+        if (current.ownerId) creatorPricing(this.getCreatorProfile(current.ownerId), pricing);
         clip.pricing = publicPricing(pricing);
         delete current.id; delete current.version; delete current.status;
         db.prepare('UPDATE packages SET document=?,version=version+1 WHERE id=?').run(JSON.stringify(current), id);
         audit(id, 'clip_pricing_updated:' + clipId); return get(id);
       });
     },
-    contentTags: () => db.prepare('SELECT id,name,active FROM content_tags ORDER BY rowid').all().map(x => ({ ...x, active: Boolean(x.active) })),
+    contentTags: () => db.prepare('SELECT t.id,t.name,t.active,l.document FROM content_tags t LEFT JOIN content_tag_translations l ON l.tag_id=t.id ORDER BY t.rowid').all()
+      .map(({document,...tag}) => ({...tag,active:Boolean(tag.active),...(document ? {translations:JSON.parse(document)} : {})})),
+    updateCreatorClipPricing(userId, id, clipId, version, pricing) {
+      return transaction(() => {
+        const current = get(id), clip = current?.clips.find(c => c.id === clipId);
+        if (!clip || current.ownerId !== userId || current.version !== version || current.status !== 'draft'
+          || !['draft','rejected'].includes(current.submissionStatus)) throw new Error('CONFLICT');
+        const profile = this.getCreatorProfile(userId);
+        if (!creatorContentCapabilities(profile).canUpload) throw new Error('CREATOR_APPROVAL_REQUIRED');
+        clip.pricing = creatorPricing(profile, pricing);
+        current.submissionStatus = 'draft'; delete current.review;
+        delete current.id; delete current.version; delete current.status;
+        db.prepare('UPDATE packages SET document=?,version=version+1 WHERE id=?').run(JSON.stringify(current), id);
+        audit(id, 'creator_clip_pricing_updated:' + clipId); return get(id);
+      });
+    },
     saveContentTags(items) {
-      if (!Array.isArray(items) || items.length > 200 || items.some(x => !x || typeof x.name !== 'string' || !x.name.trim() || x.name.trim().length > 32 || typeof x.active !== 'boolean' || (x.id !== undefined && (typeof x.id !== 'string' || !/^[a-zA-Z0-9_-]{1,100}$/.test(x.id))))
+      if (!Array.isArray(items) || items.length > 200 || items.some(x => !x || !validTranslations(x.translations, {name:32}) || typeof x.name !== 'string' || !x.name.trim() || x.name.trim().length > 32 || typeof x.active !== 'boolean' || (x.id !== undefined && (typeof x.id !== 'string' || !/^[a-zA-Z0-9_-]{1,100}$/.test(x.id))))
         || new Set(items.map(x => x.name.trim())).size !== items.length || new Set(items.filter(x => x.id).map(x => x.id)).size !== items.filter(x => x.id).length) throw new Error('INVALID_CONTENT_TAGS');
       return transaction(() => {
         const existing = this.contentTags();
@@ -121,11 +167,18 @@ export function createStore(path = ':memory:') {
           const id = value.id ?? existing.find(x => x.name === value.name.trim())?.id ?? randomUUID();
           // A rename preserves the old selection as a disabled legacy name.
           if (previous && previous.name !== value.name.trim()) {
+            for (const item of this.list({includeDeleted:true})) {
+              if (item.tags?.includes(previous.name)) {
+                const {id:packageId,version,status,contentCode,...document}=item;
+                db.prepare('UPDATE packages SET document=? WHERE id=?').run(JSON.stringify(document),packageId);
+              }
+            }
             db.prepare('UPDATE content_tags SET name=? WHERE id=?').run(value.name.trim(), id);
             db.prepare('INSERT INTO content_tags VALUES (?,?,0)').run(randomUUID(), previous.name);
           }
           db.prepare('INSERT INTO content_tags VALUES (?,?,?) ON CONFLICT(id) DO UPDATE SET name=excluded.name,active=excluded.active')
             .run(id, value.name.trim(), Number(value.active));
+          if (value.translations !== undefined) db.prepare('INSERT INTO content_tag_translations VALUES (?,?) ON CONFLICT(tag_id) DO UPDATE SET document=excluded.document').run(id,JSON.stringify(value.translations));
         }
         return this.contentTags();
       });
@@ -134,7 +187,15 @@ export function createStore(path = ':memory:') {
       return transaction(() => {
         const current = get(id);
         if (!current || current.version !== version || (current.ownerId && (current.status !== 'draft' || !['draft','rejected'].includes(current.submissionStatus)))) throw new Error('CONFLICT');
-        Object.assign(current, metadata);
+        if (!validTranslations(metadata.translations) || !validClipTranslations(metadata.clipTranslations)) throw new Error('INVALID_PACKAGE');
+        const {clipTranslations, ...fields} = metadata;
+        for (const entry of clipTranslations || []) {
+          const clip = current.clips.find(c => c.id === entry.id);
+          if (!clip) throw new Error('INVALID_PACKAGE');
+          if (entry.translations !== undefined) clip.translations = entry.translations;
+        }
+        fields.tagIds = tagIdsFor(fields.tags || current.tags, current);
+        Object.assign(current, fields);
         if (current.status === 'draft') { delete current.review; if (current.ownerId) current.submissionStatus = 'draft'; }
         delete current.id; delete current.version; delete current.status;
         db.prepare('UPDATE packages SET document=?,version=version+1 WHERE id=?').run(JSON.stringify(current), id);
@@ -146,6 +207,8 @@ export function createStore(path = ':memory:') {
         const current = get(id);
         if (!current || !current.ownerId || current.status !== 'draft' || current.version !== version || !['draft','rejected'].includes(current.submissionStatus)) throw new Error('CONFLICT');
         if (!current.description?.trim()) throw new Error('INVALID_PACKAGE');
+        assertCreatorContentPricing(this, current);
+        for (const clip of current.clips) clip.pricing = creatorPricing(this.getCreatorProfile(current.ownerId), clip.pricing);
         if (!current.tags.every(name => this.contentTags().some(x => x.active && x.name === name))) throw new Error('INVALID_CONTENT_TAGS');
         if (!checkedClips(current)) throw new Error('MEDIA_REVIEW_REQUIRED');
         if (current.format === 'package' && !current.cover) throw new Error('PACKAGE_COVER_REQUIRED');
@@ -200,10 +263,18 @@ export function createStore(path = ':memory:') {
       });
     },
     entitlements(userId) {
-      return db.prepare('SELECT package_id,status FROM entitlements WHERE user_id=? ORDER BY package_id').all(userId);
+      return db.prepare(`SELECT e.package_id,e.status FROM entitlements e JOIN packages p ON p.id=e.package_id
+        WHERE e.user_id=? AND json_extract(p.document,'$.deletedAt') IS NULL ORDER BY e.package_id`).all(userId);
     },
     createCustomizationOrder(userId, document) {
       if(document.clientRequestId) { const existing=this.findOrderRequest(userId,document.clientRequestId); if(existing) return existing; }
+      if(document.planId!==undefined){
+        const plan=this.customizationPlans().find(p=>p.id===document.planId&&p.listed);
+        if(!plan||plan.version!==document.planVersion)throw new Error('PLAN_CONFLICT');
+        document={...document,planSnapshot:this.customizationPlanSnapshot(plan.id,document.audioMode),privacy:'private',payment:{status:'unpaid'}};
+      }
+      const account=this.emailAccount(userId);
+      document={...document,verifiedContactEmail:account.emailVerified?account.email:null};
       const id = randomUUID(), now = new Date().toISOString();
       db.prepare('INSERT INTO customization_orders VALUES (?,?,1,?,?,?,?)')
         .run(id, userId, 'free_review', JSON.stringify(document), now, now);
@@ -224,6 +295,8 @@ export function createStore(path = ':memory:') {
     updateCustomizationOrder(id, version, status, note = '') {
       const current = this.getCustomizationOrder(id);
       if (!current || current.version !== version) throw new Error('CONFLICT');
+      assertPlanTransition(current,status);
+      if(current.planSnapshot&&status==='delivered')throw new Error('ORDER_USER_CONFIRMATION_REQUIRED');
       const allowed = ['free_review','needs_info','approved_for_quote','quoted','in_production','quality_review','user_acceptance','delivered','rejected','withdrawn'];
       if (!allowed.includes(status)) throw new Error('INVALID_ORDER_STATUS');
       const transitions = {
@@ -364,6 +437,7 @@ export function createStore(path = ':memory:') {
         const current = get(id);
         if (!current || current.status !== 'draft' || current.version !== version) throw new Error('CONFLICT');
         if (current.ownerId && current.submissionStatus !== 'pending') throw new Error('CONFLICT');
+        if (decision === 'approved') assertCreatorContentPricing(this, current);
         if (decision === 'approved' && !checkedClips(current)) throw new Error('MEDIA_REVIEW_REQUIRED');
         if (current.ownerId) current.submissionStatus = decision;
         current.review = { id: randomUUID(), decision, note, rightsReference, reviewedAt: new Date().toISOString(), actor: 'local-admin' };
@@ -391,16 +465,27 @@ export function createStore(path = ':memory:') {
       return transaction(() => {
         const current = get(id), clip = current?.clips.find(c => c.id === clipId);
         if (!clip?.media || current.format !== 'package' || current.version !== version
-          || !['draft','published'].includes(current.status) || (current.ownerId && current.status !== 'published')) throw new Error('CONFLICT');
+          || !['draft','published','withdrawn'].includes(current.status) || (current.ownerId && current.status === 'draft')) throw new Error('CONFLICT');
         if (next === 'restored') {
-          if (current.status !== 'draft' || clip.visibility !== 'withdrawn') throw new Error('CONFLICT');
+          if (!['draft','withdrawn'].includes(current.status) || clip.visibility !== 'withdrawn') throw new Error('CONFLICT');
         } else if (next === 'published') {
           if (current.status !== 'published' || !['draft','withdrawn'].includes(clip.visibility)) throw new Error('CONFLICT');
+          if (current.governance?.hold) throw new Error('CONTENT_GOVERNANCE_HOLD');
+          assertCreatorContentPricing(this, {...current, clips: [clip]});
           if (clip.media.inspection?.status !== 'checked') throw new Error('MEDIA_REVIEW_REQUIRED');
           clip.review = { ...review, id: randomUUID(), actor: 'local-admin', reviewedAt: new Date().toISOString() };
         } else if (next !== 'withdrawn' || clip.visibility === 'withdrawn') throw new Error('CONFLICT');
-        clip.visibility = next;
-        if (next === 'restored') delete clip.visibility;
+        // Withdrawal must retain whether this clip was actually published. A package's
+        // older approval does not cover drafts appended after its initial publication.
+        if (next === 'withdrawn') clip.visibilityBeforeWithdrawal = current.status === 'draft' ? 'draft' : (clip.visibility || 'published');
+        if (next === 'restored') {
+          if (current.status === 'draft') delete clip.visibility;
+          else clip.visibility = clip.visibilityBeforeWithdrawal === 'published' ? 'published' : 'draft';
+          delete clip.visibilityBeforeWithdrawal;
+        } else {
+          clip.visibility = next;
+          if (next === 'published') delete clip.visibilityBeforeWithdrawal;
+        }
         if (current.status === 'draft') delete current.review;
         delete current.id; delete current.status; delete current.version;
         db.prepare('UPDATE packages SET document=?,version=version+1 WHERE id=?').run(JSON.stringify(current), id);
@@ -415,7 +500,7 @@ export function createStore(path = ':memory:') {
         if (current.ownerId && !['draft','rejected'].includes(current.submissionStatus)) throw new Error('CONFLICT');
         clip.media.inspection = inspection;
         if (current.status === 'draft') delete current.review;
-        else { if (inspection.status === 'processing' || clip.visibility !== 'withdrawn') clip.visibility = 'draft'; delete clip.review; }
+        else { if (inspection.status === 'processing' || clip.visibility !== 'withdrawn') clip.visibility = 'draft'; delete clip.review; delete clip.visibilityBeforeWithdrawal; }
         if (current.ownerId) current.submissionStatus = 'draft';
         const version = current.version;
         delete current.id; delete current.status; delete current.version;
@@ -453,8 +538,33 @@ export function createStore(path = ':memory:') {
         audit(id, 'cover_uploaded'); return get(id);
       });
     },
-    list: () => db.prepare('SELECT * FROM packages ORDER BY id').all().map(decode),
+    list: ({ includeDeleted = false } = {}) => db.prepare('SELECT * FROM packages ORDER BY id').all().map(decode)
+      .filter(item => includeDeleted || !item.deletedAt),
+    deletePackage(id, version) {
+      return transaction(() => {
+        const current = get(id, { includeDeleted: true });
+        if (!current || current.deletedAt || current.version !== version || current.status === 'published') throw new Error('CONFLICT');
+        current.deletedAt = new Date().toISOString();
+        delete current.id; delete current.status; delete current.version;
+        db.prepare('UPDATE packages SET document=?,version=version+1 WHERE id=?').run(JSON.stringify(current), id);
+        audit(id, 'deleted'); return get(id, { includeDeleted: true });
+      });
+    },
+    restorePackage(id, version) {
+      return transaction(() => {
+        const current = get(id, { includeDeleted: true });
+        if (!current?.deletedAt || current.version !== version) throw new Error('CONFLICT');
+        const status = current.status === 'draft' ? 'draft' : 'withdrawn';
+        delete current.deletedAt;
+        current.restoredAt = new Date().toISOString();
+        delete current.id; delete current.status; delete current.version;
+        db.prepare('UPDATE packages SET status=?,document=?,version=version+1 WHERE id=?').run(status, JSON.stringify(current), id);
+        audit(id, 'restored'); return get(id);
+      });
+    },
     create(document, id = randomUUID()) {
+      if (!validTranslations(document.translations) || document.clips?.some(c => !validTranslations(c.translations))) throw new Error('INVALID_PACKAGE');
+      document = {...document, tagIds:tagIdsFor(document.tags)};
       return transaction(() => {
         db.prepare('INSERT INTO packages VALUES (?,1,\'draft\',?,?)')
           .run(id, JSON.stringify(document), new Date().toISOString());
@@ -466,12 +576,14 @@ export function createStore(path = ':memory:') {
         const current = get(id);
         if (!current) return null;
         if (current.version !== version || !(
-          (current.status === 'draft' && next === 'published') ||
+          (['draft','withdrawn'].includes(current.status) && next === 'published') ||
           (current.status === 'published' && next === 'withdrawn'))) {
           throw new Error('CONFLICT');
         }
         if (next === 'published' && !current.demo && (current.review?.decision !== 'approved'
           || !checkedClips(current))) throw new Error('MEDIA_REVIEW_REQUIRED');
+        if (next === 'published' && current.governance?.hold) throw new Error('CONTENT_GOVERNANCE_HOLD');
+        if (next === 'published') assertCreatorContentPricing(this, current);
         if (next === 'published' && current.format === 'package' && !current.cover && !current.demo) throw new Error('PACKAGE_COVER_REQUIRED');
         db.prepare('UPDATE packages SET status=?,version=version+1 WHERE id=?').run(next, id);
         audit(id, next); return get(id);
@@ -485,7 +597,7 @@ export function seedDemos(store) {
   for (let i = 1; i <= 4; i++) {
     const suffix = String(i).padStart(2, '0');
     const id = `hildors_demo_${suffix}`;
-    if (store.get(id)) continue;
+    if (store.get(id, { includeDeleted: true })) continue;
     store.create({ title: `HILDORS ${i <= 2 ? '全息展示' : '音乐联动'} ${String(i <= 2 ? i : i - 2).padStart(2, '0')}`,
       source: 'hildors', tags: [i <= 2 ? '角色' : '音乐'], format: 'single',
       demo: true, clips: [{ id: `${id}:main`, title: '展示视频',

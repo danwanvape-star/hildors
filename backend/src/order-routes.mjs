@@ -14,14 +14,14 @@ export async function orderRoute({req,res,url,store,send,fail,readJson,mediaDire
   const order=store.getCustomizationOrder(id), creator=creatorRoute?store.getCreatorProfile(userId):null;
   const assigned=()=>store.eligibleOrderCreator(store.getCreatorProfile(userId))&&store.getCustomizationOrder(id)?.assignedCreatorId===creator?.id;
   const allowed=()=>admin||(!creatorRoute&&store.getCustomizationOrder(id)?.userId===userId)||(creatorRoute&&assigned());
-  const view=o=>admin||creatorRoute?o:store.customerOrderView(o);
-  if(!order) {fail(404,'NOT_FOUND');return true;}
+  const view=o=>admin?o:creatorRoute?store.orderTaskView(o,creator?.id):store.customerOrderView(o);
+  if(!order || (creatorRoute&&order.planSnapshot)) {fail(404,'NOT_FOUND');return true;}
   if(creatorRoute && req.method==='POST' && !action) {
     if(!store.eligibleOrderCreator(creator)) {fail(403,'ORDER_CREATOR_INELIGIBLE');return true;}
     if(!assigned() && !(order.status==='approved_for_quote'&&order.dispatchMode==='applications'&&order.dispatchState==='open')) {fail(404,'NOT_FOUND');return true;}
     const value=await readJson();
     if(!authorized()) {fail(401,'USER_AUTH_REQUIRED');return true;}
-    send(200,store.creatorOrderAction(id,userId,value));return true;
+    send(200,view(store.creatorOrderAction(id,userId,value)));return true;
   }
   if(!allowed()) {fail(404,'NOT_FOUND');return true;}
   if(req.method==='POST' && action==='recover' && admin) {send(200,store.recoverLegacyOrder(id,await readJson()));return true;}
@@ -51,7 +51,11 @@ export async function orderRoute({req,res,url,store,send,fail,readJson,mediaDire
         if(!allowed()||!store.getCustomizationOrder(id)?.materials?.some(m=>m.id===material.id)) {fail(404,'NOT_FOUND');return false;}
         return true;
       }});
-    } else await serveImage(res,directory,material);
+    } else await serveImage(res,directory,material,{preflight:()=>{
+      if(!authorized()) {fail(401,admin?'UNAUTHORIZED':'USER_AUTH_REQUIRED');return false;}
+      if(!allowed()||!store.getCustomizationOrder(id)?.materials?.some(m=>m.id===material.id)) {fail(404,'NOT_FOUND');return false;}
+      return true;
+    }});
     return true;
   }
   if(req.method==='POST' && action==='materials' && !match[4] && !admin && !creatorRoute) {

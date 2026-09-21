@@ -28,6 +28,9 @@ export function creatorManagementUpdate(current, value, actor = 'system') {
     || !Number.isFinite(Number(management.commissionRate)) || Number(management.commissionRate) < 0 || Number(management.commissionRate) > 100
     || (value.note !== undefined && (typeof value.note !== 'string' || value.note.length > 1000))) throw new Error('INVALID_CREATOR_PROFILE');
   management.commissionRate = Number(management.commissionRate);
+  // Certification grants content submission; suspension revokes it. This field
+  // remains in responses for older clients, but is no longer a separate switch.
+  management.canPublish = value.status === 'approved';
   management.manager = management.manager.trim();
   management.note = (value.note ?? '').trim();
   if (['rejected', 'suspended'].includes(value.status) && !management.note) throw new Error('CREATOR_REASON_REQUIRED');

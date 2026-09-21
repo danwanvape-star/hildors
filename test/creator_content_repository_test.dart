@@ -19,6 +19,20 @@ class _Call {
   final int? ifMatch;
 }
 
+class _MediaTransport extends _Transport implements CreatorMediaTransport {
+  @override
+  int identityRevision = 0;
+  int identityCalls = 0;
+  @override
+  Future<({Uri baseUri, String token})> mediaIdentity() async {
+    identityCalls++;
+    return (
+      baseUri: Uri.parse('https://example.test'),
+      token: 'token-$identityRevision'
+    );
+  }
+}
+
 class _Transport implements CreatorContentTransport {
   final calls = <_Call>[];
   final responses = <CreatorContentResponse>[];
@@ -74,6 +88,33 @@ Map<String, dynamic> _content({
     };
 
 void main() {
+  test(
+      'private media URLs use current account headers and replacement media identity',
+      () async {
+    final transport = _MediaTransport();
+    final repo = RemoteCreatorContentRepository(transport);
+    final item = CreatorContent.fromJson(_content());
+    const clip = CreatorContentClip(
+        id: 'clip / 1',
+        title: 'Video',
+        hasMedia: true,
+        inspectionStatus: 'checked',
+        mediaId: 'replacement');
+    final first = await repo.mediaAccess(item, clip);
+    final second = await repo.mediaAccess(item, clip);
+    expect(first.thumbnail.path, contains('/thumbnail'));
+    expect(first.preview.queryParameters['v'], 'replacement');
+    expect(first.preview.toString(), isNot(contains('token')));
+    expect(first.headers['Authorization'], 'Bearer token-0');
+    expect(second.headers, first.headers);
+    expect(transport.identityCalls, 1);
+    transport.identityRevision++;
+    expect((await repo.mediaAccess(item, clip)).headers['Authorization'],
+        'Bearer token-1');
+    expect(transport.identityCalls, 2);
+    await repo.mediaAccess(item, clip, refreshIdentity: true);
+    expect(transport.identityCalls, 3);
+  });
   test('repository sends creator draft and submission with exact versions',
       () async {
     final transport = _Transport()
@@ -85,8 +126,8 @@ void main() {
           ]
         }),
         CreatorContentResponse(201, _content()),
-        CreatorContentResponse(200,
-            _content(version: 2, submissionStatus: 'pending')),
+        CreatorContentResponse(
+            200, _content(version: 2, submissionStatus: 'pending')),
       ]);
     final repository = RemoteCreatorContentRepository(transport);
 

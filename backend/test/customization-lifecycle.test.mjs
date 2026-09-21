@@ -1,0 +1,53 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {mkdtemp,readFile,rm} from 'node:fs/promises';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
+import {randomBytes,createHash} from 'node:crypto';
+import {execFile} from 'node:child_process';
+import {promisify} from 'node:util';
+import {createStore} from '../src/store.mjs';
+import {app} from '../src/server.mjs';
+import {findTool} from '../src/processor.mjs';
+import {createCustomizationBilling} from '../src/customization-billing.mjs';
+
+test('local HTTP lifecycle: operator cookie, package scope, synthetic audio/video QC, revision, private delivery', {skip:process.env.HILDORS_MEDIA_INTEGRATION!=='1'},async t=>{
+ const directory=await mkdtemp(join(tmpdir(),'hildors-custom-e2e-'));
+ const store=createStore();const credential=randomBytes(32).toString('base64url'),proof=randomBytes(32).toString('base64url');let refunded=false;
+ const billing=createCustomizationBilling({mode:'test',apple:{verify:async(value,expected)=>{assert.equal(value,proof);return {...expected,verified:true,platform:'apple',environment:'sandbox',transactionId:expected.orderId,status:refunded?'refunded':'purchased',currency:'USD',amountMicros:'23990000'};}}});
+ const server=app(store,{adminUsername:'integration-operator',adminPassword:credential,mediaDirectory:directory,customizationBilling:billing});
+ await new Promise(r=>server.listen(0,'127.0.0.1',r));
+ t.after(async()=>{await new Promise(r=>server.close(r));store.close();await rm(directory,{recursive:true,force:true});});
+ const base=`http://127.0.0.1:${server.address().port}`;
+ const call=async(path,{method='GET',body,headers={}}={})=>fetch(base+path,{method,headers:{...(body?{'Content-Type':'application/json'}:{}),...headers},body:body?JSON.stringify(body):undefined});
+ const login=await call('/admin/login',{method:'POST',body:{username:'integration-operator',password:credential}});assert.equal(login.status,200);
+ const admin={Cookie:login.headers.get('set-cookie').split(';')[0]};
+ const session=await (await call('/v1/device-session',{method:'POST'})).json();const user={Authorization:`Bearer ${session.token}`};
+ const plans=await (await call('/admin/customization-plans',{headers:admin})).json();assert.equal(plans.items.length,4);
+ assert.equal((await call('/admin/customization-plans/custom-10s',{method:'POST',headers:admin,body:{version:1,usdBaseCents:1999,listed:true,audioAppleProductId:'custom10.audio.v1',description:{en:'Test scope',zh:'测试范围'}}})).status,200);
+ const created=await call('/v1/me/customization-orders',{method:'POST',headers:user,body:{planId:'custom-10s',planVersion:2,audioMode:'matched',characterName:'Synthetic test robot',requirements:'One simple motion',sourceType:'original',requestedFeatures:[],materialCount:0,marketRegion:'US',privacyConsentVersion:'test-private-v1'}});assert.equal(created.status,201);
+ let order=await created.json();const userPath=`/v1/me/customization-orders/${order.id}`,adminPath=`/admin/customization-orders/${order.id}`;
+ let response=await call(adminPath+'/plan-review',{method:'POST',headers:admin,body:{version:order.version,action:'request_info',note:'Clarify the direction'}});assert.equal(response.status,200);order=await response.json();
+ response=await call(userPath+'/plan-action',{method:'POST',headers:user,body:{version:order.version,action:'resubmit',requirements:'Turn left'}});assert.equal(response.status,200);order=await response.json();
+ const terms={deliveryContent:'One private MP4 with matched audio',deliveryPeriod:'Test-only period',revisionScope:'One lighting revision',usageRights:'Test-only synthetic asset',maxRevisions:1};
+ response=await call(adminPath+'/plan-offer',{method:'POST',headers:admin,body:{version:order.version,terms}});assert.equal(response.status,200);order=await response.json();
+ const payment={platform:'apple',proof,offerVersion:order.offer.version,acceptedTerms:true};
+ response=await call(userPath+'/purchase',{method:'POST',headers:user,body:payment});assert.equal(response.status,200);order=await response.json();assert.equal(order.status,'in_production');
+ const progress={version:order.version,requestId:'update-1',text:{en:'Animation started.',zh:'已开始制作动画。'}};
+ assert.equal((await call(userPath+'/plan-progress',{method:'POST',headers:user,body:progress})).status,405);
+ response=await call(adminPath+'/plan-progress',{method:'POST',headers:admin,body:progress});assert.equal(response.status,200);order=await response.json();
+ const visible=await (await call(userPath,{headers:user})).json();assert.equal(visible.productionUpdates[0].text.en,'Animation started.');assert.equal(visible.productionUpdates[0].actor,undefined);
+ const file=join(directory,'synthetic.mp4');await promisify(execFile)(findTool('ffmpeg'),['-nostdin','-v','error','-f','lavfi','-i','color=c=blue:s=96x96:r=10','-f','lavfi','-i','sine=frequency=440:sample_rate=44100','-t','10','-c:v','libx264','-threads','1','-pix_fmt','yuv420p','-c:a','aac','-movflags','+faststart',file],{windowsHide:true,timeout:30000});
+ const media=await readFile(file);
+ for(let revision=0;revision<2;revision++){
+  response=await fetch(base+adminPath+'/deliverable',{method:'PUT',headers:{...admin,'Content-Type':'video/mp4','If-Match':String(order.version)},body:media});assert.equal(response.status,200,await response.clone().text());order=await response.json();assert.equal(order.status,'quality_review');assert.equal(order.deliverable.inspection.audioCodec,'aac');assert.ok(order.deliverable.durationSeconds>=10);
+  assert.equal((await call(userPath+'/deliverable',{headers:user})).status,404);
+  response=await call(adminPath+'/plan-review',{method:'POST',headers:admin,body:{version:order.version,action:'approve_delivery'}});assert.equal(response.status,200);order=await response.json();
+  assert.equal((await call(userPath+'/manifest',{headers:user})).status,404);
+  response=await call(userPath+'/plan-action',{method:'POST',headers:user,body:{version:order.version,action:revision===0?'request_revision':'accept_delivery',note:'Adjust lighting'}});assert.equal(response.status,200);order=await response.json();
+ }
+ assert.equal(order.status,'delivered');assert.equal(order.revisionCount,1);
+ const manifest=await (await call(userPath+'/manifest',{headers:user})).json();assert.equal(manifest.sha256,createHash('sha256').update(media).digest('hex'));
+ const download=await call(userPath+'/download',{headers:user});assert.equal(download.status,200);assert.deepEqual(Buffer.from(await download.arrayBuffer()),media);
+ refunded=true;assert.equal((await call(userPath+'/purchase',{method:'POST',headers:user,body:payment})).status,200);assert.equal((await call(userPath+'/download',{headers:user})).status,404);
+});

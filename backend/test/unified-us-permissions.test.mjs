@@ -1,0 +1,44 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {createStore} from '../src/store.mjs';
+import {app} from '../src/server.mjs';
+
+test('unified US routes retain granular current operator permissions and immutable order pricing', async t => {
+  const store = createStore(), server = app(store);
+  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+  t.after(async () => { await new Promise(resolve => server.close(resolve)); store.close(); });
+  const base = `http://127.0.0.1:${server.address().port}`;
+  const makeOperator = async (username, permissions) => {
+    store.createOperator({username, displayName:username, password:'unified-test-password', permissions}, {id:'root'});
+    const response = await fetch(base+'/admin/login', {method:'POST', body:JSON.stringify({username,password:'unified-test-password'})});
+    assert.equal(response.status, 200);
+    return response.headers.get('set-cookie').split(';')[0];
+  };
+  const call = (cookie, path, body) => fetch(base+path, {method:body?'POST':'GET', headers:{cookie,'Content-Type':'application/json'}, ...(body?{body:JSON.stringify(body)}:{})});
+  const viewer = await makeOperator('us-viewer', ['plans.view','orders.view','account_deletions.view']);
+  const editor = await makeOperator('us-editor', ['plans.view','plans.edit']);
+  const reviewer = await makeOperator('us-reviewer', ['orders.view','orders.review','account_deletions.review']);
+  const quoter = await makeOperator('us-quoter', ['orders.view','orders.quote']);
+  for (const plan of store.customizationPlans()) store.updateCustomizationPlan(plan.id,{version:plan.version,usdBaseCents:plan.usdBaseCents,listed:true},'fixture');
+  const plans = await (await fetch(base+'/v1/customization-plans')).json();
+  assert.equal(plans.paymentMode, 'disabled');
+  assert.deepEqual(plans.items.map(p=>p.usdBaseCents), [1999,2999,6999,15999]);
+  assert.ok(plans.items.every(p=>p.purchaseEnabled===false && p.audio.markupPercent===20));
+  const plan = plans.items[0];
+  const userId = store.createUser();
+  const order = store.createCustomizationOrder(userId, {characterName:'Private fox',materialCount:0,planId:plan.id,planVersion:plan.version,audioMode:'matched'});
+  const deletion = store.requestAccountDeletion(userId, {confirm:true});
+  assert.equal((await call(viewer,'/admin/customization-plans')).status,200);
+  assert.equal((await call(viewer,`/admin/customization-plans/${plan.id}`,{version:plan.version,listed:false})).status,403);
+  assert.equal((await call(editor,`/admin/customization-plans/${plan.id}`,{version:plan.version,usdBaseCents:2000})).status,403);
+  const edited = await call(editor,`/admin/customization-plans/${plan.id}`,{version:plan.version,usdBaseCents:plan.usdBaseCents,listed:true,description:{en:'Updated private plan',zh:'新的私人套餐说明'}});
+  assert.equal(edited.status,200);
+  assert.deepEqual(store.getCustomizationOrder(order.id).planSnapshot,order.planSnapshot);
+  const terms={deliveryContent:'One private video',deliveryPeriod:'14 days',revisionScope:'Color adjustment',usageRights:'Private use',maxRevisions:1};
+  assert.equal((await call(reviewer,`/admin/customization-orders/${order.id}/plan-offer`,{version:order.version,terms})).status,403);
+  assert.equal((await call(quoter,`/admin/customization-orders/${order.id}/plan-review`,{version:order.version,action:'reject',note:'Not supported'})).status,403);
+  assert.equal((await call(quoter,`/admin/customization-orders/${order.id}/plan-offer`,{version:order.version,terms})).status,200);
+  assert.equal((await call(viewer,`/admin/account-deletions/${deletion.id}`,{version:deletion.version,status:'in_review'})).status,403);
+  assert.equal((await call(reviewer,`/admin/account-deletions/${deletion.id}`,{version:deletion.version,status:'in_review'})).status,200);
+  assert.ok(store.operatorAudit().some(event=>event.actor==='us-quoter'&&event.action==='preparePlanOffer'));
+});

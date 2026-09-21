@@ -1,0 +1,103 @@
+{
+  "p20Refresh": "Refresh device playlist",
+  "p20Daily": "A Daily",
+  "p20Bluetooth": "B Bluetooth",
+  "p20ConnectNote": "Connect to see the playlist stored on your device",
+  "p20ConnectWifi": "Join the device Wi-Fi on your phone, then tap Connect device.",
+  "p20Connecting": "Connecting…",
+  "p20Connect": "Connect device",
+  "p20Reading": "Reading device playlist…",
+  "p20ReadFailed": "Could not read the device playlist",
+  "p20Mode": "Playback mode (shared by A/B)",
+  "p20OrderNote": "The order comes from your device. Moving a video updates the device and reads back the confirmed order.",
+  "p20Empty": "This device playlist is empty",
+  "p20Pending": "Videos ready to upload",
+  "p20PendingNote": "These videos are waiting on your phone and have not been uploaded to the device.",
+  "p20Unconfirmed": "The device did not confirm the change. Its current state has been refreshed. Check it and try again.",
+  "p20UploadEntry": "Open from a device playlist to upload",
+  "p20UploadAction": "Convert and upload",
+  "p20FramingNote": "Saving records only the framing. Tap Convert and upload to prepare and transfer the device files.",
+  "p20ConnectedCount": "Device connected · {count} videos",
+  "@p20ConnectedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "p20UploadTitle": "Upload to device",
+  "p20UploadStart": "Prepare and upload",
+  "p20UploadCancel": "Cancel upload",
+  "p20UploadClose": "Back to playlist",
+  "p20UploadDisconnected": "Connect to the device from Home before uploading.",
+  "p20UploadDaily": "A daily playlist accepts videos with or without sound. With audio: extract MP3, convert, upload audio then video. Without audio: convert and upload video only.",
+  "p20UploadBluetooth": "B Bluetooth playlist accepts videos with or without sound. Convert and upload video only; source audio is ignored.",
+  "p20UploadSettings": "298 × 298 · 20 fps · Current framing",
+  "p20UploadDownloadFirst": "Download this video to My Characters before uploading to the device.",
+  "p20UploadFailed": "Preparation or upload failed. Check the video, device connection and storage, then try again.",
+  "p20UploadConfirmedProgress": "Confirmed by the device",
+  "p20UploadFailureStageLabel": "Failed during",
+  "p20UploadConfirmedLabel": "Confirmed",
+  "p20UploadBytesLabel": "bytes",
+  "p20UploadBusy": "Device is busy. Try again shortly.",
+  "p20UploadWriteFailed": "Device could not write the file. Check its storage card.",
+  "p20UploadAlreadyExists": "The file already exists on the device.",
+  "p20UploadStorageFull": "Device storage or playlist is full.",
+  "p20UploadBatteryLow": "Device battery is too low. Charge it and retry.",
+  "p20UploadRejected": "Device rejected the file.",
+  "p20UploadConfirmationTimeout": "Device confirmation timed out. Note the stage and progress below, then reconnect.",
+  "p20UploadProcessingTimeout": "Media processing timed out. Try a shorter video.",
+  "p20UploadConnectionLost": "Device connection was lost. Reconnect and retry.",
+  "p20UploadLocalFileError": "Cannot read or write local files. Check the source and available phone storage.",
+  "p20UploadInvalidReply": "Device reply or progress sequence did not match. Check the firmware protocol.",
+  "p20UploadPartial": "Audio was uploaded but video did not finish. No device files have been deleted or automatically retried.",
+  "p20UploadRefreshFailed": "The device confirmed the upload, but the playlist could not be refreshed. Reconnect and refresh; do not upload again.",
+  "p20UploadCleanupPending": "Temporary files are still in use and have been retained.",
+  "p20UploadWaitingAcceptance": "Waiting for upload acceptance",
+  "p20UploadTransferring": "Transferring file",
+  "p20UploadWaitingCompletion": "Waiting for completion confirmation",
+  "p20UploadConfirmedCompletion": "Device confirmed completion",
+  "p20UploadReady": "Ready",
+  "p20UploadExtractingAudio": "Checking and extracting audio if present",
+  "p20UploadConvertingVideo": "Converting video",
+  "p20UploadUploadingAudio": "Uploading audio",
+  "p20UploadUploadingVideo": "Uploading video",
+  "p20UploadRefreshing": "Refreshing playlist",
+  "p20UploadComplete": "Upload complete",
+  "p20UploadIncomplete": "Upload incomplete",
+  "p20UploadCancelled": "Cancelled",
+  "p20SingleOnce": "Play once",
+  "p20UploadFailureStage": "Failed during: {stage}",
+  "@p20UploadFailureStage": {
+    "placeholders": {
+      "stage": {
+        "type": "String"
+      }
+    }
+  },
+  "p20UploadTransferDetails": "{phase} · Confirmed {acknowledged} / {total} bytes",
+  "@p20UploadTransferDetails": {
+    "placeholders": {
+      "phase": {
+        "type": "String"
+      },
+      "acknowledged": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "creatorMediaOpenFailed": "Unable to open this video. Refresh your submissions and try again.",
+  "creatorMediaPreviewLabel": "Preview video: {title}",
+  "@creatorMediaPreviewLabel": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "creatorMediaThumbnailPending": "Thumbnail not ready. Tap to preview.",
+  "creatorMediaPreview": "Preview video"
+}

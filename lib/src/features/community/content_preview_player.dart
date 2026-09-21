@@ -1,6 +1,8 @@
+import '../../localization/localization.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:video_player/video_player.dart';
 
 import '../../media/bundled_video_controller.dart';
@@ -11,12 +13,16 @@ class ContentPreviewPlayer extends StatefulWidget {
       {required this.assetPath,
       this.networkUrl,
       this.autoPlay = false,
+      this.httpHeaders = const {},
+      this.refreshHttpHeaders,
       this.previewCache,
       super.key});
 
   final String? assetPath;
   final String? networkUrl;
   final bool autoPlay;
+  final Map<String, String> httpHeaders;
+  final Future<Map<String, String>> Function()? refreshHttpHeaders;
   final PreviewVideoCache? previewCache;
 
   @override
@@ -37,6 +43,9 @@ class _ContentPreviewPlayerState extends State<ContentPreviewPlayer> {
   int _generation = 0;
   Duration _lastPosition = Duration.zero;
   bool _cacheScheduled = false;
+  bool _retrying = false;
+  Map<String, String>? _refreshedHeaders;
+  Map<String, String> get _headers => _refreshedHeaders ?? widget.httpHeaders;
   bool get _hasSource =>
       (widget.networkUrl?.isNotEmpty ?? false) ||
       (widget.assetPath?.isNotEmpty ?? false);
@@ -62,14 +71,16 @@ class _ContentPreviewPlayerState extends State<ContentPreviewPlayer> {
   void didUpdateWidget(covariant ContentPreviewPlayer oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.networkUrl != widget.networkUrl ||
-        oldWidget.assetPath != widget.assetPath) {
+        oldWidget.assetPath != widget.assetPath ||
+        !mapEquals(oldWidget.httpHeaders, widget.httpHeaders)) {
+      _refreshedHeaders = null;
       _initialize();
     }
   }
 
   void _startSlowTimer() {
     _slowTimer?.cancel();
-    _slowTimer = Timer(const Duration(seconds: 10), () {
+    _slowTimer = Timer(Duration(seconds: 10), () {
       if (mounted && _error == null) setState(() => _slow = true);
     });
   }
@@ -86,7 +97,10 @@ class _ContentPreviewPlayerState extends State<ContentPreviewPlayer> {
         (_lastPosition > value.duration * 0.8 &&
             value.position < value.duration * 0.2);
     _lastPosition = value.position;
-    if (!_cacheScheduled && completedPass && widget.networkUrl != null) {
+    if (_headers.isEmpty &&
+        !_cacheScheduled &&
+        completedPass &&
+        widget.networkUrl != null) {
       _cacheScheduled = true;
       final generation = _generation;
       unawaited(_cache
@@ -146,13 +160,13 @@ class _ContentPreviewPlayerState extends State<ContentPreviewPlayer> {
           return controller;
         }),
         cancelled.future.then((_) => null),
-      ]).timeout(const Duration(seconds: 30));
+      ]).timeout(Duration(seconds: 30));
       if (!mounted || generation != _generation || controller == null) return;
       _controller = controller;
       if (!controller.value.isInitialized) {
         try {
           await Future.any<void>([controller.initialize(), cancelled.future])
-              .timeout(const Duration(seconds: 30));
+              .timeout(Duration(seconds: 30));
         } catch (_) {
           if (!mounted ||
               generation != _generation ||
@@ -164,10 +178,11 @@ class _ContentPreviewPlayerState extends State<ContentPreviewPlayer> {
           await controller.dispose();
           await _cache.discard(Uri.parse(networkUrl));
           if (!mounted || generation != _generation) return;
-          controller = VideoPlayerController.networkUrl(Uri.parse(networkUrl));
+          controller = VideoPlayerController.networkUrl(Uri.parse(networkUrl),
+              httpHeaders: _headers);
           _controller = controller;
           await Future.any<void>([controller.initialize(), cancelled.future])
-              .timeout(const Duration(seconds: 30));
+              .timeout(Duration(seconds: 30));
         }
       }
       if (!mounted || generation != _generation) return;
@@ -203,10 +218,31 @@ class _ContentPreviewPlayerState extends State<ContentPreviewPlayer> {
 
   Future<VideoPlayerController> _networkController(
       Uri uri, Future<void> cancel) async {
+    if (_headers.isNotEmpty) {
+      return VideoPlayerController.networkUrl(uri, httpHeaders: _headers);
+    }
     final file = await _cache.validatedFile(uri, cancel: cancel);
     return file == null
         ? VideoPlayerController.networkUrl(uri)
         : VideoPlayerController.file(file);
+  }
+
+  Future<void> _retry() async {
+    if (_retrying) return;
+    _retrying = true;
+    try {
+      final refresh = widget.refreshHttpHeaders;
+      if (refresh != null) {
+        final headers = await refresh();
+        if (!mounted) return;
+        _refreshedHeaders = headers;
+      }
+      await _initialize();
+    } catch (_) {
+      if (mounted) setState(() => _error = '授权刷新失败，请返回投稿列表重试');
+    } finally {
+      _retrying = false;
+    }
   }
 
   Future<void> _toggle() async {
@@ -227,7 +263,7 @@ class _ContentPreviewPlayerState extends State<ContentPreviewPlayer> {
     final controller = _controller;
     final ready = controller?.value.isInitialized ?? false;
     return Container(
-      height: 280,
+      height: MediaQuery.textScalerOf(context).scale(1) > 1.4 ? 380 : 280,
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         color: Colors.black,
@@ -243,7 +279,7 @@ class _ContentPreviewPlayerState extends State<ContentPreviewPlayer> {
                 transformationController: _transformationController,
                 minScale: 1,
                 maxScale: 3,
-                boundaryMargin: const EdgeInsets.all(80),
+                boundaryMargin: EdgeInsets.all(80),
                 child: Center(
                   child: AspectRatio(
                     aspectRatio: controller!.value.aspectRatio,
@@ -257,40 +293,45 @@ class _ContentPreviewPlayerState extends State<ContentPreviewPlayer> {
               color: ready ? Colors.black54 : Colors.black,
               child: Center(
                   child: Padding(
-                padding: const EdgeInsets.all(20),
+                padding: EdgeInsets.all(20),
                 child: Semantics(
                     liveRegion: true,
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         if (_hasSource && _error == null) ...[
-                          const SizedBox(
+                          SizedBox(
                               width: 28,
                               height: 28,
                               child:
                                   CircularProgressIndicator(strokeWidth: 2.5)),
-                          const SizedBox(height: 16),
+                          SizedBox(height: 16),
                         ],
                         Text(
-                            _error ??
+                            (_error == null ? null : switch (_error) {
+'视频播放失败，请重试' => context.l10n.playerFailed,
+'视频加载超时，请重试' => context.l10n.playerTimeout,
+'视频加载失败，请重试' => context.l10n.playerLoadFailed,
+'授权刷新失败，请返回投稿列表重试' => context.l10n.playerAuthFailed,
+_ => context.l10n.playerLoadFailed,}) ??
                                 (!_hasSource
-                                    ? '暂无可播放视频'
+                                    ? context.l10n.playerNoSource
                                     : widget.networkUrl != null
-                                        ? '视频正在缓冲，请稍候'
-                                        : '视频正在加载，请稍候'),
+                                        ? context.l10n.playerBuffering
+                                        : context.l10n.playerLoading),
                             textAlign: TextAlign.center,
-                            style: const TextStyle(color: Colors.white)),
+                            style: TextStyle(color: Colors.white)),
                         if (_slow && _error == null)
-                          const Padding(
+                          Padding(
                               padding: EdgeInsets.only(top: 8),
-                              child: Text('加载较慢，请检查网络或重试',
+                              child: Text(context.l10n.playerSlow,
                                   textAlign: TextAlign.center,
                                   style: TextStyle(color: Colors.white70))),
                         if (_error != null || _slow)
                           TextButton.icon(
-                              onPressed: _initialize,
-                              icon: const Icon(Icons.refresh),
-                              label: const Text('重试')),
+                              onPressed: _retry,
+                              icon: Icon(Icons.refresh),
+                              label: Text(context.l10n.commonRetry)),
                       ],
                     )),
               )),
@@ -300,7 +341,7 @@ class _ContentPreviewPlayerState extends State<ContentPreviewPlayer> {
               right: 12,
               bottom: 12,
               child: IconButton.filledTonal(
-                tooltip: controller!.value.isPlaying ? '暂停预览' : '播放预览',
+                tooltip: controller!.value.isPlaying ? context.l10n.playerPause : context.l10n.playerPlay,
                 onPressed: _toggle,
                 icon: Icon(
                   controller.value.isPlaying
@@ -310,10 +351,10 @@ class _ContentPreviewPlayerState extends State<ContentPreviewPlayer> {
               ),
             ),
           if (ready && !_buffering && _error == null)
-            const Positioned(
+            Positioned(
               left: 12,
               bottom: 12,
-              child: Chip(label: Text('双指缩放 · 双击复位')),
+              child: Chip(label: Text(context.l10n.playerZoom)),
             ),
         ],
       ),

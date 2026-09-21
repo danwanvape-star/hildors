@@ -1,0 +1,103 @@
+{
+  "submissionDraftSaved": "Draft saved. Upload your videos, then submit for review.",
+  "submissionTitle": "My submissions",
+  "submissionRefresh": "Refresh submissions",
+  "submissionCreate": "Create submission",
+  "submissionEmpty": "No submissions yet. Create a draft, upload your videos and submit after validation.",
+  "submissionUpdated": "Submission updated.",
+  "submissionFree": "Free",
+  "submissionPaid": "Paid",
+  "submissionPrice": "Price (USD)",
+  "submissionDecimals": "Up to two decimal places",
+  "submissionInvalidPrice": "Enter a positive USD price with up to two decimal places.",
+  "submissionReviewNote": "All videos require review before publication.",
+  "submissionCancel": "Cancel",
+  "submissionSavePrice": "Save price",
+  "submissionSubmitted": "Submitted for review. Editing is locked while under review.",
+  "submissionPartnerNote": "Partners may publish free or paid videos. All content requires review.",
+  "submissionFreeNote": "Submit free videos or character collections for review.",
+  "submissionCharacterPackage": "Character collection",
+  "submissionSingleVideo": "Single video",
+  "submissionRejectedReason": "Changes requested",
+  "submissionReviewFeedback": "Review feedback",
+  "submissionName": "Title",
+  "submissionNameRequired": "Enter a title.",
+  "submissionFormat": "Content format",
+  "submissionSingle": "Single video",
+  "submissionPackage": "Video collection",
+  "submissionTags": "Content tags",
+  "submissionNoTags": "Content tags are not available yet.",
+  "submissionStory": "Background story",
+  "submissionStoryRequired": "Enter a background story.",
+  "submissionVideos": "Videos",
+  "submissionAddVideo": "Add video",
+  "submissionRemoveVideo": "Remove video",
+  "submissionVideoNameRequired": "Enter a video title.",
+  "submissionSaveDraft": "Save draft",
+  "submissionSaveInfo": "Save details",
+  "submissionCoverUploaded": "Cover uploaded",
+  "submissionCover": "Collection cover",
+  "submissionCoverTypes": "JPG or PNG",
+  "submissionReplace": "Replace",
+  "submissionUpload": "Upload",
+  "submissionSetPrice": "Set price",
+  "submissionMakeFree": "Make free",
+  "submissionReplaceMp4": "Replace MP4",
+  "submissionUploadMp4": "Upload MP4",
+  "submissionCheckVideo": "Validate video",
+  "submissionResubmit": "Resubmit for review",
+  "submissionSubmit": "Submit for review",
+  "submissionRequirements": "Validate every video before submitting. Collections also require a cover.",
+  "submissionInfo": "Content details",
+  "submissionNoStory": "No background story yet.",
+  "submissionRetry": "Retry",
+  "submissionPending": "Under review",
+  "submissionPublished": "Published",
+  "submissionApproved": "Approved, awaiting publication",
+  "submissionRejected": "Changes requested",
+  "submissionDraft": "Draft",
+  "submissionNoMedia": "No video uploaded",
+  "submissionChecked": "Validation passed",
+  "submissionProcessing": "Validating video",
+  "submissionFailed": "Validation failed. Replace the video and try again.",
+  "submissionWaiting": "Uploaded, awaiting validation",
+  "submissionApprovalError": "Creator access is not approved or is suspended. Check the verification page.",
+  "submissionDataError": "The submission data could not be read. Refresh and try again.",
+  "submissionLoadError": "Could not load submissions. Please try again later.",
+  "submissionSessionError": "Your session expired. Sign in again.",
+  "submissionAccessError": "An active verified creator account is required.",
+  "submissionPaidError": "Paid pricing is unavailable for this account. Make the video free before submitting.",
+  "submissionPriceError": "Enter a valid USD price with up to two decimal places.",
+  "submissionConflictError": "The submission changed. Refresh and try again.",
+  "submissionMediaError": "Upload and validate every video first.",
+  "submissionCoverError": "Upload a collection cover first.",
+  "submissionTagError": "Some tags are no longer available. Refresh and select again.",
+  "submissionServerError": "The service is unavailable. Please try again later.",
+  "submissionRequestError": "The action could not finish. Check your content and try again.",
+  "submissionAccountChanged": "Your account changed. Refresh submissions.",
+  "submissionPreviewError": "The video is not uploaded or preview is unavailable.",
+  "submissionVideoPrice": "Video price · {name}",
+  "@submissionVideoPrice": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "submissionVideoName": "Video {index} title",
+  "@submissionVideoName": {
+    "placeholders": {
+      "index": {
+        "type": "int"
+      }
+    }
+  },
+  "submissionLegacyTag": "{name} (legacy)",
+  "@submissionLegacyTag": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  }
+}

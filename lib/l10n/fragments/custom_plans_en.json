@@ -1,0 +1,105 @@
+{
+  "customPlansTitle": "Custom videos",
+  "customOrdersTitle": "My custom orders",
+  "customUnavailable": "Store payments are not connected yet. No payment can be taken.",
+  "customBase": "USD base reference: {price}. Checkout uses the store price.",
+  "customSeconds": "{seconds}-second video",
+  "customRequest": "Send requirements for review",
+  "customName": "Character / project name",
+  "customRequirements": "Your requirements",
+  "customMaterials": "Add reference images",
+  "customMaterialCount": "{count} reference images",
+  "customPrivacy": "Reference materials are used to assess and produce this private order. Public display requires separate consent.",
+  "customConsent": "I agree to use these materials for this order.",
+  "customValidation": "Enter a project name and requirements, and confirm the material-use notice.",
+  "customImageError": "Choose up to 8 JPG/PNG images, each no larger than 8 MB.",
+  "customSubmitted": "Request submitted for review. No payment has been taken.",
+  "customTerms": "Review the confirmed scope before payment",
+  "customContent": "Deliverables",
+  "customPeriod": "Delivery period",
+  "customRevisions": "Revision scope",
+  "customRights": "Usage rights",
+  "customAcceptTerms": "I accept this confirmed scope and its terms.",
+  "customPay": "Pay {price}",
+  "customRestore": "Check unfinished purchases",
+  "customTestMode": "TEST PAYMENT — no real charge",
+  "customAccept": "Accept delivery",
+  "customRevise": "Request revision",
+  "customRevisionNote": "Describe the requested revision",
+  "customStatusReview": "Requirements under review",
+  "customStatusInfo": "More information needed",
+  "customStatusQuote": "Scope confirmed; awaiting payment",
+  "customStatusMaking": "In production",
+  "customStatusQc": "Quality review",
+  "customStatusAccept": "Ready for your review",
+  "customStatusDelivered": "Delivered",
+  "customStatusRejected": "Request declined",
+  "customStatusWithdrawn": "Withdrawn / refunded",
+  "customPending": "Payment is pending. Production starts only after server verification.",
+  "customEmpty": "No items available yet.",
+  "@customBase": {
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "@customPay": {
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "@customSeconds": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "@customMaterialCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "customAudioNone": "No audio — base package",
+  "customAudioMatched": "Platform-matched audio",
+  "customAudioHelp": "We match background music or simple sound effects to your video. No specific songs, voice-over or uploaded audio.",
+  "customAudioTotal": "USD reference total: {price}",
+  "customAudioRate": "Audio matching surcharge: {percent}%",
+  "@customAudioTotal": {
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "@customAudioRate": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "customSupplement": "Update requirements and resubmit",
+  "customSupplementSaved": "Updated requirements submitted for review.",
+  "customSaveDelivery": "Save delivery to My characters",
+  "customSavedDelivery": "Saved to My characters for offline use.",
+  "customSavingDelivery": "Downloading private delivery…",
+  "customConfirmDelivery": "Accept this version as the final delivery?",
+  "customRevisionLimit": "Revision requests: {used} of {limit}",
+  "@customRevisionLimit": {
+    "placeholders": {
+      "used": {
+        "type": "int"
+      },
+      "limit": {
+        "type": "int"
+      }
+    }
+  },
+  "customProgress": "Production updates"
+}

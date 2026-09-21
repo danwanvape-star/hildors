@@ -1,0 +1,110 @@
+{
+  "playlistFromCharacters": "Choose from My characters",
+  "playlistChooseCharacter": "Choose videos from your characters",
+  "playlistFromPhone": "Import from phone",
+  "playlistFromDevice": "Add existing device videos",
+  "playlistPickFailed": "Could not select a video. Please try again.",
+  "playlistPendingSaveFailed": "Pending items could not be saved and may be lost when you leave. Please retry.",
+  "playlistRetry": "Retry",
+  "playlistReselectTitle": "Select the source video again",
+  "playlistReselectNote": "The file moved or its temporary cache was cleared. The playlist entry remains. Select the source again and confirm its framing.",
+  "playlistCancel": "Cancel",
+  "playlistReselect": "Select again",
+  "playlistReadFailed": "Could not read the video. Please try again.",
+  "playlistOriginalTitle": "Original video required",
+  "playlistOriginalNote": "Only the filename is available on the device. Choose the original video from your phone to adjust its framing. Saving records only the framing; converting and uploading adds a new device file and keeps the original.",
+  "playlistChooseOriginal": "Choose original video",
+  "playlistOriginalFailed": "Could not read the original video. Please try again.",
+  "playlistRemovePending": "Remove pending video?",
+  "playlistRemovePendingNote": "Only this playlist entry will be removed. Phone and device videos are retained.",
+  "playlistRemove": "Remove",
+  "playlistReadLocalFailed": "Could not load the local playlist. Please retry.",
+  "playlistSaveLocalFailed": "Could not save the local playlist. Please retry.",
+  "playlistAddDevice": "Add from device library",
+  "playlistAllAdded": "All device videos are already in this draft.",
+  "playlistConnectFirst": "Connect the device before playing.",
+  "playlistNotUploaded": "This video is not on the device. Conversion and upload are required before playback.",
+  "playlistRemoveTitle": "Remove from playlist?",
+  "playlistRemoveList": "Remove from playlist",
+  "playlistUndo": "Undo",
+  "playlistTitle": "Device playlists",
+  "playlistReadDevice": "Read device videos",
+  "playlistStartup": "Startup",
+  "playlistBluetooth": "Bluetooth",
+  "playlistStartupNote": "The device plays this playlist at startup.",
+  "playlistBluetoothNote": "The device switches to this playlist when Bluetooth connects.",
+  "playlistLoop": "Repeat mode",
+  "playlistListLoop": "Repeat playlist",
+  "playlistSingleLoop": "Repeat one",
+  "playlistOnce": "Play once",
+  "playlistOrder": "Playback order",
+  "playlistAddVideo": "Add video",
+  "playlistPendingLoadFailed": "Could not load pending items. Tap to retry.",
+  "playlistPending": "Pending videos · Not uploaded to device",
+  "playlistPendingNote": "Pending entries reference the original files. Conversion is not yet available. Keep source files in place after framing.",
+  "playlistConvertPending": "Awaiting conversion · Not uploaded",
+  "playlistFrame": "Adjust framing",
+  "playlistRemovePendingAction": "Remove pending video",
+  "playlistEmpty": "This playlist is empty",
+  "playlistFirst": "Default first video",
+  "playlistUp": "Move up",
+  "playlistDown": "Move down",
+  "playlistRemoveDraft": "Remove from draft",
+  "playlistSaveDevice": "Save to device · Awaiting protocol support",
+  "playlistRecovery": "After Bluetooth disconnects",
+  "playlistRecoveryNote": "Resume the previous device video when supported. Awaiting protocol confirmation.",
+  "playlistDisconnected": "Device disconnected",
+  "playlistReadDeviceFailed": "Network connected · Could not read device",
+  "playlistReadDeviceReady": "Network connected · Tap to read",
+  "playlistReadNote": "Read device content to verify the control connection.",
+  "playlistConnectNote": "Connect to device Wi-Fi, then read its playlist.",
+  "playlistRead": "Read",
+  "playlistSourceTitle": "{name} · Original framing",
+  "@playlistSourceTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "playlistSent": "Sent to device: {name}",
+  "@playlistSent": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "playlistRemoveNote": "Remove “{name}” from this playlist only. Phone and device files are retained.",
+  "@playlistRemoveNote": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "playlistRemoved": "Removed {name} from the playlist",
+  "@playlistRemoved": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "playlistCount": "{count} videos",
+  "@playlistCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "playlistDeviceCount": "Device responding · {count} videos",
+  "@playlistDeviceCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  }
+}

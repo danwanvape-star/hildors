@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { isAbsolute, resolve } from 'node:path';
+import { emailConfig } from './email-transport.mjs';
 
 export function runtimeConfig(env, defaultDirectory) {
   const mode = env.HILDORS_MODE || 'local';
@@ -21,6 +22,9 @@ export function runtimeConfig(env, defaultDirectory) {
       throw new Error('Staging requires strong admin username/password credentials');
     }
   }
+  const trustProxy=env.HILDORS_TRUST_LOCAL_PROXY??'0';
+  if(!['0','1'].includes(trustProxy)) throw new Error('Invalid local proxy trust');
   return { mode, port, host: '127.0.0.1', adminToken, adminUsername, adminPassword, enableDownloads: downloads === '1',
+    email:emailConfig(env),trustLocalProxy:trustProxy==='1',
     directory: resolve(env.HILDORS_DATA_DIR || defaultDirectory), seedDemos: mode === 'local' };
 }

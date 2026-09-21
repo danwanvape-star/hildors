@@ -68,6 +68,11 @@ class RemoteCatalogPackage {
   final List<RemoteCatalogClip> clips;
 
   factory RemoteCatalogPackage.fromJson(Map<String, dynamic> value) {
+    String localized(Map<String, dynamic> object, String key, String fallback) {
+      final fields = object['localized'];
+      final text = fields is Map ? fields[key] : null;
+      return text is String && text.trim().isNotEmpty ? text.trim() : fallback;
+    }
     String requiredText(Map<String, dynamic> object, String key) {
       final text = object[key];
       if (text is! String || text.trim().isEmpty) {
@@ -92,7 +97,7 @@ class RemoteCatalogPackage {
         throw const FormatException('视频时长无效');
       }
       return RemoteCatalogClip(requiredText(raw, 'id'),
-          requiredText(raw, 'title'), (duration as num?)?.toDouble(),
+          localized(raw, 'title', requiredText(raw, 'title')), (duration as num?)?.toDouble(),
           previewUrl: raw['previewPath'] as String?,
           pricing: raw.containsKey('pricing')
               ? ClipPricing.fromJson(raw['pricing'])
@@ -113,14 +118,14 @@ class RemoteCatalogPackage {
         ? (creator[key] as String).trim()
         : null;
     return RemoteCatalogPackage(
-        description: value['description'] is String
+        description: localized(value, 'description', value['description'] is String
             ? (value['description'] as String).trim()
-            : '',
+            : ''),
         creatorId: creatorText('id'),
         creatorName: creatorText('name'),
         anonymous: anonymous,
         id: requiredText(value, 'id'),
-        title: requiredText(value, 'title'),
+        title: localized(value, 'title', requiredText(value, 'title')),
         source: value['source'] as String,
         format: value['format'] as String,
         coverUrl: value['coverPath'] as String?,
@@ -128,6 +133,14 @@ class RemoteCatalogPackage {
         coverPreviewUrl: value['coverPreviewPath'] as String?,
         tags: (value['tags'] as List).map((t) {
           if (t is! String) throw const FormatException('标签格式无效');
+          final details = value['tagDetails'];
+          if (details is List) {
+            for (final tag in details) {
+              if (tag is Map<String, dynamic> && tag['name'] == t) {
+                return localized(tag, 'name', t);
+              }
+            }
+          }
           return t;
         }).toList(growable: false),
         clips: clips);
@@ -150,13 +163,14 @@ class RemoteCatalogRepository {
   final Uri baseUri;
   final Future<String> Function(Uri) _fetch;
 
-  Future<List<RemoteCatalogPackage>> load() async {
+  Future<List<RemoteCatalogPackage>> load({String? language}) async {
     final result = <RemoteCatalogPackage>[];
     final seenIds = <String>{}, seenCursors = <String>{};
     String? cursor;
     for (var page = 0; page < 50; page++) {
       final uri = baseUri.replace(path: '/v1/catalog', queryParameters: {
         'limit': '100',
+        if (language != null) 'lang': language.toLowerCase().split(RegExp('[-_]')).first == 'zh' ? 'zh' : 'en',
         if (cursor != null) 'cursor': cursor,
       });
       final data = jsonDecode(await _fetch(uri));

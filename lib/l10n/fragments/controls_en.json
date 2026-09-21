@@ -1,0 +1,146 @@
+{
+  "controlsDeleteTitle": "Delete local downloads?",
+  "controlsDeleteNote": "Remove this collection's downloaded files from the app. Your cloud access is retained so you can download again.",
+  "controlsCancel": "Cancel",
+  "controlsDelete": "Delete",
+  "controlsDeleteFailed": "Could not delete. Please try again.",
+  "controlsDeleteLocal": "Delete local downloads",
+  "controlsNoVideos": "No videos are available for this character yet.",
+  "controlsPreviewLocal": "Preview downloaded video",
+  "controlsExamples": "Official sample collections · Select videos",
+  "controlsChooseList": "Choose a playlist",
+  "controlsPendingNote": "Videos are added to pending items first. They are not yet uploaded to the device.",
+  "controlsStartup": "Daily display",
+  "controlsBluetooth": "Music mode",
+  "controlsAddFailed": "Could not add videos. Please try again.",
+  "controlsMyCharacters": "My characters",
+  "controlsLoadFailed": "Could not load your characters. Tap to retry.",
+  "controlsEmpty": "No characters available yet",
+  "controlsEmptyNote": "Download a character from the content library, then choose its videos.",
+  "controlsLibrary": "Content library",
+  "controlsBrowse": "Browse content library",
+  "controlsPickNote": "Choose a character, then select videos for this playlist.",
+  "controlsListNote": "Add character videos to Daily display or Music mode.",
+  "controlsUnavailable": "No videos available",
+  "controlsSelect": "Select videos",
+  "controlsAdd": "Add to playlist",
+  "controlsControlTitle": "Device controls",
+  "controlsBrightness": "Brightness",
+  "controlsAngle": "Angle (device units and range unconfirmed)",
+  "controlsSpeakerTitle": "Set Bluetooth speaker name",
+  "controlsSpeakerName": "Speaker name",
+  "controlsSave": "Save",
+  "controlsSpeaker": "Bluetooth speaker",
+  "controlsConnectSpeaker": "Connect the device to read its speaker name.",
+  "controlsReading": "Reading…",
+  "controlsNameUnknown": "Name not loaded",
+  "controlsRefreshName": "Refresh name",
+  "controlsEditName": "Edit name",
+  "controlsDisconnected": "Disconnected",
+  "controlsConnecting": "Connecting…",
+  "controlsReconnecting": "Reconnecting…",
+  "controlsConnected": "Connected",
+  "controlsIp": "Device IP",
+  "controlsPort": "Default port: 8900",
+  "controlsStopReconnect": "Stop reconnecting",
+  "controlsDisconnect": "Disconnect",
+  "controlsConnect": "Connect",
+  "controlsQuick": "Quick controls",
+  "controlsPowerOn": "Power on",
+  "controlsPowerOff": "Power off",
+  "controlsPrevious": "Previous",
+  "controlsPause": "Pause",
+  "controlsPlay": "Play",
+  "controlsNext": "Next",
+  "controlsRefreshStatus": "Refresh status",
+  "controlsStatus": "Device status",
+  "controlsLan": "Local network control",
+  "controlsMode": "Operating mode",
+  "controlsAudioSource": "Bluetooth audio source",
+  "controlsProtocol": "Awaiting protocol support",
+  "controlsLocalPlayback": "Device playback",
+  "controlsBluetoothWaiting": "Waiting for Bluetooth",
+  "controlsBluetoothAudio": "Bluetooth audio",
+  "controlsWaitingSource": "Waiting for an audio source",
+  "controlsAudioPlaying": "Audio playing",
+  "controlsAudioPaused": "Audio paused",
+  "controlsWasDisconnected": "Disconnected",
+  "controlsBatteryFull": "Fully charged",
+  "controlsBattery": "Device battery",
+  "controlsProtocolNote": "The current protocol does not report operating mode or Bluetooth status. These indicators require updated device protocol support.",
+  "controlsPackageCount": "Character collection · {count} videos",
+  "@controlsPackageCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "controlsDownloaded": "Downloaded {count}/{total} videos",
+  "@controlsDownloaded": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "controlsSeconds": "{seconds} seconds",
+  "@controlsSeconds": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "controlsAddCount": "Add {count} videos to pending items",
+  "@controlsAddCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "controlsVideoCount": "{count} videos",
+  "@controlsVideoCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "controlsAdded": "Added to {list} pending items. Not yet uploaded to the device.",
+  "@controlsAdded": {
+    "placeholders": {
+      "list": {
+        "type": "String"
+      }
+    }
+  },
+  "controlsNamedPlaying": "{name} · Playing",
+  "@controlsNamedPlaying": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "controlsNamedPaused": "{name} · Paused",
+  "@controlsNamedPaused": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "controlsCharging": "{percent}% · Charging",
+  "@controlsCharging": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  }
+}

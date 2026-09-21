@@ -1,9 +1,12 @@
 import 'dart:async';
+import 'package:hildors_cockpit/src/localization/localization.dart';
 import 'dart:io';
 import 'package:hildors_cockpit/src/media/preview_video_cache.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hildors_cockpit/src/features/community/creator_content_media.dart';
+import 'package:hildors_cockpit/src/features/community/creator_content_repository.dart';
 import 'package:video_player/video_player.dart';
 // The native player is replaced at its platform boundary for this widget test.
 // ignore: depend_on_referenced_packages
@@ -12,10 +15,23 @@ import 'package:hildors_cockpit/src/features/community/content_preview_player.da
 import 'package:hildors_cockpit/src/features/community/remote_catalog_repository.dart';
 import 'package:hildors_cockpit/src/features/community/remote_package_detail_page.dart';
 
+class _CreatorMediaRepository implements CreatorContentMediaRepository {
+  @override
+  Future<CreatorContentMediaAccess> mediaAccess(
+          CreatorContent item, CreatorContentClip clip,
+          {bool refreshIdentity = false}) async =>
+      CreatorContentMediaAccess(
+        thumbnail: Uri.parse('https://example.test/private/thumbnail'),
+        preview: Uri.parse('https://example.test/private/preview'),
+        headers: const {'Authorization': 'Bearer owner-token'},
+      );
+}
+
 class _PreviewPlatform extends VideoPlayerPlatform {
   bool initializeImmediately = true;
   bool failCachedFile = false;
   final sources = <String?>[];
+  final headers = <Map<String, String>>[];
   final events = <int, StreamController<VideoEvent>>{};
   final played = <int>[];
   final disposed = <int>[];
@@ -24,6 +40,7 @@ class _PreviewPlatform extends VideoPlayerPlatform {
   @override
   Future<int?> createWithOptions(VideoCreationOptions options) async {
     sources.add(options.dataSource.uri);
+    headers.add(options.dataSource.httpHeaders);
     final id = sources.length;
     events[id] = StreamController<VideoEvent>();
     if (failCachedFile &&
@@ -85,17 +102,128 @@ void main() {
     VideoPlayerPlatform.instance = platform;
   });
   tearDown(() => VideoPlayerPlatform.instance = previousPlatform);
+  testWidgets('English stalled playback offers localized retry', (tester) async {
+    platform.initializeImmediately = false;
+    await tester.pumpWidget(MaterialApp(locale: const Locale('en'),
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: const ContentPreviewPlayer(assetPath: null, networkUrl: 'https://example.test/slow.mp4')));
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 10));
+    expect(find.text('Retry'), findsOneWidget);
+    expect(find.text('重试'), findsNothing);
+    await tester.pumpWidget(const SizedBox());
+    await tester.runAsync(() async { await Future<void>.delayed(Duration.zero); });
+  });
+
+  testWidgets(
+      'creator thumbnail does not load video until tapped and opens authenticated player',
+      (tester) async {
+    const clip = CreatorContentClip(
+        id: 'clip',
+        title: '我的视频',
+        hasMedia: true,
+        inspectionStatus: 'checked',
+        mediaId: 'media');
+    const item = CreatorContent(
+        id: 'owned',
+        title: '作品',
+        format: 'single',
+        status: 'draft',
+        submissionStatus: 'draft',
+        version: 1,
+        description: '介绍',
+        tags: [],
+        clips: [clip]);
+    await tester.pumpWidget(MaterialApp(
+        home: Scaffold(
+            body: SizedBox(
+                width: 300,
+                child: CreatorContentThumbnail(
+                    item: item,
+                    clip: clip,
+                    repository: _CreatorMediaRepository())))));
+    await tester.pumpAndSettle();
+    expect(platform.sources, isEmpty);
+    final image = tester.widget<Image>(find.byType(Image));
+    final networkImage =
+        (image.image as ResizeImage).imageProvider as NetworkImage;
+    expect(networkImage.url, 'https://example.test/private/thumbnail');
+    expect(networkImage.headers?['Authorization'], 'Bearer owner-token');
+    final onTap = tester
+        .widget<InkWell>(find.descendant(
+            of: find.byType(CreatorContentThumbnail),
+            matching: find.byType(InkWell)))
+        .onTap!;
+    onTap();
+    onTap();
+    await tester.pumpAndSettle();
+    expect(platform.sources, ['https://example.test/private/preview']);
+    expect(platform.headers.single['Authorization'], 'Bearer owner-token');
+    expect(platform.played, [1]);
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    await tester.runAsync(() async {
+      await Future<void>.delayed(Duration.zero);
+    });
+    expect(platform.disposed, [1]);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets(
+      'private preview streams with auth and bypasses public file cache',
+      (tester) async {
+    final cache = _InvalidPreviewCache();
+    await tester.pumpWidget(MaterialApp(
+        home: Scaffold(
+            body: ContentPreviewPlayer(
+                assetPath: null,
+                networkUrl: 'https://example.test/private-preview',
+                httpHeaders: const {'Authorization': 'Bearer private-token'},
+                previewCache: cache,
+                autoPlay: true))));
+    await tester.pumpAndSettle();
+    expect(platform.sources.single, 'https://example.test/private-preview');
+    expect(platform.headers.single['Authorization'], 'Bearer private-token');
+    expect(platform.played, [1]);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('private preview retry obtains fresh auth headers',
+      (tester) async {
+    platform.initializeImmediately = false;
+    var refreshes = 0;
+    await tester.pumpWidget(MaterialApp(
+        home: Scaffold(
+            body: ContentPreviewPlayer(
+                assetPath: null,
+                networkUrl: 'https://example.test/private',
+                httpHeaders: const {'Authorization': 'Bearer old'},
+                refreshHttpHeaders: () async {
+                  refreshes++;
+                  return {'Authorization': 'Bearer new'};
+                }))));
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 11));
+    platform.initializeImmediately = true;
+    await tester.tap(find.text('重试'));
+    await tester.pumpAndSettle();
+    expect(refreshes, 1);
+    expect(platform.headers.last['Authorization'], 'Bearer new');
+    await tester.pumpWidget(const SizedBox());
+  });
 
   testWidgets('invalid cached video falls back to streaming and evicts cache',
       (tester) async {
     platform.failCachedFile = true;
     final cache = _InvalidPreviewCache();
     await tester.pumpWidget(MaterialApp(
-        home: Scaffold(body: ContentPreviewPlayer(
-            assetPath: null,
-            networkUrl: 'https://example.test/preview.mp4',
-            previewCache: cache,
-            autoPlay: true))));
+        home: Scaffold(
+            body: ContentPreviewPlayer(
+                assetPath: null,
+                networkUrl: 'https://example.test/preview.mp4',
+                previewCache: cache,
+                autoPlay: true))));
     await tester.pump();
     await tester.runAsync(() async {
       await Future<void>.delayed(const Duration(milliseconds: 20));

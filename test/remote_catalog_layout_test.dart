@@ -26,7 +26,7 @@ void main() {
     ),
   ];
 
-  testWidgets('藏品页按后台顺序、标题和列数展示', (tester) async {
+  testWidgets('藏品页统一网格使用布局列数而不按来源拆分', (tester) async {
     tester.view.physicalSize = const Size(390, 1200);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
@@ -52,10 +52,10 @@ void main() {
     ))));
     await tester.pumpAndSettle();
 
-    expect(find.text('大神创作'), findsOneWidget);
-    expect(find.text('品牌精选'), findsOneWidget);
-    expect(tester.getTopLeft(find.text('大神创作')).dy,
-        lessThan(tester.getTopLeft(find.text('品牌精选')).dy));
+    expect(find.text('大神创作'), findsNothing);
+    expect(find.text('品牌精选'), findsNothing);
+    expect(tester.getTopLeft(find.text('官方角色')).dy,
+        lessThan(tester.getTopLeft(find.text('创作者角色')).dy));
     expect(tester.getSize(find.text('创作者角色').first).width, greaterThan(0));
     expect(tester.takeException(), isNull);
   });

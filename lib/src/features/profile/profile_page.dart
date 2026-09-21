@@ -1,4 +1,9 @@
+import '../customization/custom_plans_page.dart';
 import 'package:flutter/material.dart';
+import '../community/content_governance.dart';
+import 'account_page.dart';
+import '../../config/launch_config.dart';
+import 'package:hildors_cockpit/src/localization/localization.dart';
 
 import '../../device/p20_command_session.dart';
 import '../../device/p20_device_client.dart';
@@ -19,12 +24,14 @@ class ProfilePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Scaffold(
         appBar: AppBar(
-          title: const Column(
+          toolbarHeight:
+              56 * MediaQuery.textScalerOf(context).scale(1).clamp(1.0, 2.5),
+          title: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('我的'),
+              Text(context.l10n.coreProfile),
               Text(
-                'PLAYER PROFILE',
+                context.l10n.coreProfileLabel,
                 style: TextStyle(
                   color: HildorsColors.teal,
                   fontSize: 10,
@@ -36,7 +43,7 @@ class ProfilePage extends StatelessWidget {
           ),
         ),
         body: DecoratedBox(
-          decoration: const BoxDecoration(
+          decoration: BoxDecoration(
             gradient: RadialGradient(
               center: Alignment(0.9, -0.75),
               radius: 1.15,
@@ -44,29 +51,38 @@ class ProfilePage extends StatelessWidget {
             ),
           ),
           child: ListView(
-            padding: const EdgeInsets.fromLTRB(18, 8, 18, 32),
+            padding: EdgeInsets.fromLTRB(18, 8, 18, 32),
             children: [
-              const _ProfileHero(),
-              const SizedBox(height: 22),
-              const _SectionLabel(index: '01', title: '座舱管理'),
-              const SizedBox(height: 10),
+              _ProfileHero(),
+              if (LaunchConfig.usFree)
+                _Entry(
+                  icon: Icons.email_outlined,
+                  title: context.l10n.accountTitle,
+                  subtitle: context.l10n.authEmail,
+                  onTap: () => _open(context, const AccountPage()),
+                ),
+              if (LaunchConfig.usFree) _Entry(icon: Icons.movie_creation_outlined,title: context.l10n.customPlansTitle,subtitle: context.l10n.customOrdersTitle,onTap: () => _open(context,const CustomPlansPage())),
+              SizedBox(height: 22),
+              _SectionLabel(
+                  index: '01', title: context.l10n.coreDeviceManagement),
+              SizedBox(height: 10),
               Row(
                 children: [
                   Expanded(
                     child: _QuickAction(
                       icon: Icons.router_outlined,
-                      label: '设备',
+                      label: context.l10n.coreDevices,
                       onTap: () => _open(
                         context,
                         SettingsPage(client: client, session: session),
                       ),
                     ),
                   ),
-                  const SizedBox(width: 10),
+                  SizedBox(width: 10),
                   Expanded(
                     child: _QuickAction(
                       icon: Icons.playlist_play_rounded,
-                      label: '播放列表',
+                      label: context.l10n.corePlaylist,
                       onTap: () => _open(
                         context,
                         PlaylistManagementPage(
@@ -76,11 +92,11 @@ class ProfilePage extends StatelessWidget {
                       ),
                     ),
                   ),
-                  const SizedBox(width: 10),
+                  SizedBox(width: 10),
                   Expanded(
                     child: _QuickAction(
                       icon: Icons.video_library_outlined,
-                      label: '设备内容',
+                      label: context.l10n.coreDeviceContent,
                       onTap: () => _open(
                         context,
                         VideoPage(client: client, session: session),
@@ -89,53 +105,64 @@ class ProfilePage extends StatelessWidget {
                   ),
                 ],
               ),
-              const SizedBox(height: 24),
-              const _SectionLabel(index: '02', title: '角色资产'),
-              const SizedBox(height: 10),
-              _Entry(
-                icon: Icons.auto_awesome_rounded,
-                eyebrow: 'CORE SERVICE',
-                title: '定制订单',
-                subtitle: '跟踪制作与交付；已领取角色请到藏品查看',
-                accent: HildorsColors.purpleBright,
-                onTap: () =>
-                    _open(context, const MyCharactersPage(ordersOnly: true)),
-              ),
+              SizedBox(height: 24),
+              _SectionLabel(
+                  index: '02', title: context.l10n.coreCharacterAssets),
+              SizedBox(height: 10),
+              if (!LaunchConfig.usFree)
+                _Entry(
+                  icon: Icons.auto_awesome_rounded,
+                  eyebrow: context.l10n.coreServiceLabel,
+                  title: context.l10n.coreCustomOrders,
+                  subtitle: context.l10n.coreOrdersSubtitle,
+                  accent: HildorsColors.purpleBright,
+                  onTap: () =>
+                      _open(context, MyCharactersPage(ordersOnly: true)),
+                ),
               _Entry(
                 icon: Icons.handyman_outlined,
-                eyebrow: 'CREATOR',
-                title: '创作者中心',
-                subtitle: '入驻申请、任务制作与收益管理',
-                onTap: () => _open(context, const CreatorHubPage()),
+                eyebrow: context.l10n.coreCreatorLabel,
+                title: context.l10n.coreCreatorCenter,
+                subtitle: LaunchConfig.usFree
+                    ? context.l10n.coreCreatorFreeSubtitle
+                    : context.l10n.coreCreatorSubtitle,
+                onTap: () => _open(context, CreatorHubPage()),
               ),
-              const SizedBox(height: 24),
-              const _SectionLabel(index: '03', title: '系统支持'),
-              const SizedBox(height: 10),
+              SizedBox(height: 24),
+              _SectionLabel(index: '03', title: context.l10n.coreSupport),
+              if (LaunchConfig.usFree)
+                _Entry(
+                  icon: Icons.shield_outlined,
+                  title: context.l10n.governanceTitle,
+                  subtitle: context.l10n.governanceReports,
+                  onTap: () => _open(context, const ContentGovernancePage()),
+                ),
+              SizedBox(height: 10),
               _Entry(
                 icon: Icons.play_circle_outline_rounded,
-                title: '播放模式说明',
-                subtitle: '了解日常展示与音乐联动的切换逻辑',
-                onTap: () => _open(context, const PlaybackModeGuide()),
+                title: context.l10n.corePlaybackGuide,
+                subtitle: context.l10n.corePlaybackGuideSubtitle,
+                onTap: () => _open(context, PlaybackModeGuide()),
               ),
               _Entry(
                 icon: Icons.wifi_find_rounded,
-                title: '局域网连接帮助',
-                subtitle: '连接 P20/P11 热点及常见问题排查',
-                onTap: () => _open(context, const LanConnectionGuide()),
+                title: context.l10n.coreLanHelp,
+                subtitle: context.l10n.coreLanHelpSubtitle,
+                onTap: () => _open(context, LanConnectionGuide()),
               ),
               _Entry(
                 icon: Icons.tune_rounded,
-                title: '设备与 App 设置',
-                subtitle: '设备参数、播放偏好与版本信息',
+                title: context.l10n.coreAppSettings,
+                subtitle: context.l10n.coreAppSettingsSubtitle,
                 onTap: () => _open(
                   context,
                   SettingsPage(client: client, session: session),
                 ),
               ),
-              const _Entry(
+              _Entry(
                 icon: Icons.info_outline_rounded,
-                title: '关于 HILDORS',
-                subtitle: 'Character Portal · P20/P11 兼容架构',
+                title: context.l10n.coreAbout,
+                subtitle: context.l10n.coreAboutSubtitle,
               ),
             ],
           ),
@@ -152,12 +179,12 @@ class _ProfileHero extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-        height: 172,
+        height: 172 * MediaQuery.textScalerOf(context).scale(1).clamp(1.0, 2.5),
         clipBehavior: Clip.antiAlias,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(24),
           border: Border.all(color: HildorsColors.hairline),
-          boxShadow: const [
+          boxShadow: [
             BoxShadow(
               color: Color(0x66000000),
               blurRadius: 24,
@@ -171,9 +198,9 @@ class _ProfileHero extends StatelessWidget {
             Image.asset(
               'assets/images/content_thumbnails/space_pilot.jpg',
               fit: BoxFit.cover,
-              alignment: const Alignment(0, -0.22),
+              alignment: Alignment(0, -0.22),
             ),
-            const DecoratedBox(
+            DecoratedBox(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.topRight,
@@ -187,15 +214,14 @@ class _ProfileHero extends StatelessWidget {
               left: 18,
               top: 18,
               child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                 decoration: BoxDecoration(
-                  color: const Color(0xB30D131C),
+                  color: Color(0xB30D131C),
                   borderRadius: BorderRadius.circular(99),
                   border: Border.all(color: HildorsColors.teal),
                 ),
-                child: const Text(
-                  'LOCAL',
+                child: Text(
+                  context.l10n.coreLocalLabel,
                   style: TextStyle(
                     color: HildorsColors.teal,
                     fontSize: 10,
@@ -214,11 +240,11 @@ class _ProfileHero extends StatelessWidget {
                   Container(
                     width: 54,
                     height: 54,
-                    padding: const EdgeInsets.all(7),
+                    padding: EdgeInsets.all(7),
                     decoration: BoxDecoration(
                       color: Colors.black,
                       borderRadius: BorderRadius.circular(15),
-                      border: Border.all(color: const Color(0x55FFFFFF)),
+                      border: Border.all(color: Color(0x55FFFFFF)),
                     ),
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(9),
@@ -228,14 +254,14 @@ class _ProfileHero extends StatelessWidget {
                       ),
                     ),
                   ),
-                  const SizedBox(width: 13),
-                  const Expanded(
+                  SizedBox(width: 13),
+                  Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
-                          'HILDORS PILOT',
+                          context.l10n.corePilotLabel,
                           style: TextStyle(
                             color: HildorsColors.teal,
                             fontSize: 10,
@@ -245,7 +271,7 @@ class _ProfileHero extends StatelessWidget {
                         ),
                         SizedBox(height: 3),
                         Text(
-                          '玩家档案',
+                          context.l10n.corePlayerProfile,
                           style: TextStyle(
                             fontSize: 22,
                             fontWeight: FontWeight.w700,
@@ -253,8 +279,8 @@ class _ProfileHero extends StatelessWidget {
                         ),
                         SizedBox(height: 2),
                         Text(
-                          '本地座舱账户 · 数据保存在当前设备',
-                          maxLines: 1,
+                          context.l10n.coreLocalAccount,
+                          maxLines: 3,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
                             color: HildorsColors.textSecondary,
@@ -282,20 +308,21 @@ class _SectionLabel extends StatelessWidget {
   Widget build(BuildContext context) => Row(
         children: [
           Text(index,
-              style: const TextStyle(
+              style: TextStyle(
                 color: HildorsColors.teal,
                 fontSize: 11,
                 fontWeight: FontWeight.w800,
                 letterSpacing: 1.8,
               )),
-          const SizedBox(width: 10),
+          SizedBox(width: 10),
           Container(width: 20, height: 1, color: HildorsColors.teal),
-          const SizedBox(width: 10),
-          Text(title,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 0.8,
-                  )),
+          SizedBox(width: 10),
+          Expanded(
+              child: Text(title,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 0.8,
+                      ))),
         ],
       );
 }
@@ -316,8 +343,8 @@ class _QuickAction extends StatelessWidget {
           onTap: onTap,
           borderRadius: BorderRadius.circular(18),
           child: Container(
-            height: 88,
-            padding: const EdgeInsets.symmetric(horizontal: 6),
+            constraints: const BoxConstraints(minHeight: 88),
+            padding: EdgeInsets.symmetric(horizontal: 6, vertical: 12),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(18),
               border: Border.all(color: HildorsColors.hairline),
@@ -326,13 +353,13 @@ class _QuickAction extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Icon(icon, color: HildorsColors.blue, size: 26),
-                const SizedBox(height: 9),
+                SizedBox(height: 9),
                 Text(label,
-                    maxLines: 1,
+                    maxLines: 3,
                     overflow: TextOverflow.ellipsis,
                     textAlign: TextAlign.center,
-                    style: const TextStyle(
-                        fontSize: 13, fontWeight: FontWeight.w600)),
+                    style:
+                        TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
               ],
             ),
           ),
@@ -359,7 +386,7 @@ class _Entry extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.only(bottom: 10),
+        padding: EdgeInsets.only(bottom: 10),
         child: Material(
           color: HildorsColors.surface,
           borderRadius: BorderRadius.circular(18),
@@ -367,8 +394,8 @@ class _Entry extends StatelessWidget {
             onTap: onTap,
             borderRadius: BorderRadius.circular(18),
             child: Container(
-              constraints: const BoxConstraints(minHeight: 82),
-              padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 13),
+              constraints: BoxConstraints(minHeight: 82),
+              padding: EdgeInsets.symmetric(horizontal: 15, vertical: 13),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(18),
                 border: Border.all(color: HildorsColors.hairline),
@@ -385,7 +412,7 @@ class _Entry extends StatelessWidget {
                     ),
                     child: Icon(icon, color: accent, size: 23),
                   ),
-                  const SizedBox(width: 13),
+                  SizedBox(width: 13),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -399,16 +426,16 @@ class _Entry extends StatelessWidget {
                                 fontWeight: FontWeight.w800,
                                 letterSpacing: 1.3,
                               )),
-                          const SizedBox(height: 2),
+                          SizedBox(height: 2),
                         ],
                         Text(title,
-                            style: const TextStyle(
+                            style: TextStyle(
                                 fontSize: 16, fontWeight: FontWeight.w700)),
-                        const SizedBox(height: 3),
+                        SizedBox(height: 3),
                         Text(subtitle,
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
+                            style: TextStyle(
                               color: HildorsColors.textSecondary,
                               fontSize: 12,
                               height: 1.35,
@@ -416,9 +443,9 @@ class _Entry extends StatelessWidget {
                       ],
                     ),
                   ),
-                  const SizedBox(width: 8),
+                  SizedBox(width: 8),
                   if (onTap != null)
-                    const Icon(Icons.arrow_forward_ios_rounded,
+                    Icon(Icons.arrow_forward_ios_rounded,
                         size: 15, color: HildorsColors.textSecondary),
                 ],
               ),

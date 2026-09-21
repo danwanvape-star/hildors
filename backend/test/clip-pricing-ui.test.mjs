@@ -3,14 +3,14 @@ import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import { readFileSync } from 'node:fs';
 
-function editor(pricing) {
+function editor(pricing, allowed = true) {
   class Element {
     constructor(tag) { this.tagName = tag; this.children = []; this.value = ''; }
     append(...children) { this.children.push(...children); }
     setAttribute() {}
   }
   const calls = [];
-  const context = vm.createContext({ document: { createElement: tag => new Element(tag) } });
+  const context = vm.createContext({ canAdmin: () => allowed, document: { createElement: tag => new Element(tag) } });
   vm.runInContext(readFileSync(new URL('../public/clip-pricing.js', import.meta.url), 'utf8'), context);
   const root = context.createClipPricingEditor({id:'p',version:4}, {id:'c',pricing}, {
     save: async (...args) => calls.push(args), onSaved: async () => {},
@@ -20,6 +20,12 @@ function editor(pricing) {
   return {calls, select:nodes.find(n=>n.tagName==='select'), input:nodes.find(n=>n.tagName==='input'),
     button:nodes.find(n=>n.tagName==='button'), notice:nodes.find(n=>n.role==='status')};
 }
+
+test('view-only pricing is disabled and does not submit even if handler is called', async () => {
+  const e = editor({mode:'paid',currency:'USD',amountMinor:199}, false);
+  assert.equal(e.button.hidden, true); assert.equal(e.select.disabled, true); assert.equal(e.input.disabled, true);
+  await e.button.onclick(); assert.equal(e.calls.length, 0);
+});
 
 test('pricing editor never silently makes legacy videos free', async () => {
   const e = editor();

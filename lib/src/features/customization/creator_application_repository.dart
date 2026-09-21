@@ -30,11 +30,29 @@ class CreatorApplicationRepository {
   CreatorApplicationRepository({CreatorContentTransport? transport})
       : transport = transport ?? CloudCreatorContentTransport();
   final CreatorContentTransport transport;
+  final Map<String, Map<String, String>> _tagLabels = {};
+  String tagLabel(String legacyName, String language) {
+    final labels = _tagLabels[legacyName];
+    return labels?[language] ?? labels?['en'] ?? legacyName;
+  }
   static const path = '/v1/me/creator-application';
   Future<List<String>> loadTags() async {
     final response =
         await transport.request(method: 'GET', path: '/v1/content-tags');
     final body = _checked(response);
+    _tagLabels.clear();
+    for (final raw in body['items'] as List) {
+      if (raw is! Map || raw['name'] is! String) continue;
+      final translations = raw['translations'];
+      final labels = <String, String>{};
+      for (final language in ['en', 'zh']) {
+        final entry = translations is Map ? translations[language] : null;
+        final label = entry is Map ? entry['name'] : null;
+        if (label is String && label.trim().isNotEmpty) labels[language] = label;
+      }
+      labels.putIfAbsent('zh', () => raw['name'] as String);
+      _tagLabels[raw['name'] as String] = labels;
+    }
     return (body['items'] as List)
         .map((item) => CreatorContentTag.fromJson(item as Map<String, dynamic>))
         .where((tag) => tag.active)

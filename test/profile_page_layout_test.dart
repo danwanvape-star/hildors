@@ -1,3 +1,5 @@
+import 'package:hildors_cockpit/src/features/customization/custom_plans_page.dart';
+import 'package:hildors_cockpit/src/config/launch_config.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hildors_cockpit/src/device/p20_command_session.dart';
@@ -24,19 +26,32 @@ void main() {
       ),
     );
 
-    expect(find.text('玩家档案'), findsOneWidget);
+    expect(find.text('玩家档案'), findsNWidgets(2));
     expect(find.text('设备'), findsOneWidget);
     expect(find.text('播放列表'), findsOneWidget);
     expect(find.text('设备内容'), findsOneWidget);
     expect(tester.takeException(), isNull);
 
     await tester.scrollUntilVisible(
-      find.text('定制订单'),
+      find.text(LaunchConfig.usFree ? '定制视频套餐' : '定制订单'),
       240,
       scrollable: find.byType(Scrollable).first,
     );
 
-    expect(find.text('定制订单'), findsOneWidget);
+    await tester.pumpAndSettle();
+    if (LaunchConfig.usFree) {
+      expect(find.text('定制订单'), findsNothing);
+      expect(find.text('定制视频套餐').hitTestable(), findsOneWidget);
+      await tester.tap(find.text('定制视频套餐'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+      expect(find.byType(CustomPlansPage), findsOneWidget);
+      expect(find.text('商店支付尚未接通，目前不会收款。'), findsOneWidget);
+      await tester.pumpWidget(const SizedBox());
+    } else {
+      expect(find.text('定制订单'), findsOneWidget);
+      expect(find.text('定制视频套餐'), findsNothing);
+    }
     expect(tester.takeException(), isNull);
   });
 }

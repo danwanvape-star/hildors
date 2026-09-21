@@ -1,3 +1,4 @@
+import '../../localization/localization.dart';
 import 'package:flutter/material.dart';
 
 /// Retries only after an image failure, keeping the original request URL.
@@ -49,17 +50,17 @@ class _CatalogNetworkImageState extends State<CatalogNetworkImage> {
         frameBuilder: (context, child, frame, synchronous) =>
             synchronous || frame != null
                 ? child
-                : const Center(
+                : Center(
                     child: SizedBox(
                         width: 24,
                         height: 24,
                         child: CircularProgressIndicator(
-                            strokeWidth: 2, semanticsLabel: '图片加载中'))),
+                            strokeWidth: 2, semanticsLabel: context.l10n.catalogImageLoading))),
         errorBuilder: (context, error, stack) => Center(
           child: IconButton(
-            tooltip: '图片加载失败，点击重试',
+            tooltip: context.l10n.catalogImageRetry,
             onPressed: () => _retry(provider),
-            icon: const Icon(Icons.refresh, size: 28),
+            icon: Icon(Icons.refresh, size: 28),
           ),
         ),
       ),

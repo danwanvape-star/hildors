@@ -1,3 +1,4 @@
+import '../../localization/localization.dart';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math' as math;
@@ -89,8 +90,8 @@ class FanFramingPage extends StatefulWidget {
 
 class _FanFramingPageState extends State<FanFramingPage> {
   VideoPlayerController? _player;
-  FanFraming _frame = const FanFraming();
-  FanFraming _start = const FanFraming();
+  FanFraming _frame = FanFraming();
+  FanFraming _start = FanFraming();
   Offset _focal = Offset.zero;
   String? _error;
   bool _saving = false;
@@ -136,7 +137,7 @@ class _FanFramingPageState extends State<FanFramingPage> {
       });
     } catch (_) {
       await player?.dispose();
-      if (mounted) setState(() => _error = '视频预览加载失败，请返回后重试。');
+      if (mounted) setState(() => _error = 'preview_failed');
     }
   }
 
@@ -149,13 +150,13 @@ class _FanFramingPageState extends State<FanFramingPage> {
           framing: _frame,
           sourceSize: _player!.value.size);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('取景已保存。原视频未修改，尚未转码或上传。'),
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(context.l10n.frameSaved),
       ));
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('保存失败，请重试')),
+          SnackBar(content: Text(context.l10n.frameSaveFailed)),
         );
       }
     } finally {
@@ -175,16 +176,16 @@ class _FanFramingPageState extends State<FanFramingPage> {
   Widget build(BuildContext context) {
     final player = _player;
     return Scaffold(
-      appBar: AppBar(title: const Text('调整风扇展示范围')),
+      appBar: AppBar(title: Text(context.l10n.frameTitle)),
       body: SafeArea(
           child: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(16),
         children: [
-          const Text('圆圈内为设备显示范围',
+          Text(context.l10n.frameCircle,
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600)),
-          const SizedBox(height: 6),
-          const Text('双指缩放、单指拖动。播放整段视频，检查头部、手脚和动作是否超出圆圈。'),
-          const SizedBox(height: 16),
+          SizedBox(height: 6),
+          Text(context.l10n.frameInstructions),
+          SizedBox(height: 16),
           AspectRatio(
               aspectRatio: 1,
               child: LayoutBuilder(builder: (context, bounds) {
@@ -197,13 +198,13 @@ class _FanFramingPageState extends State<FanFramingPage> {
                           color: Theme.of(context).colorScheme.primary,
                           width: 2)),
                   child: Padding(
-                      padding: const EdgeInsets.all(2),
+                      padding: EdgeInsets.all(2),
                       child: ClipOval(
                         child: player == null
                             ? Center(
                                 child: _error == null
-                                    ? const CircularProgressIndicator()
-                                    : Text(_error!,
+                                    ? CircularProgressIndicator()
+                                    : Text(context.l10n.framePreviewFailed,
                                         textAlign: TextAlign.center))
                             : GestureDetector(
                                 behavior: HitTestBehavior.opaque,
@@ -243,7 +244,9 @@ class _FanFramingPageState extends State<FanFramingPage> {
                 builder: (context, value, _) => Column(children: [
                       Row(children: [
                         IconButton(
-                            tooltip: value.isPlaying ? '暂停预览' : '播放预览',
+                            tooltip: value.isPlaying
+                                ? context.l10n.framePause
+                                : context.l10n.framePlay,
                             onPressed: () => value.isPlaying
                                 ? player.pause()
                                 : player.play(),
@@ -253,15 +256,15 @@ class _FanFramingPageState extends State<FanFramingPage> {
                         Expanded(
                             child: VideoProgressIndicator(player,
                                 allowScrubbing: true,
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 20))),
-                        Text(
-                            '${value.position.inSeconds} / ${value.duration.inSeconds} 秒'),
+                                padding: EdgeInsets.symmetric(vertical: 20))),
+                        Text(context.l10n.frameTime(value.position.inSeconds,
+                            value.duration.inSeconds)),
                       ]),
-                      if (value.hasError) const Text('播放失败，请返回后重试'),
+                      if (value.hasError)
+                        Text(context.l10n.framePlaybackFailed),
                     ])),
             Row(children: [
-              const Text('缩放'),
+              Text(context.l10n.frameZoom),
               Expanded(
                   child: Slider(
                       value: _frame.scale,
@@ -274,21 +277,25 @@ class _FanFramingPageState extends State<FanFramingPage> {
             ]),
             Wrap(spacing: 8, children: [
               OutlinedButton(
-                  onPressed: () => _preset(false), child: const Text('完整展示')),
+                  onPressed: () => _preset(false),
+                  child: Text(context.l10n.frameFit)),
               OutlinedButton(
-                  onPressed: () => _preset(true), child: const Text('铺满圆形')),
+                  onPressed: () => _preset(true),
+                  child: Text(context.l10n.frameFill)),
               TextButton(
-                  onPressed: () => _preset(false), child: const Text('重置')),
+                  onPressed: () => _preset(false),
+                  child: Text(context.l10n.frameReset)),
             ]),
-            const Text('完整展示保留整帧画面；铺满圆形会裁掉边缘内容。'),
-            if (_restoreFailed) const Text('上次取景未能读取，请重新调整后保存。'),
+            Text(context.l10n.frameFitNote),
+            if (_restoreFailed) Text(context.l10n.frameRestoreFailed),
           ],
-          const SizedBox(height: 20),
+          SizedBox(height: 20),
           FilledButton.icon(
               onPressed: player == null || _saving ? null : _save,
-              icon: const Icon(Icons.save_outlined),
-              label: Text(_saving ? '保存中…' : '保存展示范围')),
-          const SizedBox(height: 8),
+              icon: Icon(Icons.save_outlined),
+              label: Text(
+                  _saving ? context.l10n.frameSaving : context.l10n.frameSave)),
+          SizedBox(height: 8),
           OutlinedButton(
               onPressed: widget.onUpload == null || player == null || _saving
                   ? null
@@ -298,9 +305,10 @@ class _FanFramingPageState extends State<FanFramingPage> {
                         await widget.onUpload!(context, _frame);
                       }
                     },
-              child: Text(widget.onUpload == null ? '请从设备播放列表进入上传' : '转码并上传')),
-          const Text('保存只记录展示范围；点击转码并上传后，才会处理并传输设备文件。',
-              textAlign: TextAlign.center),
+              child: Text(widget.onUpload == null
+                  ? context.l10n.p20UploadEntry
+                  : context.l10n.p20UploadAction)),
+          Text(context.l10n.p20FramingNote, textAlign: TextAlign.center),
         ],
       )),
     );

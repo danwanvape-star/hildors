@@ -1,0 +1,14 @@
+<!doctype html>
+<html lang="zh-CN">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>定制视频套餐管理 · Hildors</title><link rel="stylesheet" href="/console/style.css"><link rel="stylesheet" href="/console/admin-nav.css"></head>
+<body><aside><div class="brand">HILDORS<span>CHARACTER PORTAL</span></div><nav aria-label="业务导航"><a class="nav" href="/console#content">内容管理</a><a class="nav" href="/console#creators">创作者管理</a><a class="nav active" href="/console/customization-orders-v2">角色定制</a><a class="nav" href="/console#layout">APP界面装修</a><a class="nav" href="/console#operators">运营账号管理</a></nav><div class="nav-support"><a href="/console/account-deletions">用户账号删除申请</a><a href="/console/governance">举报与投诉</a></div></aside><main class="business-main">
+
+<header><div><small>CHARACTER CUSTOMIZATION</small><h1>角色定制 · 套餐管理</h1></div><a href="/console#operators">登录与账号</a></header><div class="business-tabs"><a href="/console/customization-orders-v2">订单管理</a><a aria-current="page" href="/console/customization-plans">套餐管理</a><a href="/console#orders">历史报价订单</a></div>
+<p>维护时长、美元基准价格、中英文说明与商店商品 ID。保存后台配置不会在 Apple 或 Google 商店创建或同步商品。</p>
+<p>初始套餐：10 秒 / $19.99、15 秒 / $29.99、30 秒 / $69.99、60 秒 / $159.99。实际配置以读取结果为准。</p>
+<p>“希望上架”是后台配置意愿；商店实际状态单独显示。当前未接通支付，无法购买。</p>
+<button id="refresh" type="button">重新读取全部套餐</button>
+<p id="message" role="status" aria-live="polite"></p>
+<div id="plans"></div>
+</main><script type="module" src="/console/customization-plans.js"></script></body>
+</html>

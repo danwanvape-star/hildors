@@ -1,0 +1,10 @@
+{
+  "accountTitle": "账号管理",
+  "accountGuest": "访客账号",
+  "accountNone": "尚未登录",
+  "accountSignOut": "退出所有设备",
+  "accountSignOutConfirm": "这会使此账号在所有设备上的登录失效，不会删除账号或本地视频。访问云端内容可能需要重新登录。",
+  "accountGuestWarning": "此访客账号尚未验证邮箱。退出后可能无法找回其云端内容，请先验证邮箱再退出。",
+  "accountSignedOut": "已退出所有设备。",
+  "accountCancel": "取消"
+}

@@ -111,3 +111,13 @@ test('pending creator detail provides moderation but no media or metadata editin
   assert.ok(!nodes.some(node=>node.textContent==='编辑名称、题材与介绍'));
   assert.ok(nodes.some(node=>node.textContent==='待审核'));
 });
+
+test('English metadata editor submits package and clip translations with the current version', async()=>{
+ const {context,get,calls}=consoleApp();
+ get('metadata-form').elements={title:{},description:{},englishTitle:{},englishDescription:{}};
+ vm.runInContext(`contentTags=[];openMetadata({id:'p',version:9,title:'中文',description:'故事',tags:[],translations:{zh:{title:'中文',description:'故事'}},clips:[{id:'c',title:'片段'}]});api=async(path,body)=>{calls.push({path,body});return {}};refresh=async()=>{};`,context);
+ assert.match(get('translation-warning').textContent,/英文/);
+ await get('metadata-form').onsubmit({preventDefault(){},target:{title:'中文',description:'故事',englishTitle:'Hero',englishDescription:'Story',clipEnglishTitle0:'Clip',clipEnglishDescription0:'Detail',clipChineseTitle0:'片段',clipChineseDescription0:'说明'}});
+ assert.equal(calls.length,1);assert.equal(calls[0].body.version,9);assert.equal(calls[0].body.title,'中文');assert.equal(calls[0].body.translations.en.title,'Hero');assert.equal(calls[0].body.translations.zh.title,'中文');assert.equal(calls[0].body.clipTranslations[0].translations.en.description,'Detail');
+ assert.equal(calls[0].path,'/admin/packages/p/metadata');
+});

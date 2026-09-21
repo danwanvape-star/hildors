@@ -1,3 +1,4 @@
+import '../../localization/localization.dart';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import '../community/downloaded_character_store.dart';
@@ -41,10 +42,10 @@ class _CharacterPackagePickerState extends State<CharacterPackagePicker> {
   DownloadedCharacterStore? _store;
   Future<List<CharacterVideoPackage>> _load() async {
     final claimed =
-        await (widget.repository ?? const LocalCharacterEntitlementRepository())
+        await (widget.repository ?? LocalCharacterEntitlementRepository())
             .loadClaimedCharacterIds();
     final orders = await (widget.orderRepository ??
-            const LocalCustomizationOrderRepository())
+            LocalCustomizationOrderRepository())
         .loadOrders();
     _store = widget.downloadedStore ?? await DownloadedCharacterStore.current();
     final downloaded = await (widget.loadDownloaded?.call() ??
@@ -95,15 +96,15 @@ class _CharacterPackagePickerState extends State<CharacterPackagePicker> {
           showDragHandle: true,
           builder: (context) => SafeArea(
                   child: Column(mainAxisSize: MainAxisSize.min, children: [
-                const ListTile(
-                    title: Text('加入哪个播放列表？'),
-                    subtitle: Text('先加入待处理区，不代表已上传到设备')),
                 ListTile(
-                    title: const Text('日常展示'),
+                    title: Text(context.l10n.controlsChooseList),
+                    subtitle: Text(context.l10n.controlsPendingNote)),
+                ListTile(
+                    title: Text(context.l10n.controlsStartup),
                     onTap: () =>
                         Navigator.pop(context, DevicePlaylistKind.startup)),
                 ListTile(
-                    title: const Text('音乐联动'),
+                    title: Text(context.l10n.controlsBluetooth),
                     onTap: () =>
                         Navigator.pop(context, DevicePlaylistKind.bluetooth)),
               ])));
@@ -119,12 +120,12 @@ class _CharacterPackagePickerState extends State<CharacterPackagePicker> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
             content: Text(
-                '已加入${target == DevicePlaylistKind.startup ? '日常展示' : '音乐联动'}待处理区，尚未上传设备')));
+                context.l10n.controlsAdded(target == DevicePlaylistKind.startup ? context.l10n.controlsStartup : context.l10n.controlsBluetooth))));
       }
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text('未能加入列表，请重试')));
+            .showSnackBar(SnackBar(content: Text(context.l10n.controlsAddFailed)));
       }
     } finally {
       if (mounted) setState(() => _opening = false);
@@ -133,7 +134,7 @@ class _CharacterPackagePickerState extends State<CharacterPackagePicker> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar: widget.embedded ? null : AppBar(title: const Text('我的角色')),
+        appBar: widget.embedded ? null : AppBar(title: Text(context.l10n.controlsMyCharacters)),
         body: FutureBuilder<List<CharacterVideoPackage>>(
           future: _packages,
           builder: (context, snapshot) {
@@ -141,40 +142,40 @@ class _CharacterPackagePickerState extends State<CharacterPackagePicker> {
               return Center(
                   child: TextButton(
                       onPressed: () => setState(() => _packages = _load()),
-                      child: const Text('我的角色读取失败，点击重试')));
+                      child: Text(context.l10n.controlsLoadFailed)));
             }
             if (!snapshot.hasData) {
-              return const Center(child: CircularProgressIndicator());
+              return Center(child: CircularProgressIndicator());
             }
             if (snapshot.data!.isEmpty) {
               return Center(
                   child: Padding(
-                      padding: const EdgeInsets.all(24),
+                      padding: EdgeInsets.all(24),
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(Icons.collections_bookmark_outlined,
+                          Icon(Icons.collections_bookmark_outlined,
                               size: 40),
-                          const SizedBox(height: 16),
-                          const Text('还没有可选择的角色'),
-                          const SizedBox(height: 8),
-                          const Text('先到藏品内容库收藏角色，再选择其中的视频。',
+                          SizedBox(height: 16),
+                          Text(context.l10n.controlsEmpty),
+                          SizedBox(height: 8),
+                          Text(context.l10n.controlsEmptyNote,
                               textAlign: TextAlign.center),
-                          const SizedBox(height: 16),
+                          SizedBox(height: 16),
                           FilledButton(
                               onPressed: () async {
                                 await Navigator.of(context).push(
                                     MaterialPageRoute<void>(
                                         builder: (_) => Scaffold(
                                             appBar: AppBar(
-                                                title: const Text('内容库')),
+                                                title: Text(context.l10n.controlsLibrary)),
                                             body:
-                                                const CollectionCatalogPage())));
+                                                CollectionCatalogPage())));
                                 if (mounted) {
                                   setState(() => _packages = _load());
                                 }
                               },
-                              child: const Text('浏览内容库')),
+                              child: Text(context.l10n.controlsBrowse)),
                         ],
                       )));
             }
@@ -187,14 +188,14 @@ class _CharacterPackagePickerState extends State<CharacterPackagePicker> {
               return CustomScrollView(slivers: [
                 SliverToBoxAdapter(
                     child: Padding(
-                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+                        padding: EdgeInsets.fromLTRB(16, 8, 16, 12),
                         child: Text(
                             widget.picking
-                                ? '选择角色，再勾选需要加入当前列表的视频'
-                                : '选择角色中的视频，加入日常展示或音乐联动',
-                            style: const TextStyle(fontSize: 12)))),
+                                ? context.l10n.controlsPickNote
+                                : context.l10n.controlsListNote,
+                            style: TextStyle(fontSize: 12)))),
                 SliverPadding(
-                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+                    padding: EdgeInsets.fromLTRB(16, 0, 16, 24),
                     sliver: SliverGrid(
                         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                             crossAxisCount: columns,
@@ -228,7 +229,7 @@ class _CharacterPackagePickerState extends State<CharacterPackagePicker> {
                                             child: AspectRatio(
                                                 aspectRatio: 1,
                                                 child: cover == null
-                                                    ? const ColoredBox(
+                                                    ? ColoredBox(
                                                         color:
                                                             Color(0xff111e2a),
                                                         child: Icon(
@@ -242,35 +243,35 @@ class _CharacterPackagePickerState extends State<CharacterPackagePicker> {
                                                             errorBuilder: (context,
                                                                     error,
                                                                     stack) =>
-                                                                const Icon(Icons
+                                                                Icon(Icons
                                                                     .person_outline))
                                                         : Image.asset(cover,
                                                             fit: BoxFit
                                                                 .contain))),
                                         Padding(
-                                            padding: const EdgeInsets.fromLTRB(
+                                            padding: EdgeInsets.fromLTRB(
                                                 8, 8, 8, 0),
                                             child: Text(package.title,
                                                 maxLines: 2,
                                                 overflow: TextOverflow.ellipsis,
-                                                style: const TextStyle(
+                                                style: TextStyle(
                                                     fontSize: 13,
                                                     height: 1.5,
                                                     fontWeight:
                                                         FontWeight.w600))),
                                         Padding(
-                                            padding: const EdgeInsets.all(8),
+                                            padding: EdgeInsets.all(8),
                                             child: Text(
                                                 package.videos.isEmpty
-                                                    ? '暂无可用视频'
+                                                    ? context.l10n.controlsUnavailable
                                                     : package.downloaded
-                                                        ? '已下载 ${package.videos.length}/${package.totalVideos ?? package.videos.length} 个视频'
-                                                        : '${package.videos.length} 个视频',
-                                                style: const TextStyle(
+                                                        ? context.l10n.controlsDownloaded(package.videos.length, package.totalVideos ?? package.videos.length)
+                                                        : context.l10n.controlsVideoCount(package.videos.length),
+                                                style: TextStyle(
                                                     fontSize: 11))),
-                                        const Spacer(),
+                                        Spacer(),
                                         Padding(
-                                            padding: const EdgeInsets.fromLTRB(
+                                            padding: EdgeInsets.fromLTRB(
                                                 6, 0, 6, 6),
                                             child: OutlinedButton(
                                                 onPressed: _opening ||
@@ -279,13 +280,13 @@ class _CharacterPackagePickerState extends State<CharacterPackagePicker> {
                                                     : () => _select(package),
                                                 style: OutlinedButton.styleFrom(
                                                     padding:
-                                                        const EdgeInsets.symmetric(
+                                                        EdgeInsets.symmetric(
                                                             horizontal: 4),
-                                                    textStyle: const TextStyle(
+                                                    textStyle: TextStyle(
                                                         fontSize: 12)),
                                                 child: Text(widget.picking
-                                                    ? '选择视频'
-                                                    : '加入播放列表'))),
+                                                    ? context.l10n.controlsSelect
+                                                    : context.l10n.controlsAdd))),
                                       ])));
                         }, childCount: snapshot.data!.length))),
               ]);

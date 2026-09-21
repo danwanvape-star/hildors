@@ -41,7 +41,7 @@ export async function inspectVideo(directory, id) {
       '-map', `0:${video.index}`, '-frames:v', '1', '-vf', 'scale=480:480:force_original_aspect_ratio=decrease,pad=480:480:(ow-iw)/2:(oh-ih)/2:black,setsar=1', temporary]);
     await rename(temporary, resolve(directory, `${id}.jpg`));
     return { status: 'checked', width: video.width, height: video.height,
-      durationSeconds: duration, videoCodec: video.codec_name,
+      durationSeconds: duration, videoDurationSeconds: Number.isFinite(Number(video.duration)) && Number(video.duration)>0 ? Number(video.duration) : null, videoCodec: video.codec_name,
       audioCodec: probe.streams.find(s => s.codec_type === 'audio')?.codec_name ?? null,
       thumbnail: true, checkedAt: new Date().toISOString(), validation: 'decoded' };
   } catch (error) {

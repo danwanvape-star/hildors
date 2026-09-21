@@ -1,3 +1,4 @@
+import '../../localization/localization.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -49,7 +50,7 @@ class _VideoPageState extends State<VideoPage> {
         });
       }
     } catch (error) {
-      if (mounted) setState(() => _message = '$error');
+      if (mounted) setState(() => _message = 'DEVICE_REQUEST_FAILED');
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -60,14 +61,14 @@ class _VideoPageState extends State<VideoPage> {
       await widget.session.playVideo(video.fileName);
       if (mounted) setState(() => _playingIndex = video.index);
     } catch (error) {
-      if (mounted) setState(() => _message = '$error');
+      if (mounted) setState(() => _message = 'DEVICE_REQUEST_FAILED');
     }
   }
 
   Future<void> _delete(P20VideoEntry video) async {
     if (_playingIndex == video.index) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('正在播放的视频不能删除，请先播放其他内容')),
+        SnackBar(content: Text(context.l10n.devicePlayingDelete)),
       );
       return;
     }
@@ -76,18 +77,18 @@ class _VideoPageState extends State<VideoPage> {
       builder: (context) => AlertDialog(
         icon: Icon(Icons.warning_amber_rounded,
             color: Theme.of(context).colorScheme.error),
-        title: const Text('永久删除设备文件？'),
+        title: Text(context.l10n.deviceDeleteTitle),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('以下视频将从全息设备中永久删除：'),
-            const SizedBox(height: 10),
+            Text(context.l10n.deviceDeleteIntro),
+            SizedBox(height: 10),
             SelectableText(video.fileName,
-                style: const TextStyle(fontWeight: FontWeight.w700)),
-            const SizedBox(height: 12),
+                style: TextStyle(fontWeight: FontWeight.w700)),
+            SizedBox(height: 12),
             Text(
-              '此操作无法撤销。手机中已下载的副本和内容购买记录不会受到影响。',
+              context.l10n.deviceDeleteNote,
               style: TextStyle(color: Theme.of(context).colorScheme.error),
             ),
           ],
@@ -95,7 +96,7 @@ class _VideoPageState extends State<VideoPage> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('取消'),
+            child: Text(context.l10n.deviceCancel),
           ),
           FilledButton(
             style: FilledButton.styleFrom(
@@ -103,7 +104,7 @@ class _VideoPageState extends State<VideoPage> {
               foregroundColor: Theme.of(context).colorScheme.onError,
             ),
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('永久删除'),
+            child: Text(context.l10n.deviceDelete),
           ),
         ],
       ),
@@ -114,11 +115,11 @@ class _VideoPageState extends State<VideoPage> {
       await _refresh();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('已从设备永久删除 ${video.fileName}')),
+          SnackBar(content: Text(context.l10n.deviceDeleted(video.fileName))),
         );
       }
     } catch (error) {
-      if (mounted) setState(() => _message = '$error');
+      if (mounted) setState(() => _message = 'DEVICE_REQUEST_FAILED');
     }
   }
 
@@ -126,38 +127,38 @@ class _VideoPageState extends State<VideoPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('视频库'),
+        title: Text(context.l10n.deviceVideoLibrary),
         actions: [
           IconButton(
             onPressed: _connected && !_loading ? _refresh : null,
-            tooltip: '刷新',
-            icon: const Icon(Icons.refresh),
+            tooltip: context.l10n.deviceRefresh,
+            icon: Icon(Icons.refresh),
           ),
         ],
       ),
       body: !_connected
-          ? const Center(child: Text('请先在“控制”页连接设备'))
+          ? Center(child: Text(context.l10n.deviceConnectFirst))
           : _loading
-              ? const Center(child: CircularProgressIndicator())
+              ? Center(child: CircularProgressIndicator())
               : _videos.isEmpty
                   ? Center(
                       child: FilledButton.icon(
                         onPressed: _refresh,
-                        icon: const Icon(Icons.sync),
-                        label: const Text('读取视频列表'),
+                        icon: Icon(Icons.sync),
+                        label: Text(context.l10n.deviceReadVideos),
                       ),
                     )
                   : ListView.separated(
-                      padding: const EdgeInsets.all(16),
+                      padding: EdgeInsets.all(16),
                       itemCount: _videos.length + (_message == null ? 0 : 1),
-                      separatorBuilder: (_, __) => const SizedBox(height: 8),
+                      separatorBuilder: (_, __) => SizedBox(height: 8),
                       itemBuilder: (context, index) {
                         if (_message != null && index == 0) {
                           return Card(
                             color: Theme.of(context).colorScheme.errorContainer,
                             child: Padding(
-                              padding: const EdgeInsets.all(12),
-                              child: Text(_message!),
+                              padding: EdgeInsets.all(12),
+                              child: Text(context.l10n.errorNetwork),
                             ),
                           );
                         }
@@ -169,17 +170,17 @@ class _VideoPageState extends State<VideoPage> {
                                 CircleAvatar(child: Text('${video.index + 1}')),
                             title: Text(video.fileName),
                             subtitle: _playingIndex == video.index
-                                ? const Text('正在播放')
+                                ? Text(context.l10n.devicePlaying)
                                 : null,
                             trailing: Wrap(
                               children: [
                                 IconButton(
                                   onPressed: () => _play(video),
-                                  tooltip: '播放',
-                                  icon: const Icon(Icons.play_arrow),
+                                  tooltip: context.l10n.devicePlay,
+                                  icon: Icon(Icons.play_arrow),
                                 ),
                                 PopupMenuButton<String>(
-                                  tooltip: '更多操作',
+                                  tooltip: context.l10n.deviceMore,
                                   onSelected: (value) {
                                     if (value == 'delete') _delete(video);
                                   },
@@ -192,8 +193,8 @@ class _VideoPageState extends State<VideoPage> {
                                               color: Theme.of(context)
                                                   .colorScheme
                                                   .error),
-                                          const SizedBox(width: 10),
-                                          Text('从设备永久删除',
+                                          SizedBox(width: 10),
+                                          Text(context.l10n.deviceDeleteFrom,
                                               style: TextStyle(
                                                   color: Theme.of(context)
                                                       .colorScheme

@@ -1,3 +1,4 @@
+import 'package:hildors_cockpit/src/config/launch_config.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hildors_cockpit/src/experience/experience_pack_manifest.dart';
@@ -27,7 +28,8 @@ class _OfflineProjection implements ProjectionService {
 }
 
 void main() {
-  testWidgets('discovery keeps customization entries above navigation, originals move to collection',
+  testWidgets(
+      'discovery keeps customization entries above navigation, originals move to collection',
       (tester) async {
     tester.view.physicalSize = const Size(390, 844);
     tester.view.devicePixelRatio = 1;
@@ -40,16 +42,25 @@ void main() {
     )));
     await tester.pumpAndSettle();
     expect(find.text('原创角色馆'), findsNothing);
-    for (final title in ['专属定制', '角色许愿', '创作者中心']) {
+    expect(
+        find.text('专属定制'), LaunchConfig.usFree ? findsNothing : findsOneWidget);
+    expect(
+        find.text('角色许愿'), LaunchConfig.usFree ? findsNothing : findsOneWidget);
+    for (final title in [
+      if (!LaunchConfig.usFree) ...['专属定制', '角色许愿'],
+      '创作者中心'
+    ]) {
       expect(find.text(title).hitTestable(), findsOneWidget);
       expect(tester.getBottomLeft(find.text(title)).dy, lessThan(756));
     }
-    final primary =
-        find.ancestor(of: find.text('专属定制'), matching: find.byType(InkWell));
-    final secondary =
-        find.ancestor(of: find.text('角色许愿'), matching: find.byType(InkWell));
-    expect(tester.getSize(primary).height,
-        greaterThan(tester.getSize(secondary).height * 2));
+    if (!LaunchConfig.usFree) {
+      final primary =
+          find.ancestor(of: find.text('专属定制'), matching: find.byType(InkWell));
+      final secondary =
+          find.ancestor(of: find.text('角色许愿'), matching: find.byType(InkWell));
+      expect(tester.getSize(primary).height,
+          greaterThan(tester.getSize(secondary).height * 2));
+    }
     expect(tester.takeException(), isNull);
   });
 
@@ -73,6 +84,13 @@ void main() {
         home: ExplorePage(projection: _OfflineProjection()),
       ));
       await tester.pumpAndSettle();
+      if (LaunchConfig.usFree && entry.$2 != CreatorHubPage) {
+        expect(find.text(entry.$1), findsNothing);
+        expect(find.byType(entry.$2), findsNothing);
+        expect(find.text('创作者中心'), findsOneWidget);
+        expect(tester.takeException(), isNull);
+        return;
+      }
       await tester.scrollUntilVisible(find.text(entry.$1), 220,
           scrollable: find.byType(Scrollable).first);
       await tester.pumpAndSettle();

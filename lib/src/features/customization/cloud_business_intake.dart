@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
+import 'package:flutter/foundation.dart';
 
 import 'package:path_provider/path_provider.dart';
 
@@ -15,9 +16,22 @@ class CloudSessionRecoveryRequired extends HttpException {
   const CloudSessionRecoveryRequired(super.message);
 }
 
+/// Stable public error codes; server exception text is never rendered in UI.
+class CloudApiException extends HttpException {
+  const CloudApiException(this.code) : super(code);
+  final String code;
+}
+
+typedef CloudEmailRequest = Future<CloudBusinessResponse> Function(
+    String method, String path,
+    {Map<String, dynamic>? document, String? token});
+
 class CloudBusinessIntake {
-  CloudBusinessIntake({String? baseUrl, File? sessionFile})
+  static final identityChanges = ValueNotifier<int>(0);
+  CloudBusinessIntake(
+      {String? baseUrl, File? sessionFile, CloudEmailRequest? emailRequest})
       : _configuredBaseUrl = baseUrl ?? _baseUrl,
+        _emailRequest = emailRequest,
         _sessionFile = sessionFile;
 
   static final CloudBusinessIntake instance = CloudBusinessIntake();
@@ -25,6 +39,225 @@ class CloudBusinessIntake {
   static const _tokenFileName = 'cloud_business_session.json';
   final String _configuredBaseUrl;
   final File? _sessionFile;
+  final CloudEmailRequest? _emailRequest;
+  int _identityRevision = 0;
+  int get identityRevision => _identityRevision;
+
+  Future<CloudBusinessResponse> _emailHttp(String method, String path,
+      {Map<String, dynamic>? document, String? token}) async {
+    if (_emailRequest != null) {
+      return _emailRequest(method, path, document: document, token: token);
+    }
+    final base = _baseUri;
+    if (base == null) throw const HttpException('尚未配置云端服务');
+    final client = HttpClient()..connectionTimeout = const Duration(seconds: 8);
+    try {
+      return await (() async {
+        final request = await client.openUrl(method, base.resolve(path));
+        request.followRedirects = false;
+        if (token != null) {
+          request.headers.set(HttpHeaders.authorizationHeader, 'Bearer $token');
+        }
+        if (document != null) {
+          request.headers.contentType = ContentType.json;
+          request.write(jsonEncode(document));
+        }
+        final response = await request.close();
+        return CloudBusinessResponse(
+            response.statusCode, await _readJson(response));
+      })()
+          .timeout(const Duration(seconds: 20));
+    } finally {
+      client.close(force: true);
+    }
+  }
+
+  Map<String, dynamic> _emailResult(CloudBusinessResponse response) {
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw CloudApiException(switch (response.statusCode) {
+        503 => 'EMAIL_DISABLED',
+        429 => 'RATE_LIMITED',
+        400 || 401 || 410 => 'EMAIL_CODE_INVALID',
+        _ => 'SERVICE_UNAVAILABLE',
+      });
+    }
+    return response.body;
+  }
+
+  Future<Map<String, dynamic>> emailConfig() async {
+    final response = await _emailHttp('GET', '/v1/email-auth/config');
+    // Older deployments retain their existing submission behavior.
+    if (response.statusCode == 404) {
+      return {'enabled': false, 'requireOrderEmail': false};
+    }
+    final value = _emailResult(response);
+    if (value['enabled'] is! bool || value['requireOrderEmail'] is! bool) {
+      throw const FormatException('邮箱服务配置无效');
+    }
+    return value;
+  }
+
+  Future<String?> _optionalEmailToken() async {
+    try {
+      final value = await _storedSession();
+      final expiry = value?['expiresAt'];
+      if (value != null &&
+          (value['origin'] == null || value['origin'] == _baseUri?.origin) &&
+          (expiry == null ||
+              (expiry is num &&
+                  expiry > DateTime.now().millisecondsSinceEpoch))) {
+        return value['token'] as String;
+      }
+    } on CloudSessionRecoveryRequired {
+      /* Email login can recover a damaged local session. */
+    }
+    return null;
+  }
+
+  Future<Map<String, dynamic>> startEmailSignIn(String email) =>
+      _withSessionLock(() async {
+        final value = _emailResult(await _emailHttp(
+            'POST', '/v1/email-auth/start',
+            document: {'email': email.trim().toLowerCase()},
+            token: await _optionalEmailToken()));
+        if (value['challengeId'] is! String ||
+            (value['challengeId'] as String).isEmpty ||
+            value['expiresIn'] is! num ||
+            value['resendAfter'] is! num) {
+          throw const FormatException('验证码响应无效');
+        }
+        return value;
+      });
+
+  Future<void> verifyEmailSignIn(String challengeId, String code) =>
+      _withSessionLock(() async {
+        Map<String, dynamic>? previous;
+        try {
+          previous = await _storedSession();
+        } on CloudSessionRecoveryRequired {/* Recover using email. */}
+        final value = _emailResult(await _emailHttp(
+            'POST', '/v1/email-auth/verify',
+            document: {'challengeId': challengeId, 'code': code.trim()},
+            token: await _optionalEmailToken()));
+        if (!_validToken(value['token']) ||
+            !_validToken(value['refreshToken']) ||
+            !_validAccountId(value['userId']) ||
+            value['emailVerified'] != true ||
+            value['email'] is! String ||
+            value['expiresIn'] is! num ||
+            (value['expiresIn'] as num) <= 0) {
+          throw const FormatException('邮箱登录响应无效');
+        }
+        await _saveSession({
+          ...value,
+          'origin': _baseUri!.origin,
+          'accountId': value['userId'],
+          'expiresAt': DateTime.now().millisecondsSinceEpoch +
+              ((value['expiresIn'] as num) * 1000).toInt()
+        });
+        if (previous?['origin'] != _baseUri!.origin ||
+            previous?['accountId'] != value['userId']) {
+          _identityRevision++;
+          identityChanges.value++;
+        }
+      });
+
+  Future<bool> hasVerifiedEmail() async {
+    final token = await _withSessionLock(() async {
+      final active = await _optionalEmailToken();
+      if (active != null) return active;
+      Map<String, dynamic>? saved;
+      try {
+        saved = await _storedSession();
+      } on CloudSessionRecoveryRequired {
+        return null;
+      }
+      final base = _baseUri;
+      if (base == null ||
+          saved == null ||
+          saved['refreshToken'] == null ||
+          (saved['origin'] != null && saved['origin'] != base.origin)) {
+        return null;
+      }
+      final client = HttpClient()
+        ..connectionTimeout = const Duration(seconds: 8);
+      try {
+        // The stored session is checked under the mutation lock: never mint a guest here.
+        return await _resolveSession(client, base)
+            .timeout(const Duration(seconds: 20));
+      } on CloudSessionRecoveryRequired {
+        return null;
+      } finally {
+        client.close(force: true);
+      }
+    });
+    if (token == null) return false;
+    final response = await _emailHttp('GET', '/v1/me/account', token: token);
+    if (response.statusCode == 401) return false;
+    return _emailResult(response)['emailVerified'] == true;
+  }
+
+  /// Local account identity only; never creates an anonymous account to inspect it.
+  Future<({String? email, bool signedIn, bool verified})> accountSummary() =>
+      _withSessionLock(() async {
+        final saved = await _storedSession();
+        return (
+          email: saved?['email'] as String?,
+          signedIn: saved != null,
+          verified: saved?['emailVerified'] == true
+        );
+      });
+
+  /// Existing server endpoint invalidates every access/refresh session for this account.
+  /// Keep local credentials on failure so the user can retry revocation.
+  Future<void> signOutAllDevices() => _withSessionLock(() async {
+        final saved = await _storedSession();
+        if (saved == null) return;
+        if (saved['origin'] != null && saved['origin'] != _baseUri?.origin) {
+          throw const CloudApiException('SESSION_EXPIRED');
+        }
+        var token = saved['token'] as String;
+        var response =
+            await _emailHttp('DELETE', '/v1/me/session', token: token);
+        if (response.statusCode == 401 && saved['refreshToken'] is String) {
+          final renewed = await _emailHttp('POST', '/v1/session-refresh',
+              document: {'refreshToken': saved['refreshToken']});
+          if (renewed.statusCode == 200 &&
+              _validToken(renewed.body['token']) &&
+              _validToken(renewed.body['refreshToken']) &&
+              renewed.body['expiresIn'] is num &&
+              (renewed.body['expiresIn'] as num) > 0) {
+            await _saveSession({
+              ...saved,
+              ...renewed.body,
+              'origin': _baseUri!.origin,
+              'expiresAt': DateTime.now().millisecondsSinceEpoch +
+                  ((renewed.body['expiresIn'] as num) * 1000).toInt()
+            });
+            token = renewed.body['token'] as String;
+            response =
+                await _emailHttp('DELETE', '/v1/me/session', token: token);
+          } else if (renewed.statusCode != 401) {
+            throw const CloudApiException('SERVICE_UNAVAILABLE');
+          }
+        }
+        if (response.statusCode == 401) {
+          throw const CloudApiException('SESSION_EXPIRED');
+        }
+        if (response.statusCode != 200) {
+          throw const CloudApiException('SERVICE_UNAVAILABLE');
+        }
+        if (response.statusCode == 200 && response.body['signedOut'] != true) {
+          throw const CloudApiException('SERVICE_UNAVAILABLE');
+        }
+        final file = await _tokenFile();
+        if (await file.exists()) await file.delete();
+        final pending = File('${file.path}.pending');
+        if (await pending.exists()) await pending.delete();
+        _identityRevision++;
+        identityChanges.value++;
+      });
+
   Future<String>? _sessionFlight;
   Future<void> _sessionMutation = Future<void>.value();
 
@@ -318,13 +551,22 @@ class CloudBusinessIntake {
       String? contentType}) async {
     final baseUri = _baseUri;
     if (baseUri == null) throw const HttpException('尚未配置云端服务');
+    final identity = identityRevision;
+    void checkIdentity() {
+      if (identity != identityRevision) {
+        throw const CloudSessionRecoveryRequired('登录账户已变更，请刷新订单后重试');
+      }
+    }
+
     final client = HttpClient()
       ..connectionTimeout = const Duration(seconds: 10);
     try {
       return await (() async {
         for (var attempt = 0; attempt < 2; attempt++) {
           final token = await _session(client, baseUri);
+          checkIdentity();
           final request = await client.openUrl(method, baseUri.resolve(path));
+          checkIdentity();
           request.followRedirects = false;
           request.headers.set(HttpHeaders.authorizationHeader, 'Bearer $token');
           if (bytes != null) {
@@ -343,7 +585,9 @@ class CloudBusinessIntake {
             result.add(chunk);
           }
           if (response.statusCode == 401 && attempt == 0) {
+            checkIdentity();
             await _session(client, baseUri, rejectedToken: token);
+            checkIdentity();
             continue;
           }
           if (response.statusCode < 200 || response.statusCode >= 300) {
@@ -388,13 +632,23 @@ class CloudBusinessIntake {
   }) async {
     final baseUri = _baseUri;
     if (baseUri == null) throw const HttpException('尚未配置云端服务');
+    final identity = identityRevision;
+    void checkIdentity() {
+      if (identity != identityRevision) {
+        throw const CloudSessionRecoveryRequired('ACCOUNT_CHANGED');
+      }
+    }
+
     final client = HttpClient()
       ..connectionTimeout = const Duration(seconds: 10);
     try {
       return await (() async {
         for (var attempt = 0; attempt < 2; attempt++) {
+          checkIdentity();
           final token = await _session(client, baseUri);
+          checkIdentity();
           final request = await client.openUrl(method, baseUri.resolve(path));
+          checkIdentity();
           request.followRedirects = false;
           request.headers.set(HttpHeaders.authorizationHeader, 'Bearer $token');
           if (ifMatch != null) {
@@ -409,8 +663,10 @@ class CloudBusinessIntake {
             request.headers.contentType = ContentType.json;
             request.write(jsonEncode(document));
           }
+          checkIdentity();
           final response = await request.close();
           final value = await _readJson(response, maxBytes: 4 * 1024 * 1024);
+          checkIdentity();
           if (response.statusCode == 401 && attempt == 0) {
             await _session(client, baseUri, rejectedToken: token);
             continue;

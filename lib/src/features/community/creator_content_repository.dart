@@ -5,11 +5,14 @@ class CreatorContentTag {
     required this.id,
     required this.name,
     required this.active,
+    this.translations = const {},
   });
 
   final String id;
   final String name;
   final bool active;
+  final Map<String, String> translations;
+  String displayName(String language) => translations[language] ?? translations['en'] ?? name;
 
   factory CreatorContentTag.fromJson(Map<String, dynamic> value) {
     final id = value['id'];
@@ -22,7 +25,15 @@ class CreatorContentTag {
         active is! bool) {
       throw const FormatException('内容标签响应无效');
     }
-    return CreatorContentTag(id: id, name: name.trim(), active: active);
+    final labels = <String, String>{};
+    final translations = value['translations'];
+    for (final language in ['en', 'zh']) {
+      final entry = translations is Map ? translations[language] : null;
+      final label = entry is Map ? entry['name'] : null;
+      if (label is String && label.trim().isNotEmpty) labels[language] = label.trim();
+    }
+    labels.putIfAbsent('zh', () => name.trim());
+    return CreatorContentTag(id: id, name: name.trim(), active: active, translations: labels);
   }
 }
 
@@ -41,12 +52,16 @@ class CreatorContentClip {
     required this.title,
     required this.hasMedia,
     required this.inspectionStatus,
+    this.amountMinor = 0,
+    this.mediaId,
   });
 
   final String id;
   final String title;
   final bool hasMedia;
   final String? inspectionStatus;
+  final int amountMinor;
+  final String? mediaId;
 
   bool get inspectionPassed => inspectionStatus == 'checked';
 
@@ -66,6 +81,10 @@ class CreatorContentClip {
       title: title,
       hasMedia: mediaMap != null,
       inspectionStatus: inspectionMap?['status'] as String?,
+      mediaId: mediaMap?['id'] as String?,
+      amountMinor: value['pricing'] is Map && value['pricing']['mode'] == 'paid'
+          ? (value['pricing']['amountMinor'] as int? ?? 0)
+          : 0,
     );
   }
 }
@@ -165,11 +184,26 @@ abstract interface class CreatorContentTransport {
   });
 }
 
-class CloudCreatorContentTransport implements CreatorContentTransport {
+abstract interface class CreatorMediaTransport {
+  int get identityRevision;
+  Future<({Uri baseUri, String token})> mediaIdentity();
+}
+
+class CloudCreatorContentTransport
+    implements CreatorContentTransport, CreatorMediaTransport {
   CloudCreatorContentTransport([CloudBusinessIntake? intake])
       : intake = intake ?? CloudBusinessIntake.instance;
 
   final CloudBusinessIntake intake;
+
+  @override
+  int get identityRevision => intake.identityRevision;
+
+  @override
+  Future<({Uri baseUri, String token})> mediaIdentity() async {
+    final identity = await intake.downloadIdentity();
+    return (baseUri: intake.baseUri!, token: identity.token);
+  }
 
   @override
   Future<CreatorContentResponse> request({
@@ -239,10 +273,122 @@ abstract interface class CreatorContentRepository {
   Future<CreatorContent> submit(CreatorContent item);
 }
 
-class RemoteCreatorContentRepository implements CreatorContentRepository {
-  const RemoteCreatorContentRepository(this.transport);
+class CreatorContentCapabilities {
+  const CreatorContentCapabilities(
+      {required this.canUpload, required this.canSetPaid, required this.tier});
+  final bool canUpload;
+  final bool canSetPaid;
+  final String tier;
+}
+
+abstract interface class CreatorContentPricingRepository {
+  Future<CreatorContentCapabilities> loadCapabilities();
+  Future<CreatorContent> updatePricing(CreatorContent item,
+      {required String clipId, required int amountMinor});
+}
+
+class CreatorContentMediaAccess {
+  const CreatorContentMediaAccess(
+      {required this.thumbnail, required this.preview, required this.headers});
+  final Uri thumbnail;
+  final Uri preview;
+  final Map<String, String> headers;
+}
+
+abstract interface class CreatorContentMediaRepository {
+  Future<CreatorContentMediaAccess> mediaAccess(
+      CreatorContent item, CreatorContentClip clip,
+      {bool refreshIdentity = false});
+}
+
+class RemoteCreatorContentRepository
+    implements
+        CreatorContentRepository,
+        CreatorContentPricingRepository,
+        CreatorContentMediaRepository {
+  RemoteCreatorContentRepository(this.transport);
 
   final CreatorContentTransport transport;
+  Future<({Uri baseUri, String token})>? _mediaIdentity;
+  int? _mediaRevision;
+  DateTime? _mediaValidUntil;
+
+  @override
+  Future<CreatorContentMediaAccess> mediaAccess(
+      CreatorContent item, CreatorContentClip clip,
+      {bool refreshIdentity = false}) async {
+    if (transport is! CreatorMediaTransport || !clip.hasMedia) {
+      throw const CreatorContentException(message: '视频尚未上传或预览服务不可用');
+    }
+    final provider = transport as CreatorMediaTransport;
+    final revision = provider.identityRevision;
+    if (refreshIdentity ||
+        _mediaIdentity == null ||
+        _mediaRevision != revision ||
+        DateTime.now().isAfter(_mediaValidUntil ?? DateTime(2000))) {
+      _mediaRevision = revision;
+      _mediaValidUntil = DateTime.now().add(const Duration(seconds: 30));
+      _mediaIdentity = provider.mediaIdentity();
+    }
+    final request = _mediaIdentity!;
+    try {
+      final identity = await request;
+      if (provider.identityRevision != revision) {
+        throw const CreatorContentException(message: '账号已切换，请刷新投稿');
+      }
+      final path =
+          '/v1/me/content/${Uri.encodeComponent(item.id)}/clips/${Uri.encodeComponent(clip.id)}';
+      final version = Uri.encodeComponent(clip.mediaId ?? '${item.version}');
+      return CreatorContentMediaAccess(
+        thumbnail: identity.baseUri.resolve('$path/thumbnail?v=$version'),
+        preview: identity.baseUri.resolve('$path/preview?v=$version'),
+        headers: {'Authorization': 'Bearer ${identity.token}'},
+      );
+    } catch (_) {
+      if (identical(_mediaIdentity, request)) _mediaIdentity = null;
+      rethrow;
+    }
+  }
+
+  @override
+  Future<CreatorContentCapabilities> loadCapabilities() async {
+    final result =
+        await _request(method: 'GET', path: '/v1/me/content-capabilities');
+    final tier = result['tier'];
+    if (result['canUpload'] is! bool ||
+        result['canSetPaid'] is! bool ||
+        tier is! String) {
+      throw const FormatException('创作者权限响应无效');
+    }
+    return CreatorContentCapabilities(
+      canUpload: result['canUpload'] == true,
+      canSetPaid: result['canUpload'] == true &&
+          result['canSetPaid'] == true &&
+          tier == 'partner',
+      tier: tier,
+    );
+  }
+
+  @override
+  Future<CreatorContent> updatePricing(CreatorContent item,
+      {required String clipId, required int amountMinor}) async {
+    if (amountMinor < 0 || amountMinor > 99999999) {
+      throw const FormatException('请输入有效的美元价格');
+    }
+    return CreatorContent.fromJson(await _request(
+      method: 'POST',
+      path:
+          '/v1/me/content/${Uri.encodeComponent(item.id)}/clips/${Uri.encodeComponent(clipId)}/pricing',
+      body: {
+        'version': item.version,
+        'pricing': {
+          'mode': amountMinor == 0 ? 'free' : 'paid',
+          'currency': 'USD',
+          'amountMinor': amountMinor,
+        }
+      },
+    ));
+  }
 
   @override
   Future<List<CreatorContentTag>> loadTags() async {
@@ -407,7 +553,9 @@ class RemoteCreatorContentRepository implements CreatorContentRepository {
   }
 
   String _messageFor(String? code, int statusCode) => switch (code) {
-        'CREATOR_APPROVAL_REQUIRED' => '仅已认证且具备投稿权限的创作者可以使用此功能',
+        'CREATOR_APPROVAL_REQUIRED' => '仅已认证且未停用的创作者可以投稿',
+        'CREATOR_PAID_NOT_ALLOWED' => '仅签约伙伴可设置付费视频，请改为免费后送审',
+        'INVALID_PRICING' => '价格无效，请输入最多两位小数的美元金额',
         'VERSION_OR_STATE_CONFLICT' => '投稿状态已经变化，请刷新后重试',
         'MEDIA_REVIEW_REQUIRED' => '请先上传并检查全部视频',
         'PACKAGE_COVER_REQUIRED' => '内容包需要先上传封面',
