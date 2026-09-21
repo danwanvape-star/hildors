@@ -39,5 +39,12 @@ void main() {
         find.text('角色许愿'), LaunchConfig.usFree ? findsNothing : findsOneWidget);
     expect(find.text('创作者中心'), findsOneWidget);
     expect(find.text('Holo Roulette'), findsNothing);
+    if (LaunchConfig.usFree) {
+      expect(find.text('商店支付尚未接通，目前不会收款。'), findsOneWidget);
+      await tester.tap(find.text('定制视频套餐'));
+      await tester.pumpAndSettle();
+      expect(find.text('定制视频套餐'), findsOneWidget);
+      expect(find.text('商店支付尚未接通，目前不会收款。'), findsOneWidget);
+    }
   });
 }

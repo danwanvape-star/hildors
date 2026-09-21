@@ -1,3 +1,4 @@
+import '../customization/custom_plans_page.dart';
 import 'package:flutter/material.dart';
 import '../../config/launch_config.dart';
 import 'package:hildors_cockpit/src/localization/localization.dart';
@@ -48,7 +49,9 @@ class _ExplorePageState extends State<ExplorePage> {
             SizedBox(height: 12),
             for (final block in snapshot.data ?? _fallbackLayout)
               if (block.visible &&
-                  (!LaunchConfig.usFree || block.type == 'creator_join')) ...[
+                  (!LaunchConfig.usFree ||
+                      block.type == 'creator_join' ||
+                      block.type == 'customization')) ...[
                 _layoutBlock(block),
                 SizedBox(height: 10),
               ],
@@ -57,7 +60,14 @@ class _ExplorePageState extends State<ExplorePage> {
       );
 
   Widget _layoutBlock(RemoteLayoutBlock block) => switch (block.type) {
-        'customization' => CustomizationDiscoveryCard(),
+        'customization' => LaunchConfig.usFree
+            ? _DiscoveryEntry(
+                title: context.l10n.customPlansTitle,
+                description: context.l10n.customUnavailable,
+                icon: Icons.movie_creation_outlined,
+                page: const CustomPlansPage(),
+              )
+            : const CustomizationDiscoveryCard(),
         'character_portal' => _DiscoveryEntry(
             title: context.l10n.coreWish,
             description: context.l10n.coreWishSubtitle,
