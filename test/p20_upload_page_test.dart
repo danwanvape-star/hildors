@@ -25,7 +25,7 @@ class ConnectedClient extends P20DeviceClient {
       lastUploadSnapshot = const P20UploadSnapshot(
           P20UploadPhase.awaitingCompletion, 100, 50, 100);
       onProgress?.call(50, 100);
-      throw TimeoutException('test timeout');
+      throw TimeoutException('P20 cmd=0x31 rx=0 valid=0 rejected=0');
     }
     uploadedName = String.fromCharCodes(name);
   }
@@ -94,6 +94,7 @@ void main() {
     });
     await tester.pumpAndSettle();
     expect(find.text('50%'), findsOneWidget);
+    expect(find.text('P20 cmd=0x31 rx=0 valid=0 rejected=0'), findsOneWidget);
     expect(
         tester
             .widget<LinearProgressIndicator>(

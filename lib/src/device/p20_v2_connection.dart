@@ -32,7 +32,6 @@ class P20DeviceUploadRejected implements Exception {
 class P20V2Connection {
   P20V2Connection(this._socket,
       {this.timeout = const Duration(seconds: 15), this.onClosed}) {
-    final decoder = P20V2Decoder();
     _responses = StreamIterator(_incoming.stream);
     // Keep reading while idle so a paused response iterator cannot conceal EOF.
     _subscription = _socket.listen((bytes) {
@@ -48,6 +47,7 @@ class P20V2Connection {
         onDone: () => unawaited(close()),
         onError: (Object _) => unawaited(close()));
   }
+  final decoder = P20V2Decoder();
   final Socket _socket;
   final Duration timeout;
   final void Function()? onClosed;
@@ -73,7 +73,12 @@ class P20V2Connection {
   }
 
   Future<P20Frame> _next(int command) async {
-    if (!await _responses.moveNext().timeout(timeout)) {
+    if (!await _responses.moveNext().timeout(timeout, onTimeout: () {
+      throw TimeoutException(
+          'P20 cmd=0x${command.toRadixString(16).padLeft(2, '0')} '
+          'rx=${decoder.receivedBytes} valid=${decoder.validFrames} rejected=${decoder.rejectedFrames}',
+          timeout);
+    })) {
       throw const SocketException('Device disconnected');
     }
     final frame = _responses.current;

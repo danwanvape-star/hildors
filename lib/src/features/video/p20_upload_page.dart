@@ -202,6 +202,10 @@ class _P20UploadPageState extends State<P20UploadPage> {
               if (_error != null && _stage != P20MediaStage.cancelled) ...[
                 const SizedBox(height: 16),
                 Text(text.failureStage(_lastActiveStage)),
+                if (_error is TimeoutException &&
+                    ((_error as TimeoutException).message ?? '')
+                        .startsWith('P20 cmd='))
+                  SelectableText((_error as TimeoutException).message!),
                 Text(finishedFile
                     ? text.refreshFailed
                     : _error is FormatException &&

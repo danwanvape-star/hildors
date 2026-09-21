@@ -53,9 +53,11 @@ class P20V2Protocol {
 
 class P20V2Decoder {
   final List<int> _buffer = [];
+  int receivedBytes = 0, validFrames = 0, rejectedFrames = 0;
   void reset() => _buffer.clear();
 
   List<P20Frame> add(List<int> bytes) {
+    receivedBytes += bytes.length;
     _buffer.addAll(bytes);
     final result = <P20Frame>[];
     while (_buffer.isNotEmpty) {
@@ -82,9 +84,11 @@ class P20V2Decoder {
               P20V2Protocol.checksum(_buffer.sublist(1, end - 2))) {
         // The complete frame boundary is known. Corrupt payload bytes must not
         // be reinterpreted as standalone replies (protocol section 2.2).
+        rejectedFrames++;
         _buffer.removeRange(0, end);
         continue;
       }
+      validFrames++;
       result.add(P20Frame(
           command: _buffer[5],
           data: Uint8List.fromList(_buffer.sublist(6, end - 2))));
