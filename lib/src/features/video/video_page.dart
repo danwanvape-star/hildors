@@ -29,6 +29,7 @@ class _VideoPageState extends State<VideoPage> {
   @override
   void initState() {
     super.initState();
+    _connection = widget.client.connectionState;
     _connectionSubscription = widget.client.connectionStates.listen((value) {
       if (mounted) setState(() => _connection = value);
     });
@@ -46,7 +47,8 @@ class _VideoPageState extends State<VideoPage> {
       if (mounted) {
         setState(() {
           _videos = videos;
-          _playingIndex = current.playing ? current.index : null;
+          _playingIndex =
+              current.playing && current.listId == 0 ? current.index : null;
         });
       }
     } catch (error) {

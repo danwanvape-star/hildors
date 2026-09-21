@@ -13,6 +13,7 @@ enum P20Command {
   queryBaudRate(0x0A),
   setBaudRate(0x0B),
   queryStatus(0x0F),
+  switchPlaylist(0x10),
   queryDeviceSsid(0x21),
   setDeviceSsid(0x22),
   queryRouterWifi(0x23),

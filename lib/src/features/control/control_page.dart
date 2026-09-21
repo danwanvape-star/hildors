@@ -33,6 +33,9 @@ class _ControlPageState extends State<ControlPage> with WidgetsBindingObserver {
   String? _error;
   String? _bluetoothSpeakerName;
   bool _loadingBluetoothName = false;
+  bool _commandBusy = false;
+  int _connectionGeneration = 0;
+  bool? _playing;
 
   bool get _connected => _connection == DeviceConnectionState.connected;
 
@@ -44,11 +47,22 @@ class _ControlPageState extends State<ControlPage> with WidgetsBindingObserver {
     _client = widget.client ?? P20DeviceClient(modernProtocol: true);
     _session = P20CommandSession(_client);
     _connection = _client.connectionState;
-    if (_client.isConnected) unawaited(_refreshBluetoothName());
+    if (_client.isConnected) {
+      unawaited(_refreshBluetoothName());
+      unawaited(_runCommand(() async {}));
+    }
     _connectionSubscription = _client.connectionStates.listen((state) {
-      if (mounted) setState(() => _connection = state);
+      _connectionGeneration++;
+      if (mounted) {
+        setState(() {
+          _connection = state;
+          _playing = null;
+          _commandBusy = false;
+        });
+      }
       if (state == DeviceConnectionState.connected) {
         unawaited(_refreshBluetoothName());
+        unawaited(_runCommand(() async {}));
       }
     });
     _frameSubscription = _client.frames.listen((frame) {
@@ -70,7 +84,7 @@ class _ControlPageState extends State<ControlPage> with WidgetsBindingObserver {
         await _client.disconnect();
       } else {
         await _client.connect(host: _hostController.text.trim());
-        _client.queryStatus();
+        unawaited(_runCommand(() async {}));
       }
     } catch (error, stackTrace) {
       debugPrint('Control connection failed: $error');
@@ -91,10 +105,50 @@ class _ControlPageState extends State<ControlPage> with WidgetsBindingObserver {
     }
   }
 
+  Future<void> _runCommand(Future<void> Function() action) async {
+    if (!_connected || _commandBusy) return;
+    final generation = _connectionGeneration;
+    setState(() {
+      _commandBusy = true;
+      _error = null;
+    });
+    try {
+      await action();
+      if (!mounted || !_connected || generation != _connectionGeneration) {
+        return;
+      }
+      if (_client.modernProtocol) {
+        final status = await _session.queryDeviceStatus();
+        if (!mounted || !_connected || generation != _connectionGeneration) {
+          return;
+        }
+        final current = await _session.queryCurrentVideo();
+        if (mounted && _connected && generation == _connectionGeneration) {
+          setState(() {
+            _status = status;
+            _playing = current.playing;
+            _brightness = status.brightness?.toDouble() ?? _brightness;
+            _angle = status.angle?.toDouble() ?? _angle;
+          });
+        }
+      } else {
+        _client.queryStatus();
+      }
+    } catch (_) {
+      if (mounted && generation == _connectionGeneration) {
+        setState(() => _error = 'Device operation failed');
+      }
+    } finally {
+      if (mounted && generation == _connectionGeneration) {
+        setState(() => _commandBusy = false);
+      }
+    }
+  }
+
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed && _client.isConnected) {
-      _guarded(_client.queryStatus);
+      unawaited(_runCommand(() async {}));
     }
   }
 
@@ -102,7 +156,8 @@ class _ControlPageState extends State<ControlPage> with WidgetsBindingObserver {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        toolbarHeight: 56 * MediaQuery.textScalerOf(context).scale(1).clamp(1.0, 2.5),
+        toolbarHeight:
+            56 * MediaQuery.textScalerOf(context).scale(1).clamp(1.0, 2.5),
         title: Text(context.l10n.controlsControlTitle, maxLines: 2),
       ),
       body: SafeArea(
@@ -128,12 +183,17 @@ class _ControlPageState extends State<ControlPage> with WidgetsBindingObserver {
             _sliderCard(
               title: context.l10n.controlsBrightness,
               value: _brightness,
-              min: 1,
+              min: _client.modernProtocol ? 0 : 1,
               max: 100,
               suffix: '%',
               onChanged: (value) => setState(() => _brightness = value),
-              onChangeEnd: (value) =>
-                  _guarded(() => _client.setBrightness(value.round())),
+              onChangeEnd: (value) => unawaited(_runCommand(() async {
+                if (_client.modernProtocol) {
+                  await _session.setBrightness(value.round());
+                } else {
+                  _client.setBrightness(value.round());
+                }
+              })),
             ),
             SizedBox(height: 12),
             _sliderCard(
@@ -143,8 +203,13 @@ class _ControlPageState extends State<ControlPage> with WidgetsBindingObserver {
               max: 360,
               suffix: '°',
               onChanged: (value) => setState(() => _angle = value),
-              onChangeEnd: (value) =>
-                  _guarded(() => _client.setAngle(value.round())),
+              onChangeEnd: (value) => unawaited(_runCommand(() async {
+                if (_client.modernProtocol) {
+                  await _session.setAngle(value.round());
+                } else {
+                  _client.setAngle(value.round());
+                }
+              })),
             ),
           ],
         ),
@@ -174,7 +239,8 @@ class _ControlPageState extends State<ControlPage> with WidgetsBindingObserver {
         content: TextField(
           controller: controller,
           autofocus: true,
-          decoration: InputDecoration(labelText: context.l10n.controlsSpeakerName),
+          decoration:
+              InputDecoration(labelText: context.l10n.controlsSpeakerName),
         ),
         actions: [
           TextButton(
@@ -275,7 +341,8 @@ class _ControlPageState extends State<ControlPage> with WidgetsBindingObserver {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(context.l10n.controlsQuick, style: Theme.of(context).textTheme.titleLarge),
+              Text(context.l10n.controlsQuick,
+                  style: Theme.of(context).textTheme.titleLarge),
               SizedBox(height: 12),
               Wrap(
                 spacing: 10,
@@ -283,45 +350,73 @@ class _ControlPageState extends State<ControlPage> with WidgetsBindingObserver {
                 children: [
                   FilledButton.tonalIcon(
                     onPressed: _connected
-                        ? () => _guarded(() => _client.setPower(true))
+                        ? () => _guarded(() {
+                              _client.setPower(true);
+                              unawaited(_runCommand(() async {}));
+                            })
                         : null,
                     icon: Icon(Icons.power_settings_new),
                     label: Text(context.l10n.controlsPowerOn),
                   ),
                   FilledButton.tonalIcon(
                     onPressed: _connected
-                        ? () => _guarded(() => _client.setPower(false))
+                        ? () => _guarded(() {
+                              _client.setPower(false);
+                              unawaited(_runCommand(() async {}));
+                            })
                         : null,
                     icon: Icon(Icons.power_off),
                     label: Text(context.l10n.controlsPowerOff),
                   ),
                   IconButton.filledTonal(
-                    onPressed: _connected
-                        ? () => _guarded(_client.previousTrack)
+                    onPressed: _connected && !_commandBusy
+                        ? () => unawaited(_runCommand(() async {
+                              if (_client.modernProtocol) {
+                                await _session.changeTrack(2);
+                              } else {
+                                _client.previousTrack();
+                              }
+                            }))
                         : null,
                     tooltip: context.l10n.controlsPrevious,
                     icon: Icon(Icons.skip_previous),
                   ),
                   IconButton.filled(
-                    onPressed: _connected
-                        ? () => _guarded(() => _client.setPlaying(
-                              !(_status.playing ?? false),
-                            ))
+                    onPressed: _connected && !_commandBusy
+                        ? () => unawaited(_runCommand(() async {
+                              final playing =
+                                  !(_playing ?? _status.playing ?? false);
+                              if (_client.modernProtocol) {
+                                await _session.setPlaying(playing);
+                              } else {
+                                _client.setPlaying(playing);
+                              }
+                            }))
                         : null,
-                    tooltip: (_status.playing ?? false) ? context.l10n.controlsPause : context.l10n.controlsPlay,
-                    icon: Icon((_status.playing ?? false)
+                    tooltip: (_playing ?? _status.playing ?? false)
+                        ? context.l10n.controlsPause
+                        : context.l10n.controlsPlay,
+                    icon: Icon((_playing ?? _status.playing ?? false)
                         ? Icons.pause
                         : Icons.play_arrow),
                   ),
                   IconButton.filledTonal(
-                    onPressed:
-                        _connected ? () => _guarded(_client.nextTrack) : null,
+                    onPressed: _connected && !_commandBusy
+                        ? () => unawaited(_runCommand(() async {
+                              if (_client.modernProtocol) {
+                                await _session.changeTrack(3);
+                              } else {
+                                _client.nextTrack();
+                              }
+                            }))
+                        : null,
                     tooltip: context.l10n.controlsNext,
                     icon: Icon(Icons.skip_next),
                   ),
                   OutlinedButton.icon(
-                    onPressed:
-                        _connected ? () => _guarded(_client.queryStatus) : null,
+                    onPressed: _connected && !_commandBusy
+                        ? () => unawaited(_runCommand(() async {}))
+                        : null,
                     icon: Icon(Icons.refresh),
                     label: Text(context.l10n.controlsRefreshStatus),
                   ),
@@ -358,7 +453,7 @@ class _ControlPageState extends State<ControlPage> with WidgetsBindingObserver {
                 value: value.clamp(min, max).toDouble(),
                 min: min,
                 max: max,
-                onChanged: _connected ? onChanged : null,
+                onChanged: _connected && !_commandBusy ? onChanged : null,
                 onChangeEnd: onChangeEnd,
               ),
             ],

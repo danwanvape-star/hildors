@@ -12,6 +12,7 @@ class DeviceStatus {
   const DeviceStatus({
     this.poweredOn,
     this.playing,
+    this.playerStatus,
     this.brightness,
     this.angle,
     this.playMode,
@@ -21,6 +22,7 @@ class DeviceStatus {
 
   final bool? poweredOn;
   final bool? playing;
+  final int? playerStatus;
   final int? brightness;
   final int? angle;
   final int? playMode;
@@ -238,6 +240,15 @@ class P20DeviceClient {
         frame.data.length < (modernProtocol ? 8 : 7)) {
       return null;
     }
+    if (modernProtocol &&
+        (frame.data.length != 8 ||
+            frame.data[1] > 5 ||
+            frame.data[2] > 100 ||
+            frame.data[5] < 1 ||
+            frame.data[5] > 4 ||
+            frame.data[7] > 1)) {
+      return null;
+    }
     return DeviceStatus(
       poweredOn: frame.data[0] == 0x01,
       playing: frame.data[1] == 0x01,
@@ -246,6 +257,7 @@ class P20DeviceClient {
       playMode: frame.data[5],
       baudRate: frame.data[6],
       listId: modernProtocol ? frame.data[7] : null,
+      playerStatus: modernProtocol ? frame.data[1] : null,
     );
   }
 

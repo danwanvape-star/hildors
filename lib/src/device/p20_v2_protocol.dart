@@ -80,7 +80,9 @@ class P20V2Decoder {
       if (_buffer[end - 1] != 0x5a ||
           _buffer[end - 2] !=
               P20V2Protocol.checksum(_buffer.sublist(1, end - 2))) {
-        _buffer.removeAt(0);
+        // The complete frame boundary is known. Corrupt payload bytes must not
+        // be reinterpreted as standalone replies (protocol section 2.2).
+        _buffer.removeRange(0, end);
         continue;
       }
       result.add(P20Frame(

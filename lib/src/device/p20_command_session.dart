@@ -26,10 +26,15 @@ class P20VideoEntry {
 
 class P20CurrentVideo {
   const P20CurrentVideo(
-      {required this.index, required this.playing, this.listId = 0});
+      {required this.index,
+      required this.playing,
+      this.listId = 0,
+      int? playerStatus})
+      : playerStatus = playerStatus ?? (playing ? 1 : 2);
 
   final int index;
   final bool playing;
+  final int playerStatus;
   final int listId;
 }
 
@@ -84,6 +89,53 @@ class P20CommandSession {
     if (queue.isEmpty) _pending.remove(frame.command);
   }
 
+  Future<DeviceStatus> queryDeviceStatus() async {
+    final frame = await request(P20Command.queryStatus);
+    final status = client.parseStatus(frame);
+    if (status == null) throw const P20CommandException('设备状态应答不合法');
+    return status;
+  }
+
+  Future<void> setPlaying(bool playing) async {
+    final value = playing ? 1 : 2;
+    final frame = await request(P20Command.playback, [value]);
+    _requireSuccess(frame, resultIndex: 1);
+    if (frame.data[0] != value) throw const P20CommandException('播放应答不匹配');
+  }
+
+  Future<void> changeTrack(int mode) async {
+    RangeError.checkValueInInterval(mode, 1, 3, 'mode');
+    final frame = await request(P20Command.track, [mode]);
+    _requireSuccess(frame, resultIndex: 1);
+    if (frame.data[0] != mode) throw const P20CommandException('切曲应答不匹配');
+  }
+
+  Future<int> setBrightness(int value) async {
+    final clamped = value.clamp(client.modernProtocol ? 0 : 1, 100);
+    final frame = await request(P20Command.setBrightness, [clamped]);
+    _requireSuccess(frame, resultIndex: 1);
+    if (frame.data[0] > 100) throw const P20CommandException('亮度应答不合法');
+    return frame.data[0];
+  }
+
+  Future<int> setAngle(int value) async {
+    RangeError.checkValueInInterval(value, 0, 65535, 'angle');
+    final frame =
+        await request(P20Command.setAngle, P20Protocol.uint16BigEndian(value));
+    _requireSuccess(frame, resultIndex: 2);
+    final actual = (frame.data[0] << 8) | frame.data[1];
+    if (actual != value) throw const P20CommandException('角度应答不匹配');
+    return actual;
+  }
+
+  Future<void> switchPlaylist(int listId) async {
+    _validateList(listId);
+    if (!client.modernProtocol) throw const P20CommandException('旧协议不支持切换列表');
+    final frame = await request(P20Command.switchPlaylist, [listId]);
+    _requireSuccess(frame, resultIndex: 1);
+    if (frame.data[0] != listId) throw const P20CommandException('列表切换应答不匹配');
+  }
+
   Future<int> queryBrightness() async {
     final frame = await request(P20Command.queryBrightness);
     _requireLength(frame, 1);
@@ -109,6 +161,9 @@ class P20CommandSession {
   Future<void> setPlayMode(P20PlayMode mode) async {
     final frame = await request(P20Command.setPlayMode, [mode.index + 1]);
     _requireSuccess(frame, resultIndex: 1);
+    if (client.modernProtocol && frame.data[0] != mode.index + 1) {
+      throw const P20CommandException('播放模式应答不匹配');
+    }
   }
 
   Future<P20VideoEntry?> queryVideo(int index, {int listId = 0}) async {
@@ -160,11 +215,14 @@ class P20CommandSession {
   Future<P20CurrentVideo> queryCurrentVideo() async {
     final frame = await request(P20Command.queryCurrentVideo);
     if (client.modernProtocol) {
-      _requireLength(frame, 3);
+      if (frame.data.length != 3 || frame.data[0] > 1 || frame.data[2] > 5) {
+        throw const P20CommandException('播放状态应答不合法');
+      }
       return P20CurrentVideo(
           listId: frame.data[0],
           index: frame.data[1],
-          playing: frame.data[2] == 1);
+          playing: frame.data[2] == 1,
+          playerStatus: frame.data[2]);
     }
     _requireLength(frame, 2);
     return P20CurrentVideo(index: frame.data[0], playing: frame.data[1] == 1);
@@ -183,10 +241,13 @@ class P20CommandSession {
   }
 
   Future<void> deleteAllVideos({int listId = 0}) async {
-    _validateList(listId);
+    if (!(client.modernProtocol && listId == 0xff)) _validateList(listId);
     final frame = await request(
         P20Command.deleteAllVideos, [client.modernProtocol ? listId : 0xFF]);
     _requireSuccess(frame, resultIndex: 1);
+    if (client.modernProtocol && frame.data[0] != listId) {
+      throw const P20CommandException('删除列表应答不匹配');
+    }
   }
 
   Future<void> reorderVideos({
@@ -250,7 +311,10 @@ class P20CommandSession {
     final frame = await request(P20Command.queryVersion);
     var offset = 0;
     final versions = <String>[];
-    for (var i = 0; i < 3 && offset < frame.data.length; i++) {
+    for (var i = 0; i < 3; i++) {
+      if (offset >= frame.data.length) {
+        throw const P20CommandException('版本字段缺失');
+      }
       final length = frame.data[offset++];
       if (offset + length > frame.data.length) {
         throw const P20CommandException('版本信息长度不合法');
@@ -260,6 +324,9 @@ class P20CommandSession {
         allowMalformed: true,
       ));
       offset += length;
+    }
+    if (offset != frame.data.length) {
+      throw const P20CommandException('版本信息包含多余字段');
     }
     return versions.where((value) => value.isNotEmpty).join('\n');
   }
