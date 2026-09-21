@@ -15,6 +15,8 @@
 
 集成构建快照完整测试：483 项通过，2 项依赖后台环境的测试跳过。
 
+Android APK 已构建并验证：`releases/hildors-p20-upload-0.1.53-54.apk`，约 209.1 MB，applicationId 为 `com.hildors.hildors_cockpit`，versionCode 54。使用与上版一致的开发测试签名，不是商店正式签名。SHA-256：`DD7D9380249DA5EBBDD8AC1650874E0BFF87B5C05A9A9DC4977DB2541BEBA9FF`。
+
 构建基于 `D:/HildorsBuilds/p20-upload-0.1.52-53`，只覆盖本次设备列表文件，保留该安装包已集成的内容和下载功能。新构建目录为 `D:/HildorsBuilds/p20-upload-0.1.53-54`。不改动其他任务未提交的后台及业务页面，不部署服务器。
 
 仍需真机验证：连接实际设备后 A/B 文件列表、播放、排序、四种播放方式、断开后清空，以及此前上传失败的现场复测。测试时退出厂家 App，避免多个客户端争用设备连接。未进行 iOS 构建或真机验证。
