@@ -14,10 +14,34 @@ class P20PolarMapper {
 
   P20PolarMapper() {
     for (var i = 0; i < angles; i++) {
-      final radians = i * 2 * math.pi / angles;
       for (var l = 0; l < leds; l++) {
-        _rows[i * leds + l] = 148.5 + (l + 0.5) * math.sin(radians);
-        _cols[i * leds + l] = 148.5 + (l + 0.5) * math.cos(radians);
+        // Preserve the vendor's evaluation order: equivalent trig expressions
+        // can cross a byte-truncation boundary during interpolation.
+        var degrees = i * 360.0 / angles;
+        final radius = l + 0.5;
+        double row, col;
+        if (degrees <= 90) {
+          final radians = degrees * math.pi / 180.0;
+          row = 149.5 + radius * math.sin(radians);
+          col = 149.5 + radius * math.cos(radians);
+        } else if (degrees <= 180) {
+          degrees -= 90;
+          final radians = degrees * math.pi / 180.0;
+          row = 149.5 + radius * math.cos(radians);
+          col = 149.5 - radius * math.sin(radians);
+        } else if (degrees <= 270) {
+          degrees -= 180;
+          final radians = degrees * math.pi / 180.0;
+          col = 149.5 - radius * math.cos(radians);
+          row = 149.5 - radius * math.sin(radians);
+        } else {
+          degrees -= 270;
+          final radians = degrees * math.pi / 180.0;
+          row = 149.5 - radius * math.cos(radians);
+          col = 149.5 + radius * math.sin(radians);
+        }
+        _rows[i * leds + l] = row - 1;
+        _cols[i * leds + l] = col - 1;
       }
     }
   }
