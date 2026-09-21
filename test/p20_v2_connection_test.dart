@@ -49,6 +49,8 @@ void main() {
       expect(received, 32768);
       expect(snapshot!.phase, P20UploadPhase.awaitingCompletion);
       expect(snapshot!.acknowledged, 32768);
+      expect((snapshot as dynamic).flushed, 32768);
+      expect(snapshot!.sent, 32768);
     } finally {
       await client.close();
       peer?.destroy();

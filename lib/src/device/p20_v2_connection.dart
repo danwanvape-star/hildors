@@ -7,9 +7,11 @@ enum P20UploadPhase { awaitingReady, streaming, awaitingCompletion, completed }
 
 /// Safe transfer metadata only: never filenames, file contents or credentials.
 class P20UploadSnapshot {
-  const P20UploadSnapshot(this.phase, this.sent, this.acknowledged, this.total);
+  const P20UploadSnapshot(this.phase, this.sent, this.acknowledged, this.total,
+      {this.flushed = 0});
   final P20UploadPhase phase;
-  final int sent, acknowledged, total;
+  // Local queue/flush are not proof of device receipt.
+  final int sent, acknowledged, total, flushed;
 }
 
 class P20DeviceUploadRejected implements Exception {
@@ -121,10 +123,12 @@ class P20V2Connection {
           final size = await input.length();
           final header = P20V2Protocol.uploadHeader(listId, size, gbkName);
           var sent = 0;
+          var flushed = 0;
           var acknowledged = 0;
           var phase = P20UploadPhase.awaitingReady;
           void report() =>
-              onState?.call(P20UploadSnapshot(phase, sent, acknowledged, size));
+              onState?.call(P20UploadSnapshot(phase, sent, acknowledged, size,
+                  flushed: flushed));
           report();
           onProgress?.call(0, size);
           _requestStartRx = decoder.receivedBytes;
@@ -142,7 +146,9 @@ class P20V2Connection {
                 throw const FileSystemException('Upload source changed');
               }
               sent += chunk.length;
+              report();
               await _write(chunk);
+              flushed = sent;
               report();
             }
             if (phase != P20UploadPhase.completed) {

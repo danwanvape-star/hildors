@@ -216,7 +216,14 @@ class _P20UploadPageState extends State<P20UploadPage> {
                 if ((_lastActiveStage == P20MediaStage.uploadingAudio ||
                         _lastActiveStage == P20MediaStage.uploadingVideo) &&
                     widget.client.lastUploadSnapshot != null)
-                  Text(text.transferDetails(widget.client.lastUploadSnapshot!)),
+                  Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(text.transferDetails(
+                            widget.client.lastUploadSnapshot!)),
+                        SelectableText(
+                            'TX queued=${widget.client.lastUploadSnapshot!.sent} flushed=${widget.client.lastUploadSnapshot!.flushed} ACK=${widget.client.lastUploadSnapshot!.acknowledged}'),
+                      ]),
               ],
               if (_flow?.audioUploaded == true && !finishedFile)
                 Text(text.partial),
