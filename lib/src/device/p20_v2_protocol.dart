@@ -54,6 +54,14 @@ class P20V2Protocol {
 class P20V2Decoder {
   final List<int> _buffer = [];
   int receivedBytes = 0, validFrames = 0, rejectedFrames = 0;
+  int? lastCommand;
+  int get pendingBytes => _buffer.length;
+  int? get pendingLength => _buffer.length < 5
+      ? null
+      : (_buffer[1] << 24) |
+          (_buffer[2] << 16) |
+          (_buffer[3] << 8) |
+          _buffer[4];
   void reset() => _buffer.clear();
 
   List<P20Frame> add(List<int> bytes) {
@@ -89,6 +97,7 @@ class P20V2Decoder {
         continue;
       }
       validFrames++;
+      lastCommand = _buffer[5];
       result.add(P20Frame(
           command: _buffer[5],
           data: Uint8List.fromList(_buffer.sublist(6, end - 2))));

@@ -56,6 +56,7 @@ class P20V2Connection {
   late final StreamIterator<P20Frame> _responses;
   Future<void> _tail = Future.value();
   bool _closed = false;
+  int _requestStartRx = 0;
 
   Future<T> _exclusive<T>(Future<T> Function() action) {
     final result = _tail.then((_) async {
@@ -76,7 +77,10 @@ class P20V2Connection {
     if (!await _responses.moveNext().timeout(timeout, onTimeout: () {
       throw TimeoutException(
           'P20 cmd=0x${command.toRadixString(16).padLeft(2, '0')} '
-          'rx=${decoder.receivedBytes} valid=${decoder.validFrames} rejected=${decoder.rejectedFrames}',
+          'rx=${decoder.receivedBytes} valid=${decoder.validFrames} rejected=${decoder.rejectedFrames} '
+          'last=${decoder.lastCommand == null ? "none" : "0x${decoder.lastCommand!.toRadixString(16).padLeft(2, '0')}"} '
+          'deltaRx=${decoder.receivedBytes - _requestStartRx} '
+          'pending=${decoder.pendingBytes} len=${decoder.pendingLength ?? -1}',
           timeout);
     })) {
       throw const SocketException('Device disconnected');
@@ -99,6 +103,7 @@ class P20V2Connection {
       throw ArgumentError('Use power or upload for this command');
     }
     return _exclusive(() async {
+      _requestStartRx = decoder.receivedBytes;
       await _write(P20V2Protocol.request(command, data));
       return _next(command);
     });
@@ -122,6 +127,7 @@ class P20V2Connection {
               onState?.call(P20UploadSnapshot(phase, sent, acknowledged, size));
           report();
           onProgress?.call(0, size);
+          _requestStartRx = decoder.receivedBytes;
           await _write(P20V2Protocol.request(0x31, header));
           _status(await _next(0x31), 0);
           phase = P20UploadPhase.streaming;
