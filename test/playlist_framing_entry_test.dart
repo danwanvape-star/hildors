@@ -11,6 +11,7 @@ import 'package:hildors_cockpit/src/features/video/device_playlist_draft.dart';
 import 'package:hildors_cockpit/src/features/video/fan_framing_page.dart';
 import 'package:hildors_cockpit/src/features/video/pending_playlist_store.dart';
 import 'package:hildors_cockpit/src/features/video/playlist_management_page.dart';
+import 'p20_live_playlist_test.dart' show LiveClient, LiveSession;
 // The native player is replaced at its platform boundary for widget tests.
 // ignore: depend_on_referenced_packages
 import 'package:video_player_platform_interface/video_player_platform_interface.dart';
@@ -189,11 +190,17 @@ void main() {
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
-    await pumpPlaylist(tester);
+    final client = LiveClient()..online = true;
+    final session = LiveSession(client);
+    addTearDown(session.dispose);
+    addTearDown(client.dispose);
+    await tester.pumpWidget(MaterialApp(
+        home: PlaylistManagementPage(client: client, session: session)));
+    await pumpUi(tester);
 
     final deviceTile = find.ancestor(
-      of: find.text('showcase_01.mp4'),
-      matching: find.byType(ListTile),
+      of: find.text('a.mp4'),
+      matching: find.byType(Card),
     );
     final adjust = find.descendant(
       of: deviceTile,

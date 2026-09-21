@@ -17,6 +17,18 @@ class TestClient extends P20DeviceClient {
 }
 
 void main() {
+  test('reorder rejects acknowledgement for another list', () async {
+    final client = TestClient()..reply = [0, 1];
+    final session = P20CommandSession(client);
+    try {
+      await expectLater(
+          session.reorderVideos(total: 2, from: 0, to: 1, listId: 1),
+          throwsA(isA<P20CommandException>()));
+    } finally {
+      await session.dispose();
+      await client.dispose();
+    }
+  });
   late TestClient client;
   late P20CommandSession session;
   setUp(() {

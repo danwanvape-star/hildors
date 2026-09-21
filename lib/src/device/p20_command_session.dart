@@ -199,6 +199,9 @@ class P20CommandSession {
     final frame = await request(P20Command.reorderVideos,
         [if (client.modernProtocol) listId, total, from, to]);
     _requireSuccess(frame, resultIndex: client.modernProtocol ? 1 : 0);
+    if (client.modernProtocol && frame.data[0] != listId) {
+      throw const P20CommandException('调序应答列表不匹配');
+    }
   }
 
   static void _validateList(int listId) =>

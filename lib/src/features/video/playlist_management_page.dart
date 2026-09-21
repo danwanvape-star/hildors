@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 
@@ -6,7 +5,7 @@ import '../../device/device_error_message.dart';
 import '../../device/p20_command_session.dart';
 import '../../device/p20_device_client.dart';
 import 'device_playlist_draft.dart';
-import 'playlist_store.dart';
+import 'p20_live_playlist.dart';
 import 'package:file_picker/file_picker.dart';
 import 'character_video_package.dart';
 import 'character_package_picker.dart';
@@ -37,13 +36,10 @@ class PlaylistManagementPage extends StatefulWidget {
 }
 
 class _PlaylistManagementPageState extends State<PlaylistManagementPage> {
-  StreamSubscription<DeviceConnectionState>? _subscription;
-  late DeviceConnectionState _connection;
-  late DevicePlaylistKind _kind;
-  var _loading = false;
-  List<P20VideoEntry> _deviceVideos = const [];
-  String? _error;
-  String? _playingFileName;
+  late final P20LivePlaylist _live;
+  DevicePlaylistKind get _kind => DevicePlaylistKind.values[_live.listId];
+  bool _connecting = false;
+  String? _connectionError;
   bool _pendingReady = false;
   bool _pendingLoadFailed = false;
   final _pending = <DevicePlaylistKind, Map<String, PendingVideo>>{
@@ -66,16 +62,8 @@ class _PlaylistManagementPageState extends State<PlaylistManagementPage> {
               ListTile(
                   title: const Text('从手机导入视频'),
                   onTap: () => Navigator.pop(context, 1)),
-              ListTile(
-                  title: const Text('从设备已有视频添加'),
-                  enabled: _connected,
-                  onTap: _connected ? () => Navigator.pop(context, 2) : null),
             ])));
     if (!mounted || choice == null) return;
-    if (choice == 2) {
-      await _showDeviceVideoPicker();
-      return;
-    }
     try {
       if (choice == 0) {
         final videos = await Navigator.of(context).push<
@@ -197,20 +185,11 @@ class _PlaylistManagementPageState extends State<PlaylistManagementPage> {
                                 ? P20MediaList.daily
                                 : P20MediaList.bluetooth)));
                 if (name == null || !mounted) return;
-                final draft =
-                    (kind == DevicePlaylistKind.startup ? _startup : _bluetooth)
-                        .add(name);
                 setState(() {
-                  if (kind == DevicePlaylistKind.startup) {
-                    _startup = draft;
-                  } else {
-                    _bluetooth = draft;
-                  }
                   _pending[kind]!.remove(key);
-                  _deviceVideos = const [];
                 });
-                await _saveList(draft);
                 await _savePending(kind);
+                await _live.refresh();
                 if (framingContext.mounted) Navigator.pop(framingContext);
               })));
     } catch (_) {
@@ -228,7 +207,7 @@ class _PlaylistManagementPageState extends State<PlaylistManagementPage> {
         builder: (context) => AlertDialog(
               title: const Text('需要原始视频'),
               content: const Text(
-                  '设备中的文件只有文件名，无法直接恢复原始画面。请从手机选择对应的原始视频，再调整画面。保存只记录取景参数，不会转码、上传或覆盖设备文件。'),
+                  '设备中的文件只有文件名，无法直接恢复原始画面。请从手机选择对应的原始视频，再调整画面。保存只记录取景参数；转码上传会新增设备文件，保留原有文件。'),
               actions: [
                 TextButton(
                     onPressed: () => Navigator.pop(context, false),
@@ -279,308 +258,171 @@ class _PlaylistManagementPageState extends State<PlaylistManagementPage> {
     await _savePending(kind);
   }
 
-  late var _startup = const DevicePlaylistDraft(
-    kind: DevicePlaylistKind.startup,
-    enabled: true,
-    loopMode: PlaylistLoopMode.listLoop,
-    videoNames: ['showcase_01.mp4', 'showcase_02.mp4'],
-  );
-  late var _bluetooth = const DevicePlaylistDraft(
-    kind: DevicePlaylistKind.bluetooth,
-    enabled: true,
-    loopMode: PlaylistLoopMode.listLoop,
-    videoNames: ['showcase_03.mp4', 'showcase_04.mp4'],
-  );
-
-  bool get _connected => _connection == DeviceConnectionState.connected;
-  DevicePlaylistDraft get _draft =>
-      _kind == DevicePlaylistKind.startup ? _startup : _bluetooth;
-
   @override
   void initState() {
     super.initState();
-    _kind = widget.initialKind;
-    _connection = widget.client.connectionState;
-    _restoreLists();
+    _live = P20LivePlaylist(widget.client, widget.session,
+        listId: widget.initialKind.index);
+    _live.addListener(_changed);
     _restorePending();
-    _subscription = widget.client.connectionStates.listen((value) {
-      if (mounted) setState(() => _connection = value);
-    });
   }
 
-  void _update(DevicePlaylistDraft value) {
+  void _changed() {
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _connect() async {
+    if (_connecting) return;
     setState(() {
-      if (_kind == DevicePlaylistKind.startup) {
-        _startup = value;
-      } else {
-        _bluetooth = value;
-      }
-    });
-    _saveList(value);
-  }
-
-  Future<void> _restoreLists() async {
-    try {
-      final startup = await PlaylistStore.load(_startup);
-      final bluetooth = await PlaylistStore.load(_bluetooth);
-      if (mounted) {
-        setState(() {
-          _startup = startup;
-          _bluetooth = bluetooth;
-        });
-      }
-    } catch (_) {
-      if (mounted) setState(() => _error = '本机列表读取失败，请重试');
-    }
-  }
-
-  Future<void> _saveList(DevicePlaylistDraft draft) async {
-    try {
-      await PlaylistStore.save(draft);
-    } catch (_) {
-      if (mounted) setState(() => _error = '本机列表保存失败，请重试');
-    }
-  }
-
-  Future<void> _readDeviceVideos() async {
-    if (!_connected || _loading) return;
-    final kind = _kind;
-    setState(() {
-      _loading = true;
-      _error = null;
+      _connecting = true;
+      _connectionError = null;
     });
     try {
-      final videos = await widget.session.queryVideos(listId: kind.index);
-      if (mounted && _kind == kind) setState(() => _deviceVideos = videos);
+      await widget.client.connect();
     } catch (error) {
       if (mounted) {
-        setState(() => _error = friendlyDeviceConnectionError(error));
+        setState(() => _connectionError = friendlyDeviceConnectionError(error));
       }
     } finally {
-      if (mounted) setState(() => _loading = false);
+      if (mounted) setState(() => _connecting = false);
     }
   }
 
-  Future<void> _showDeviceVideoPicker() async {
-    if (_deviceVideos.isEmpty) await _readDeviceVideos();
-    if (!mounted || _deviceVideos.isEmpty) return;
-    final available = _deviceVideos
-        .where((video) => !_draft.videoNames.contains(video.fileName))
-        .toList(growable: false);
-    await showModalBottomSheet<void>(
-      context: context,
-      showDragHandle: true,
-      builder: (context) => SafeArea(
-        child: ListView(
-          shrinkWrap: true,
-          padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
-          children: [
-            Text('从设备视频库添加', style: Theme.of(context).textTheme.titleLarge),
-            const SizedBox(height: 8),
-            if (available.isEmpty)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 28),
-                child: Center(child: Text('设备视频均已加入当前草案')),
-              ),
-            for (final video in available)
-              ListTile(
-                leading: const Icon(Icons.video_file_outlined),
-                title: Text(video.fileName),
-                trailing: const Icon(Icons.add_circle_outline),
-                onTap: () {
-                  _update(_draft.add(video.fileName));
-                  Navigator.pop(context);
-                },
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Future<void> _playOnDevice(String fileName) async {
-    final kind = _kind;
-    if (!_connected) {
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(const SnackBar(content: Text('请先连接设备后再播放')));
-      return;
-    }
-    if (_playingFileName != null) return;
-    setState(() => _playingFileName = fileName);
-    try {
-      final available = await widget.session.queryVideos(listId: kind.index);
-      if (!available.any((video) => video.fileName == fileName)) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('设备中没有此视频，请完成转码和上传后再播放')));
-        }
-        return;
-      }
-      await widget.session.playVideo(fileName, listId: kind.index);
-      if (!mounted) return;
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(SnackBar(content: Text('已发送到设备播放：$fileName')));
-    } catch (error) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(
-          SnackBar(content: Text(friendlyDeviceConnectionError(error))),
-        );
-    } finally {
-      if (mounted) setState(() => _playingFileName = null);
-    }
-  }
-
-  Future<void> _removeFromPlaylist(String fileName) async {
-    final kind = _kind;
-    final previous = _draft;
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('移出播放列表？'),
-        content: Text('“$fileName”只会从当前播放列表移除，不会删除手机或设备中的视频文件。'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('取消'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('移出列表'),
-          ),
-        ],
-      ),
-    );
-    if (confirmed != true || !mounted) return;
-    _update(previous.remove(fileName));
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(
-          content: Text('已将 $fileName 移出播放列表'),
-          action: SnackBarAction(
-            label: '撤销',
-            onPressed: () {
-              if (!mounted) return;
-              setState(() {
-                if (kind == DevicePlaylistKind.startup) {
-                  _startup = previous;
-                } else {
-                  _bluetooth = previous;
-                }
-              });
-              _saveList(previous);
-            },
-          ),
-        ),
-      );
-  }
-
+  String _modeName(P20PlayMode mode) => switch (mode) {
+        P20PlayMode.singleLoop => '单曲循环',
+        P20PlayMode.sequenceLoop => '顺序循环',
+        P20PlayMode.randomLoop => '随机循环',
+        P20PlayMode.singleOnce => '单次播放',
+      };
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(
-          title: const Text('设备播放列表'),
-          actions: [
-            IconButton(
-              tooltip: '读取设备视频',
-              onPressed: _connected && !_loading ? _readDeviceVideos : null,
-              icon: _loading
-                  ? const SizedBox.square(
-                      dimension: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.sync),
-            ),
-          ],
-        ),
+        appBar: AppBar(title: const Text('设备播放列表'), actions: [
+          IconButton(
+              tooltip: '刷新设备列表',
+              onPressed: _live.connected && !_live.loading && !_live.busy
+                  ? _live.refresh
+                  : null,
+              icon: const Icon(Icons.refresh)),
+        ]),
         body: ListView(
-          padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
-          children: [
-            SegmentedButton<DevicePlaylistKind>(
-              segments: const [
-                ButtonSegment(
-                  value: DevicePlaylistKind.startup,
-                  icon: Icon(Icons.power_settings_new),
-                  label: Text('开机播放'),
-                ),
-                ButtonSegment(
-                  value: DevicePlaylistKind.bluetooth,
-                  icon: Icon(Icons.bluetooth_audio),
-                  label: Text('蓝牙播放'),
-                ),
-              ],
-              selected: {_kind},
-              onSelectionChanged: (value) => setState(() {
-                _kind = value.single;
-                _deviceVideos = const [];
-                _error = null;
-              }),
-            ),
-            const SizedBox(height: 10),
-            _DeviceStatusBar(
-              connected: _connected,
-              videoCount: _deviceVideos.length,
-              error: _error,
-              onRead: _connected ? _readDeviceVideos : null,
-            ),
-            const SizedBox(height: 12),
-            Text(
-              _kind == DevicePlaylistKind.startup
-                  ? '设备开机后自动播放此列表'
-                  : '连接蓝牙后，硬件自动切换到此列表',
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
-            const SizedBox(height: 12),
-            DropdownButtonFormField<PlaylistLoopMode>(
-              key: ValueKey(_kind),
-              initialValue: _draft.loopMode,
-              decoration: const InputDecoration(
-                labelText: '循环方式',
-                border: OutlineInputBorder(),
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+            children: [
+              SegmentedButton<DevicePlaylistKind>(
+                segments: const [
+                  ButtonSegment(
+                      value: DevicePlaylistKind.startup, label: Text('A 日常播放')),
+                  ButtonSegment(
+                      value: DevicePlaylistKind.bluetooth,
+                      label: Text('B 蓝牙播放')),
+                ],
+                selected: {_kind},
+                onSelectionChanged: _live.busy
+                    ? null
+                    : (value) => _live.selectList(value.single.index),
               ),
-              items: const [
-                DropdownMenuItem(
-                  value: PlaylistLoopMode.listLoop,
-                  child: Text('列表循环'),
+              const SizedBox(height: 12),
+              if (!_live.connected) ...[
+                const Text('连接设备后显示机器内的播放列表'),
+                const Text('手机先连接产品 Wi-Fi，再点击连接设备。'),
+                FilledButton.icon(
+                    onPressed: _connecting ? null : _connect,
+                    icon: const Icon(Icons.wifi),
+                    label: Text(_connecting ? '连接中…' : '连接设备')),
+              ] else ...[
+                Text(_live.loading
+                    ? '正在读取设备列表…'
+                    : _live.loaded
+                        ? '设备已连接 · ${_live.videos.length} 个视频'
+                        : '设备列表读取失败'),
+                if (_live.loading || _live.busy)
+                  const LinearProgressIndicator(),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<P20PlayMode>(
+                  key:
+                      ValueKey('${_live.listId}:${_live.mode}:${_live.loaded}'),
+                  initialValue: _live.mode,
+                  isExpanded: true,
+                  decoration: const InputDecoration(
+                      labelText: '设备播放方式（A/B 共用）',
+                      border: OutlineInputBorder()),
+                  items: [
+                    for (final mode in P20PlayMode.values)
+                      DropdownMenuItem(
+                          value: mode, child: Text(_modeName(mode)))
+                  ],
+                  onChanged: _live.canEdit
+                      ? (value) {
+                          if (value != null) _live.setMode(value);
+                        }
+                      : null,
                 ),
-                DropdownMenuItem(
-                  value: PlaylistLoopMode.singleLoop,
-                  child: Text('单曲循环'),
-                ),
-                DropdownMenuItem(
-                  value: PlaylistLoopMode.playOnce,
-                  child: Text('播放一次'),
-                ),
+                const SizedBox(height: 12),
+                const Text('播放顺序来自设备。上移或下移后立即下发，并重新读取确认。'),
+                if (_live.loaded && _live.videos.isEmpty)
+                  const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 24),
+                      child: Text('设备当前列表为空')),
+                for (var index = 0; index < _live.videos.length; index++)
+                  Card(
+                      child: Padding(
+                          padding: const EdgeInsets.all(12),
+                          child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('${index + 1}',
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .labelMedium),
+                                Text(_live.videos[index].fileName,
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .titleMedium),
+                                Wrap(spacing: 8, children: [
+                                  OutlinedButton.icon(
+                                      onPressed: _live.canEdit
+                                          ? () => _live.play(
+                                              _live.videos[index].fileName)
+                                          : null,
+                                      icon: const Icon(Icons.play_arrow),
+                                      label: const Text('播放')),
+                                  OutlinedButton.icon(
+                                      onPressed: _live.canEdit && index > 0
+                                          ? () => _live.move(index, index - 1)
+                                          : null,
+                                      icon: const Icon(Icons.arrow_upward),
+                                      label: const Text('上移')),
+                                  OutlinedButton.icon(
+                                      onPressed: _live.canEdit &&
+                                              index + 1 < _live.videos.length
+                                          ? () => _live.move(index, index + 1)
+                                          : null,
+                                      icon: const Icon(Icons.arrow_downward),
+                                      label: const Text('下移')),
+                                  TextButton.icon(
+                                      onPressed: _live.canEdit
+                                          ? () => _adjustDeviceVideo(
+                                              _live.videos[index].fileName)
+                                          : null,
+                                      icon: const Icon(Icons.crop),
+                                      label: const Text('调整画面')),
+                                ]),
+                              ]))),
               ],
-              onChanged: (value) {
-                if (value != null) _update(_draft.copyWith(loopMode: value));
-              },
-            ),
-            const SizedBox(height: 22),
-            Row(
-              children: [
-                Expanded(
-                  child: Text('播放顺序',
-                      style: Theme.of(context).textTheme.titleLarge),
-                ),
-                Text('${_draft.videoNames.length} 个视频'),
+              if (_live.error != null) Text(_live.error!),
+              if (_connectionError != null) Text(_connectionError!),
+              const SizedBox(height: 20),
+              Row(children: [
+                const Expanded(child: Text('手机待上传视频')),
                 IconButton(
-                  tooltip: '添加视频',
-                  onPressed: _pendingReady ? _addVideo : null,
-                  icon: const Icon(Icons.playlist_add),
-                ),
-              ],
-            ),
-            if (_pendingLoadFailed)
-              TextButton(
-                  onPressed: _restorePending,
-                  child: const Text('待处理列表读取失败，点击重试')),
-            if (_pending[_kind]!.isNotEmpty) ...[
-              const Text('待处理视频 · 尚未上传设备'),
-              const Text('保留待处理记录，不复制源视频。完成取景后等待转码接入；请勿移动或删除源文件。'),
+                    tooltip: '添加视频',
+                    onPressed: _pendingReady && !_live.busy ? _addVideo : null,
+                    icon: const Icon(Icons.playlist_add)),
+              ]),
+              const Text('以下是手机待上传记录，不代表设备中已有内容。'),
+              if (_pendingLoadFailed)
+                TextButton(
+                    onPressed: _restorePending,
+                    child: const Text('待处理列表读取失败，点击重试')),
               for (final entry in _pending[_kind]!.entries)
                 Card(
                     child: ListTile(
@@ -602,217 +444,12 @@ class _PlaylistManagementPageState extends State<PlaylistManagementPage> {
                       onPressed: () => _removePending(_kind, entry.key)),
                   onTap: () => _openPending(_kind, entry.key, entry.value),
                 )),
-            ],
-            if (_draft.videoNames.isEmpty)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 32),
-                child: Center(child: Text('当前播放列表为空')),
-              ),
-            for (var index = 0; index < _draft.videoNames.length; index++)
-              Card(
-                child: ListTile(
-                  leading: _VideoThumbnail(
-                    fileName: _draft.videoNames[index],
-                    index: index,
-                    playing: _playingFileName == _draft.videoNames[index],
-                    onPlay: () => _playOnDevice(_draft.videoNames[index]),
-                  ),
-                  title: Text(_draft.videoNames[index]),
-                  subtitle: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      if (index == 0) const Text('默认首条'),
-                      TextButton.icon(
-                        onPressed: () =>
-                            _adjustDeviceVideo(_draft.videoNames[index]),
-                        icon: const Icon(Icons.crop, size: 18),
-                        label: const Text('调整画面'),
-                      ),
-                    ],
-                  ),
-                  trailing: Wrap(
-                    children: [
-                      IconButton(
-                        tooltip: '上移',
-                        onPressed: index == 0
-                            ? null
-                            : () => _update(_draft.move(index, index - 1)),
-                        icon: const Icon(Icons.keyboard_arrow_up),
-                      ),
-                      IconButton(
-                        tooltip: '下移',
-                        onPressed: index == _draft.videoNames.length - 1
-                            ? null
-                            : () => _update(_draft.move(index, index + 1)),
-                        icon: const Icon(Icons.keyboard_arrow_down),
-                      ),
-                      IconButton(
-                        tooltip: '移出草案',
-                        onPressed: () =>
-                            _removeFromPlaylist(_draft.videoNames[index]),
-                        icon: const Icon(Icons.remove_circle_outline),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            const SizedBox(height: 12),
-            FilledButton.icon(
-              onPressed: null,
-              icon: const Icon(Icons.sync_disabled),
-              label: const Text('保存到设备 · 等待新版协议'),
-            ),
-            if (_kind == DevicePlaylistKind.bluetooth)
-              const Card(
-                child: ListTile(
-                  leading: Icon(Icons.settings_backup_restore),
-                  title: Text('蓝牙断开后的恢复策略'),
-                  subtitle: Text('建议恢复连接前播放的普通视频；等待协议确认'),
-                ),
-              ),
-          ],
-        ),
+            ]),
       );
-
   @override
   void dispose() {
-    _subscription?.cancel();
+    _live.removeListener(_changed);
+    _live.dispose();
     super.dispose();
-  }
-}
-
-class _DeviceStatusBar extends StatelessWidget {
-  const _DeviceStatusBar({
-    required this.connected,
-    required this.videoCount,
-    required this.error,
-    required this.onRead,
-  });
-
-  final bool connected;
-  final int videoCount;
-  final String? error;
-  final VoidCallback? onRead;
-
-  @override
-  Widget build(BuildContext context) => Container(
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(14),
-        ),
-        child: ListTile(
-          dense: true,
-          visualDensity: VisualDensity.compact,
-          leading: Icon(
-            !connected
-                ? Icons.wifi_off
-                : error != null
-                    ? Icons.sync_problem_outlined
-                    : Icons.router,
-          ),
-          title: Text(
-            !connected
-                ? '设备未连接'
-                : error != null
-                    ? '设备网络已连接 · 读取失败'
-                    : videoCount == 0
-                        ? '设备网络已连接 · 点击读取'
-                        : '设备响应正常 · $videoCount 个视频',
-          ),
-          subtitle: Text(
-            error ?? (connected ? '读取设备内容后即可确认控制通道' : '连接设备 Wi-Fi 后再读取播放列表'),
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-          ),
-          trailing: connected
-              ? TextButton(
-                  onPressed: onRead,
-                  child: Text(error == null ? '读取' : '重试'),
-                )
-              : null,
-        ),
-      );
-}
-
-String? _demoThumbnailFor(String fileName) {
-  final normalized = fileName.trim().toLowerCase();
-  return switch (normalized) {
-    'showcase_01.mp4' => 'assets/images/video_thumbnails/showcase_01.jpg',
-    'showcase_02.mp4' => 'assets/images/video_thumbnails/showcase_02.jpg',
-    'showcase_03.mp4' => 'assets/images/video_thumbnails/showcase_03.jpg',
-    'showcase_04.mp4' => 'assets/images/video_thumbnails/showcase_04.jpg',
-    _ => null,
-  };
-}
-
-class _VideoThumbnail extends StatelessWidget {
-  const _VideoThumbnail({
-    required this.fileName,
-    required this.index,
-    required this.playing,
-    required this.onPlay,
-  });
-
-  final String fileName;
-  final int index;
-  final bool playing;
-  final VoidCallback onPlay;
-
-  @override
-  Widget build(BuildContext context) {
-    final asset = _demoThumbnailFor(fileName);
-    return SizedBox(
-      width: 58,
-      height: 58,
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(10),
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            if (asset != null)
-              Image.asset(asset, fit: BoxFit.cover)
-            else
-              ColoredBox(
-                color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                child: const Icon(Icons.movie_outlined),
-              ),
-            Positioned(
-              left: 4,
-              top: 4,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.72),
-                  borderRadius: BorderRadius.circular(99),
-                ),
-                child: Text(
-                  '${index + 1}',
-                  style: Theme.of(context).textTheme.labelSmall,
-                ),
-              ),
-            ),
-            Center(
-              child: Material(
-                color: Colors.black.withValues(alpha: 0.62),
-                shape: const CircleBorder(),
-                child: InkWell(
-                  customBorder: const CircleBorder(),
-                  onTap: onPlay,
-                  child: SizedBox.square(
-                    dimension: 38,
-                    child: playing
-                        ? const Padding(
-                            padding: EdgeInsets.all(10),
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Icon(Icons.play_arrow_rounded, size: 28),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
   }
 }
