@@ -1,4 +1,5 @@
 {
+  "deviceDeleteAudioNote": "配套音频也会一起删除。",
   "@@locale": "zh",
   "accountTitle": "账号管理",
   "accountGuest": "访客账号",

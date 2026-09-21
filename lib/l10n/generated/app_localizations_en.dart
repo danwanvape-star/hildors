@@ -9,6 +9,10 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
+  String get deviceDeleteAudioNote =>
+      'The paired audio file will also be deleted.';
+
+  @override
   String get accountTitle => 'Account';
 
   @override

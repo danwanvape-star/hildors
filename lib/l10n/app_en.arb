@@ -1,4 +1,5 @@
 {
+  "deviceDeleteAudioNote": "The paired audio file will also be deleted.",
   "@@locale": "en",
   "accountTitle": "Account",
   "accountGuest": "Guest account",

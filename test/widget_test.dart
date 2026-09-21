@@ -7,7 +7,7 @@ void main() {
   testWidgets('shows the playlist-first cockpit shell', (tester) async {
     tester.binding.platformDispatcher.localesTestValue = [const Locale('zh')];
     addTearDown(tester.binding.platformDispatcher.clearLocalesTestValue);
-    await tester.pumpWidget(const CockpitApp());
+    await tester.pumpWidget(const CockpitApp(autoConnectDevice: false));
 
     expect(find.text('HILDORS'), findsOneWidget);
     expect(find.text('设备播放列表'), findsOneWidget);

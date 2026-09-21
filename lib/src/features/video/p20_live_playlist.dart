@@ -123,6 +123,12 @@ class P20LivePlaylist extends ChangeNotifier {
       _mutate((target, generation) async {
         await session.setPlayMode(value);
       });
+  Future<void> delete(String name) async {
+    if (!canEdit || !videos.any((entry) => entry.fileName == name)) return;
+    await _mutate(
+        (target, generation) => session.deleteVideo(name, listId: target));
+  }
+
   Future<void> play(String name) async {
     if (!videos.any((entry) => entry.fileName == name)) return;
     await _mutate(

@@ -34,6 +34,12 @@ class LiveSession extends P20CommandSession {
   final calls = <String>[];
   Completer<List<P20VideoEntry>>? delayed;
   bool reject = false;
+  @override
+  Future<void> deleteVideo(String name, {int listId = 0}) async {
+    calls.add('delete:$listId:$name');
+    if (reject) throw StateError('rejected');
+    files[listId]!.remove(name);
+  }
   P20PlayMode mode = P20PlayMode.sequenceLoop;
   @override
   Future<List<P20VideoEntry>> queryVideos({int listId = 0}) async {
@@ -84,6 +90,21 @@ void main() {
     model.dispose();
     await session.dispose();
     await client.dispose();
+  });
+  test('delete targets current device list and keeps item on rejection',
+      () async {
+    client.setOnline(true);
+    await model.refresh();
+    await Future<void>.delayed(Duration.zero);
+    await model.refresh();
+    session.reject = true;
+    await model.delete('a.mp4');
+    expect(session.files[0], contains('a.mp4'));
+    session.reject = false;
+    await model.delete('a.mp4');
+    expect(session.calls, contains('delete:0:a.mp4'));
+    expect(model.videos.map((e) => e.fileName), isNot(contains('a.mp4')));
+    expect(session.files[1], ['bluetooth.mp4']);
   });
   Future<void> settle() async {
     for (var i = 0; i < 5; i++) {

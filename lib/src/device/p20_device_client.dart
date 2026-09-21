@@ -32,10 +32,13 @@ class DeviceStatus {
 
 class P20DeviceClient {
   P20DeviceClient(
-      {this.frameCrc = P20Protocol.crc, this.modernProtocol = false});
+      {this.frameCrc = P20Protocol.crc,
+      this.modernProtocol = false,
+      this.verifyOnConnect = false});
 
   final int frameCrc;
   final bool modernProtocol;
+  final bool verifyOnConnect;
   P20V2Connection? _modern;
   P20UploadSnapshot? lastUploadSnapshot;
   Socket? _socket;
@@ -63,6 +66,7 @@ class P20DeviceClient {
     int port = 8900,
   }) async {
     if (_disposed) throw StateError('Client has been disposed');
+    if (_connecting || isConnected) return;
     _host = host;
     _port = port;
     _manualDisconnect = false;
@@ -98,6 +102,13 @@ class P20DeviceClient {
           }
         });
         _modern = transport;
+        if (verifyOnConnect) {
+          final reply = await transport.request(0x04);
+          if (reply.data.length != 1 || reply.data.single > 100) {
+            throw const FormatException('Invalid device brightness response');
+          }
+          if (_disposed || _manualDisconnect || !identical(_modern, transport)) { return; }
+        }
       } else {
         _subscription = socket.listen(
           (bytes) {
@@ -113,6 +124,7 @@ class P20DeviceClient {
       _backoff.reset();
       _emitConnection(DeviceConnectionState.connected);
     } catch (_) {
+      await _closeTransport();
       _emitConnection(DeviceConnectionState.disconnected);
       if (reconnecting) _scheduleReconnect();
       rethrow;

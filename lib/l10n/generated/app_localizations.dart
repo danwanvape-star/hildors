@@ -98,6 +98,12 @@ abstract class AppLocalizations {
     Locale('zh')
   ];
 
+  /// No description provided for @deviceDeleteAudioNote.
+  ///
+  /// In en, this message translates to:
+  /// **'The paired audio file will also be deleted.'**
+  String get deviceDeleteAudioNote;
+
   /// No description provided for @accountTitle.
   ///
   /// In en, this message translates to:

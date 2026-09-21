@@ -166,7 +166,7 @@ void main() {
         () => const LocalCharacterEntitlementRepository().claim(package.id));
     await pumpPlaylist(tester);
 
-    await tester.tap(find.byTooltip('添加视频'));
+    await tester.tap(find.widgetWithText(FilledButton, '添加视频'));
     await pumpUi(tester);
     await tester.tap(find.text('从我的角色选择'));
     await pumpUi(tester);

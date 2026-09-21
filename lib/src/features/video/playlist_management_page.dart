@@ -48,6 +48,38 @@ class _PlaylistManagementPageState extends State<PlaylistManagementPage> {
     DevicePlaylistKind.bluetooth: {},
   };
 
+  Future<void> _deleteDeviceVideo(String name) async {
+    final listId = _live.listId;
+    final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+              title: Text(context.l10n.deviceDeleteTitle),
+              content: SingleChildScrollView(
+                  child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                    Text(context.l10n.deviceDeleteIntro),
+                    Text(name),
+                    Text(context.l10n.deviceDeleteAudioNote),
+                    Text(context.l10n.deviceDeleteNote),
+                  ])),
+              actions: [
+                TextButton(
+                    onPressed: () => Navigator.pop(context, false),
+                    child: Text(context.l10n.playlistCancel)),
+                FilledButton(
+                    onPressed: () => Navigator.pop(context, true),
+                    child: Text(context.l10n.deviceDelete))
+              ],
+            ));
+    if (!mounted ||
+        confirmed != true ||
+        listId != _live.listId ||
+        !_live.canEdit) { return; }
+    await _live.delete(name);
+  }
+
   Future<void> _addVideo() async {
     if (!_pendingReady) return;
     final target = _kind;
@@ -297,14 +329,29 @@ class _PlaylistManagementPageState extends State<PlaylistManagementPage> {
       };
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: Text(context.l10n.playlistTitle), actions: [
-          IconButton(
-              tooltip: context.l10n.p20Refresh,
-              onPressed: _live.connected && !_live.loading && !_live.busy
-                  ? _live.refresh
-                  : null,
-              icon: Icon(Icons.refresh)),
-        ]),
+        appBar: AppBar(
+            bottom: PreferredSize(
+              preferredSize: Size.fromHeight(
+                  60 * MediaQuery.textScalerOf(context).scale(1).clamp(1, 2.5)),
+              child: Padding(
+                  padding: EdgeInsets.fromLTRB(20, 0, 20, 8),
+                  child: SizedBox(
+                      width: double.infinity,
+                      child: FilledButton.icon(
+                          onPressed:
+                              _pendingReady && !_live.busy ? _addVideo : null,
+                          icon: Icon(Icons.playlist_add),
+                          label: Text(context.l10n.submissionAddVideo)))),
+            ),
+            title: Text(context.l10n.playlistTitle),
+            actions: [
+              IconButton(
+                  tooltip: context.l10n.p20Refresh,
+                  onPressed: _live.connected && !_live.loading && !_live.busy
+                      ? _live.refresh
+                      : null,
+                  icon: Icon(Icons.refresh)),
+            ]),
         body: ListView(padding: EdgeInsets.fromLTRB(20, 8, 20, 24), children: [
           SegmentedButton<DevicePlaylistKind>(
             segments: [
@@ -373,6 +420,13 @@ class _PlaylistManagementPageState extends State<PlaylistManagementPage> {
                             Text(_live.videos[index].fileName,
                                 style: Theme.of(context).textTheme.titleMedium),
                             Wrap(spacing: 8, children: [
+                              TextButton.icon(
+                                  onPressed: _live.canEdit
+                                      ? () => _deleteDeviceVideo(
+                                          _live.videos[index].fileName)
+                                      : null,
+                                  icon: Icon(Icons.delete_outline),
+                                  label: Text(context.l10n.deviceDeleteFrom)),
                               OutlinedButton.icon(
                                   onPressed: _live.canEdit
                                       ? () => _live
@@ -409,13 +463,7 @@ class _PlaylistManagementPageState extends State<PlaylistManagementPage> {
                 : context.l10n.errorNetwork),
           if (_connectionError != null) Text(context.l10n.errorNetwork),
           SizedBox(height: 20),
-          Row(children: [
-            Expanded(child: Text(context.l10n.p20Pending)),
-            IconButton(
-                tooltip: context.l10n.submissionAddVideo,
-                onPressed: _pendingReady && !_live.busy ? _addVideo : null,
-                icon: Icon(Icons.playlist_add)),
-          ]),
+          Text(context.l10n.p20Pending),
           Text(context.l10n.p20PendingNote),
           if (_pendingLoadFailed)
             TextButton(

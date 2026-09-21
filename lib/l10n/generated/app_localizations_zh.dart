@@ -9,6 +9,9 @@ class AppLocalizationsZh extends AppLocalizations {
   AppLocalizationsZh([String locale = 'zh']) : super(locale);
 
   @override
+  String get deviceDeleteAudioNote => '配套音频也会一起删除。';
+
+  @override
   String get accountTitle => '账号管理';
 
   @override
