@@ -3,6 +3,25 @@ import 'dart:io';
 import '../protocol/p20_protocol.dart' show P20Frame;
 import 'p20_v2_protocol.dart';
 
+/// Contains bounded protocol metadata only, never media bytes or filenames.
+class P20UploadResponseMismatch extends FormatException {
+  P20UploadResponseMismatch(super.message, P20Frame response, int expected)
+      : diagnostic = [
+          'RX cmd=0x',
+          response.command.toRadixString(16),
+          ' len=',
+          response.data.length,
+          ' data=',
+          response.data
+              .take(5)
+              .map((b) => b.toRadixString(16).padLeft(2, '0'))
+              .join(' '),
+          ' expectedSeq=',
+          expected
+        ].join();
+  final String diagnostic;
+}
+
 enum P20UploadPhase { awaitingReady, streaming, awaitingCompletion, completed }
 
 /// Safe transfer metadata only: never filenames, file contents or credentials.
@@ -155,9 +174,11 @@ class P20V2Connection {
               report();
             }
             final response = await _next(0x31);
-            if (response.data.length == 1 && response.data[0] == 2) {
+            if ((response.data.length == 1 || response.data.length == 5) &&
+                response.data[0] == 2) {
               if (sent != size) {
-                throw const FormatException('Premature upload completion');
+                throw P20UploadResponseMismatch(
+                    'Premature upload completion', response, sequence + 1);
               }
               acknowledged = size;
               phase = P20UploadPhase.completed;
@@ -166,17 +187,23 @@ class P20V2Connection {
               return;
             }
             if (response.data.isEmpty || response.data[0] != 1) {
-              _status(response, 1);
+              if (response.data.isNotEmpty && response.data[0] >= 0x80) {
+                throw P20DeviceUploadRejected(response.data[0]);
+              }
+              throw P20UploadResponseMismatch(
+                  'Unexpected upload status', response, sequence + 1);
             }
             if (response.data.length != 5) {
-              throw const FormatException('Invalid upload progress');
+              throw P20UploadResponseMismatch(
+                  'Invalid upload progress', response, sequence + 1);
             }
             final acknowledgedSequence = (response.data[1] << 24) |
                 (response.data[2] << 16) |
                 (response.data[3] << 8) |
                 response.data[4];
             if (acknowledgedSequence != sequence + 1 || acknowledged >= sent) {
-              throw const FormatException('Unexpected upload sequence');
+              throw P20UploadResponseMismatch(
+                  'Unexpected upload sequence', response, sequence + 1);
             }
             sequence = acknowledgedSequence;
             acknowledged = sent;

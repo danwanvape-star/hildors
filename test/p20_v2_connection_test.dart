@@ -12,6 +12,15 @@ List<int> reply(int command, List<int> data) {
 }
 
 void main() {
+  test('manufacturer first packet example decodes and diagnostic preserves metadata', () {
+    final frame = P20V2Decoder().add([0x55,0,0,0,6,0x31,1,0,0,0,1,0x39,0x5a]).single;
+    expect(frame.command, 0x31);
+    expect(frame.data, [1,0,0,0,1]);
+    final mismatch = P20UploadResponseMismatch('test', frame, 2);
+    expect(mismatch.diagnostic, contains('data=01 00 00 00 01'));
+    expect(mismatch.diagnostic, contains('expectedSeq=2'));
+  });
+
   test(
       'all bytes confirmed without completion still times out and closes queue',
       () async {
@@ -253,7 +262,7 @@ void main() {
                 socket.add(reply(0x31, [1, 0, 0, 0, sequence]));
               }
               if (received.length == size) {
-                socket.add(reply(0x31, [2]));
+                socket.add(reply(0x31, [2, 0xde, 0xad, 0xbe, 0xef]));
                 uploading = false;
               } else {
                 break;

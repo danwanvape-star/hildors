@@ -1,4 +1,5 @@
 import 'dart:async';
+import '../../device/p20_v2_connection.dart';
 import 'dart:io';
 import 'dart:math';
 import 'package:flutter/material.dart';
@@ -206,6 +207,9 @@ class _P20UploadPageState extends State<P20UploadPage> {
                     ((_error as TimeoutException).message ?? '')
                         .startsWith('P20 cmd='))
                   SelectableText((_error as TimeoutException).message!),
+                if (_error is P20UploadResponseMismatch)
+                  SelectableText(
+                      (_error as P20UploadResponseMismatch).diagnostic),
                 Text(finishedFile
                     ? text.refreshFailed
                     : _error is FormatException &&
