@@ -59,7 +59,7 @@ void main() {
       await directory.delete(recursive: true);
     }
   });
-  test('streams continuously when device batches progress notifications',
+  test('waits for each block acknowledgement before sending the next',
       () async {
     final server = await ServerSocket.bind(InternetAddress.loopbackIPv4, 0);
     final directory = await Directory.systemTemp.createTemp('p20-stream-');
@@ -68,6 +68,8 @@ void main() {
     Socket? peer;
     var header = true;
     var received = 0;
+    var permitted = 32768;
+    var early = false;
     final subscription = server.listen((socket) {
       peer = socket;
       socket.listen((bytes) {
@@ -76,13 +78,15 @@ void main() {
           socket.add(reply(0x31, [0]));
         } else {
           received += bytes.length;
-          if (received == 65537) {
-            socket.add([
-              ...reply(0x31, [1, 0, 0, 0, 1]),
-              ...reply(0x31, [1, 0, 0, 0, 2]),
-              ...reply(0x31, [2])
-            ]);
+          if (received > permitted) early = true;
+          if (received == 32768 || received == 65536) {
+            final sequence = received ~/ 32768;
+            Timer(const Duration(milliseconds: 40), () {
+              permitted = sequence == 1 ? 65536 : 65537;
+              socket.add(reply(0x31, [1, 0, 0, 0, sequence]));
+            });
           }
+          if (received == 65537) socket.add(reply(0x31, [2]));
         }
       });
     });
@@ -94,6 +98,7 @@ void main() {
       await client.upload(file, 1, 'sample.mp4'.codeUnits,
           onProgress: (done, total) => progress.add(done));
       expect(received, 65537);
+      expect(early, isFalse, reason: 'No next block before device ACK');
       expect(progress, [0, 32768, 65536, 65537]);
     } finally {
       await client.close();

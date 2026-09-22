@@ -136,10 +136,12 @@ class P20V2Connection {
           _status(await _next(0x31), 0);
           phase = P20UploadPhase.streaming;
           report();
-          // Progress packets are notifications, not permission to send the next
-          // block. Keep sending with socket backpressure while reading replies.
-          Future<void> sendData() async {
-            while (sent < size) {
+          // Firmware requires stop-and-wait: never send another block until
+          // the current block is acknowledged. The exclusive queue also keeps
+          // status queries and controls out of the raw file stream.
+          var sequence = 0;
+          while (true) {
+            if (sent < size) {
               final wanted = (size - sent).clamp(1, 32768);
               final chunk = await input.read(wanted);
               if (chunk.length != wanted) {
@@ -149,60 +151,37 @@ class P20V2Connection {
               report();
               await _write(chunk);
               flushed = sent;
+              if (sent == size) phase = P20UploadPhase.awaitingCompletion;
               report();
             }
-            if (phase != P20UploadPhase.completed) {
-              phase = P20UploadPhase.awaitingCompletion;
+            final response = await _next(0x31);
+            if (response.data.length == 1 && response.data[0] == 2) {
+              if (sent != size) {
+                throw const FormatException('Premature upload completion');
+              }
+              acknowledged = size;
+              phase = P20UploadPhase.completed;
               report();
+              onProgress?.call(size, size);
+              return;
             }
-          }
-
-          Future<void> readProgress() async {
-            var sequence = 0;
-            while (true) {
-              final response = await _next(0x31);
-              if (response.data.length == 1 && response.data[0] == 2) {
-                if (sent != size) {
-                  throw const FormatException('Premature upload completion');
-                }
-                acknowledged = size;
-                phase = P20UploadPhase.completed;
-                report();
-                onProgress?.call(size, size);
-                return;
-              }
-              if (response.data.isEmpty || response.data[0] != 1) {
-                _status(response, 1);
-              }
-              if (response.data.length != 5) {
-                throw const FormatException('Invalid upload progress');
-              }
-              final acknowledgedSequence = (response.data[1] << 24) |
-                  (response.data[2] << 16) |
-                  (response.data[3] << 8) |
-                  response.data[4];
-              if (acknowledgedSequence != ++sequence ||
-                  sequence * 32768 > sent) {
-                throw const FormatException('Unexpected upload sequence');
-              }
-              acknowledged = sequence * 32768;
-              report();
-              onProgress?.call(acknowledged, size);
+            if (response.data.isEmpty || response.data[0] != 1) {
+              _status(response, 1);
             }
-          }
-
-          final sender = sendData();
-          final receiver = readProgress();
-          try {
-            await Future.wait([sender, receiver], eagerError: true);
-          } catch (_) {
-            // Stop both halves before releasing the file or command queue.
-            await close();
-            await Future.wait([
-              sender.catchError((Object _) {}),
-              receiver.catchError((Object _) {}),
-            ]);
-            rethrow;
+            if (response.data.length != 5) {
+              throw const FormatException('Invalid upload progress');
+            }
+            final acknowledgedSequence = (response.data[1] << 24) |
+                (response.data[2] << 16) |
+                (response.data[3] << 8) |
+                response.data[4];
+            if (acknowledgedSequence != sequence + 1 || acknowledged >= sent) {
+              throw const FormatException('Unexpected upload sequence');
+            }
+            sequence = acknowledgedSequence;
+            acknowledged = sent;
+            report();
+            onProgress?.call(acknowledged, size);
           }
         } finally {
           await input.close();
