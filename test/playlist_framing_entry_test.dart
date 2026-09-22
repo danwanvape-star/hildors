@@ -204,11 +204,11 @@ void main() {
     );
     final adjust = find.descendant(
       of: deviceTile,
-      matching: find.widgetWithText(TextButton, '调整画面'),
+      matching: find.byTooltip('调整画面'),
     );
     expect(adjust, findsOneWidget);
     await tester.ensureVisible(adjust);
-    tester.widget<TextButton>(adjust).onPressed!();
+    await tester.tap(adjust);
     await pumpUi(tester);
 
     expect(find.text('需要原始视频'), findsOneWidget);

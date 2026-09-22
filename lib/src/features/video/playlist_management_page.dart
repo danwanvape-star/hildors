@@ -76,7 +76,9 @@ class _PlaylistManagementPageState extends State<PlaylistManagementPage> {
     if (!mounted ||
         confirmed != true ||
         listId != _live.listId ||
-        !_live.canEdit) { return; }
+        !_live.canEdit) {
+      return;
+    }
     await _live.delete(name);
   }
 
@@ -352,145 +354,209 @@ class _PlaylistManagementPageState extends State<PlaylistManagementPage> {
                       : null,
                   icon: Icon(Icons.refresh)),
             ]),
-        body: ListView(padding: EdgeInsets.fromLTRB(20, 8, 20, 24), children: [
-          SegmentedButton<DevicePlaylistKind>(
-            segments: [
-              ButtonSegment(
-                  value: DevicePlaylistKind.startup,
-                  label: Text(context.l10n.p20Daily)),
-              ButtonSegment(
-                  value: DevicePlaylistKind.bluetooth,
-                  label: Text(context.l10n.p20Bluetooth)),
-            ],
-            selected: {_kind},
-            onSelectionChanged: _live.busy
-                ? null
-                : (value) => _live.selectList(value.single.index),
-          ),
-          SizedBox(height: 12),
-          if (!_live.connected) ...[
-            Text(context.l10n.p20ConnectNote),
-            Text(context.l10n.p20ConnectWifi),
-            FilledButton.icon(
-                onPressed: _connecting ? null : _connect,
-                icon: Icon(Icons.wifi),
-                label: Text(_connecting
-                    ? context.l10n.p20Connecting
-                    : context.l10n.p20Connect)),
-          ] else ...[
-            Text(_live.loading
-                ? context.l10n.p20Reading
-                : _live.loaded
-                    ? context.l10n.p20ConnectedCount(_live.videos.length)
-                    : context.l10n.p20ReadFailed),
-            if (_live.loading || _live.busy) LinearProgressIndicator(),
-            SizedBox(height: 12),
-            DropdownButtonFormField<P20PlayMode>(
-              key: ValueKey('${_live.listId}:${_live.mode}:${_live.loaded}'),
-              initialValue: _live.mode,
-              isExpanded: true,
-              decoration: InputDecoration(
-                  labelText: context.l10n.p20Mode,
-                  border: OutlineInputBorder()),
-              items: [
-                for (final mode in P20PlayMode.values)
-                  DropdownMenuItem(value: mode, child: Text(_modeName(mode)))
-              ],
-              onChanged: _live.canEdit
-                  ? (value) {
-                      if (value != null) _live.setMode(value);
-                    }
-                  : null,
-            ),
-            SizedBox(height: 12),
-            Text(context.l10n.p20OrderNote),
-            if (_live.loaded && _live.videos.isEmpty)
-              Padding(
-                  padding: EdgeInsets.symmetric(vertical: 24),
-                  child: Text(context.l10n.p20Empty)),
-            for (var index = 0; index < _live.videos.length; index++)
-              Card(
-                  child: Padding(
-                      padding: EdgeInsets.all(12),
-                      child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+        body: LayoutBuilder(
+            builder: (context, constraints) => Column(children: [
+                  ConstrainedBox(
+                      constraints: BoxConstraints(
+                          maxHeight: constraints.maxHeight * 0.55),
+                      child: SingleChildScrollView(
+                          child: Padding(
+                              padding: EdgeInsets.fromLTRB(20, 8, 20, 8),
+                              child: Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.stretch,
+                                  children: [
+                                    SegmentedButton<DevicePlaylistKind>(
+                                      segments: [
+                                        ButtonSegment(
+                                            value: DevicePlaylistKind.startup,
+                                            label: Text(context.l10n.p20Daily)),
+                                        ButtonSegment(
+                                            value: DevicePlaylistKind.bluetooth,
+                                            label: Text(
+                                                context.l10n.p20Bluetooth)),
+                                      ],
+                                      selected: {_kind},
+                                      onSelectionChanged: _live.busy
+                                          ? null
+                                          : (value) => _live
+                                              .selectList(value.single.index),
+                                    ),
+                                    SizedBox(height: 12),
+                                    if (!_live.connected) ...[
+                                      Text(context.l10n.p20ConnectNote),
+                                      Text(context.l10n.p20ConnectWifi),
+                                      FilledButton.icon(
+                                          onPressed:
+                                              _connecting ? null : _connect,
+                                          icon: Icon(Icons.wifi),
+                                          label: Text(_connecting
+                                              ? context.l10n.p20Connecting
+                                              : context.l10n.p20Connect)),
+                                    ] else ...[
+                                      Text(_live.loading
+                                          ? context.l10n.p20Reading
+                                          : _live.loaded
+                                              ? context.l10n.p20ConnectedCount(
+                                                  _live.videos.length)
+                                              : context.l10n.p20ReadFailed),
+                                      if (_live.loading || _live.busy)
+                                        LinearProgressIndicator(),
+                                      SizedBox(height: 12),
+                                      DropdownButtonFormField<P20PlayMode>(
+                                        key: ValueKey(
+                                            '${_live.listId}:${_live.mode}:${_live.loaded}'),
+                                        initialValue: _live.mode,
+                                        isExpanded: true,
+                                        decoration: InputDecoration(
+                                            labelText: context.l10n.p20Mode,
+                                            border: OutlineInputBorder()),
+                                        items: [
+                                          for (final mode in P20PlayMode.values)
+                                            DropdownMenuItem(
+                                                value: mode,
+                                                child: Text(_modeName(mode)))
+                                        ],
+                                        onChanged: _live.canEdit
+                                            ? (value) {
+                                                if (value != null) {
+                                                  _live.setMode(value);
+                                                }
+                                              }
+                                            : null,
+                                      ),
+                                      SizedBox(height: 12),
+                                    ],
+                                  ])))),
+                  Expanded(
+                      child: ListView(
+                          padding: EdgeInsets.fromLTRB(20, 0, 20, 24),
                           children: [
-                            Text('${index + 1}',
-                                style: Theme.of(context).textTheme.labelMedium),
-                            Text(_live.videos[index].fileName,
-                                style: Theme.of(context).textTheme.titleMedium),
-                            Wrap(spacing: 8, children: [
-                              TextButton.icon(
-                                  onPressed: _live.canEdit
-                                      ? () => _deleteDeviceVideo(
-                                          _live.videos[index].fileName)
-                                      : null,
-                                  icon: Icon(Icons.delete_outline),
-                                  label: Text(context.l10n.deviceDeleteFrom)),
-                              OutlinedButton.icon(
-                                  onPressed: _live.canEdit
-                                      ? () => _live
-                                          .play(_live.videos[index].fileName)
-                                      : null,
-                                  icon: Icon(Icons.play_arrow),
-                                  label: Text(context.l10n.devicePlay)),
-                              OutlinedButton.icon(
-                                  onPressed: _live.canEdit && index > 0
-                                      ? () => _live.move(index, index - 1)
-                                      : null,
-                                  icon: Icon(Icons.arrow_upward),
-                                  label: Text(context.l10n.playlistUp)),
-                              OutlinedButton.icon(
-                                  onPressed: _live.canEdit &&
-                                          index + 1 < _live.videos.length
-                                      ? () => _live.move(index, index + 1)
-                                      : null,
-                                  icon: Icon(Icons.arrow_downward),
-                                  label: Text(context.l10n.playlistDown)),
-                              TextButton.icon(
-                                  onPressed: _live.canEdit
-                                      ? () => _adjustDeviceVideo(
-                                          _live.videos[index].fileName)
-                                      : null,
-                                  icon: Icon(Icons.crop),
-                                  label: Text(context.l10n.playlistFrame)),
-                            ]),
-                          ]))),
-          ],
-          if (_live.error != null)
-            Text(_live.error == 'operation_unconfirmed'
-                ? context.l10n.p20Unconfirmed
-                : context.l10n.errorNetwork),
-          if (_connectionError != null) Text(context.l10n.errorNetwork),
-          SizedBox(height: 20),
-          Text(context.l10n.p20Pending),
-          Text(context.l10n.p20PendingNote),
-          if (_pendingLoadFailed)
-            TextButton(
-                onPressed: _restorePending,
-                child: Text(context.l10n.playlistPendingLoadFailed)),
-          for (final entry in _pending[_kind]!.entries)
-            Card(
-                child: ListTile(
-              leading: Icon(Icons.hourglass_empty),
-              title: Text(entry.value.title),
-              subtitle: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(context.l10n.playlistConvertPending),
-                    TextButton.icon(
-                        onPressed: () =>
-                            _openPending(_kind, entry.key, entry.value),
-                        icon: Icon(Icons.crop, size: 18),
-                        label: Text(context.l10n.playlistFrame)),
-                  ]),
-              trailing: IconButton(
-                  tooltip: context.l10n.playlistRemovePendingAction,
-                  icon: Icon(Icons.close),
-                  onPressed: () => _removePending(_kind, entry.key)),
-              onTap: () => _openPending(_kind, entry.key, entry.value),
-            )),
-        ]),
+                        if (_live.connected) ...[
+                          Tooltip(
+                              message: context.l10n.p20OrderNote,
+                              child: Align(
+                                  alignment: Alignment.centerRight,
+                                  child: Icon(Icons.info_outline, size: 18))),
+                          if (_live.loaded && _live.videos.isEmpty)
+                            Padding(
+                                padding: EdgeInsets.symmetric(vertical: 24),
+                                child: Text(context.l10n.p20Empty)),
+                          for (var index = 0;
+                              index < _live.videos.length;
+                              index++)
+                            Card(
+                                child: Padding(
+                                    padding: EdgeInsets.symmetric(
+                                        horizontal: 8, vertical: 2),
+                                    child: Column(children: [
+                                      Row(children: [
+                                        Text((index + 1).toString()),
+                                        SizedBox(width: 8),
+                                        Expanded(
+                                            child: Tooltip(
+                                                message: _live
+                                                    .videos[index].fileName,
+                                                child: Text(
+                                                    _live
+                                                        .videos[index].fileName,
+                                                    maxLines: 1,
+                                                    overflow: TextOverflow
+                                                        .ellipsis))),
+                                        IconButton(
+                                            tooltip: context.l10n.devicePlay,
+                                            onPressed: _live.canEdit
+                                                ? () => _live.play(_live
+                                                    .videos[index].fileName)
+                                                : null,
+                                            icon: Icon(Icons.play_arrow)),
+                                      ]),
+                                      Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceEvenly,
+                                          children: [
+                                            IconButton(
+                                                tooltip:
+                                                    context.l10n.playlistUp,
+                                                onPressed:
+                                                    _live.canEdit && index > 0
+                                                        ? () => _live.move(
+                                                            index, index - 1)
+                                                        : null,
+                                                icon: Icon(Icons.arrow_upward)),
+                                            IconButton(
+                                                tooltip:
+                                                    context.l10n.playlistDown,
+                                                onPressed: _live.canEdit &&
+                                                        index + 1 <
+                                                            _live.videos.length
+                                                    ? () => _live.move(
+                                                        index, index + 1)
+                                                    : null,
+                                                icon:
+                                                    Icon(Icons.arrow_downward)),
+                                            IconButton(
+                                                tooltip:
+                                                    context.l10n.playlistFrame,
+                                                onPressed: _live.canEdit
+                                                    ? () => _adjustDeviceVideo(
+                                                        _live.videos[index]
+                                                            .fileName)
+                                                    : null,
+                                                icon: Icon(Icons.crop)),
+                                            IconButton(
+                                                tooltip: context
+                                                    .l10n.deviceDeleteFrom,
+                                                onPressed: _live.canEdit
+                                                    ? () => _deleteDeviceVideo(
+                                                        _live.videos[index]
+                                                            .fileName)
+                                                    : null,
+                                                icon:
+                                                    Icon(Icons.delete_outline)),
+                                          ]),
+                                    ]))),
+                        ],
+                        if (_live.error != null)
+                          Text(_live.error == 'operation_unconfirmed'
+                              ? context.l10n.p20Unconfirmed
+                              : context.l10n.errorNetwork),
+                        if (_connectionError != null)
+                          Text(context.l10n.errorNetwork),
+                        SizedBox(height: 20),
+                        Text(context.l10n.p20Pending),
+                        Text(context.l10n.p20PendingNote),
+                        if (_pendingLoadFailed)
+                          TextButton(
+                              onPressed: _restorePending,
+                              child:
+                                  Text(context.l10n.playlistPendingLoadFailed)),
+                        for (final entry in _pending[_kind]!.entries)
+                          Card(
+                              child: ListTile(
+                            leading: Icon(Icons.hourglass_empty),
+                            title: Text(entry.value.title),
+                            subtitle: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(context.l10n.playlistConvertPending),
+                                  TextButton.icon(
+                                      onPressed: () => _openPending(
+                                          _kind, entry.key, entry.value),
+                                      icon: Icon(Icons.crop, size: 18),
+                                      label: Text(context.l10n.playlistFrame)),
+                                ]),
+                            trailing: IconButton(
+                                tooltip:
+                                    context.l10n.playlistRemovePendingAction,
+                                icon: Icon(Icons.close),
+                                onPressed: () =>
+                                    _removePending(_kind, entry.key)),
+                            onTap: () =>
+                                _openPending(_kind, entry.key, entry.value),
+                          )),
+                      ])),
+                ])),
       );
   @override
   void dispose() {

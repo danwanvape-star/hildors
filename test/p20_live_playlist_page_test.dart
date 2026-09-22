@@ -4,6 +4,23 @@ import 'package:hildors_cockpit/src/features/video/playlist_management_page.dart
 import 'p20_live_playlist_test.dart' show LiveClient, LiveSession;
 
 void main() {
+  testWidgets('long list scrolls independently of fixed controls', (tester) async {
+    final client = LiveClient()..online = true;
+    final session = LiveSession(client);
+    session.files[0] = List.generate(30, (i) => ['video_', i, '.mp4'].join());
+    addTearDown(session.dispose); addTearDown(client.dispose);
+    await tester.pumpWidget(MaterialApp(home: PlaylistManagementPage(client: client, session: session)));
+    await tester.pumpAndSettle();
+    final tabs = find.text('A 日常播放');
+    final before = tester.getTopLeft(tabs);
+    expect(find.text('video_0.mp4'), findsOneWidget);
+    await tester.drag(find.byType(ListView), const Offset(0, -350));
+    await tester.pumpAndSettle();
+    expect(tester.getTopLeft(tabs), before);
+    expect(find.text('video_0.mp4'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('device delete requires confirmation and add remains pinned', (tester) async {
     final client = LiveClient()..online = true;
     final session = LiveSession(client);
@@ -12,6 +29,7 @@ void main() {
     await tester.pumpAndSettle();
     final add = find.byIcon(Icons.playlist_add);
     final position = tester.getTopLeft(add);
+    final headerPosition = tester.getTopLeft(find.text('A 日常播放'));
     await tester.ensureVisible(find.byIcon(Icons.delete_outline).first);
     await tester.tap(find.byIcon(Icons.delete_outline).first);
     await tester.pumpAndSettle();
@@ -23,6 +41,7 @@ void main() {
     await tester.drag(find.byType(ListView).first, const Offset(0, -400));
     await tester.pumpAndSettle();
     expect(tester.getTopLeft(add), position);
+    expect(tester.getTopLeft(find.text('A 日常播放')), headerPosition);
   });
   testWidgets('offline page has no fabricated device videos', (tester) async {
     final client = LiveClient();
@@ -48,8 +67,8 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('a.mp4'), findsOneWidget);
     expect(find.text('b.mp4'), findsOneWidget);
-    await tester.ensureVisible(find.text('下移').first);
-    await tester.tap(find.text('下移').first);
+    await tester.ensureVisible(find.byTooltip('下移').first);
+    await tester.tap(find.byTooltip('下移').first);
     await tester.pumpAndSettle();
     expect(session.calls, contains('move:0:2:0:1'));
     client.setOnline(false);
