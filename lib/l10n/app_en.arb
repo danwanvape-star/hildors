@@ -1,4 +1,6 @@
 {
+"copyDeviceLog": "Copy device communication log",
+"deviceLogCopied": "Log copied. It contains protocol metadata; media payloads are omitted.",
   "deviceDeleteAudioNote": "The paired audio file will also be deleted.",
   "@@locale": "en",
   "accountTitle": "Account",

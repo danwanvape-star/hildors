@@ -9,6 +9,13 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
+  String get copyDeviceLog => 'Copy device communication log';
+
+  @override
+  String get deviceLogCopied =>
+      'Log copied. It contains protocol metadata; media payloads are omitted.';
+
+  @override
   String get deviceDeleteAudioNote =>
       'The paired audio file will also be deleted.';
 

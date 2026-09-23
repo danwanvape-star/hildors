@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'p20_wire_log.dart';
 import '../protocol/p20_protocol.dart' show P20Frame;
 import 'p20_v2_protocol.dart';
 
@@ -52,11 +53,14 @@ class P20DeviceUploadRejected implements Exception {
 /// the legacy client: the firmware only permits one TCP client.
 class P20V2Connection {
   P20V2Connection(this._socket,
-      {this.timeout = const Duration(seconds: 15), this.onClosed}) {
+      {this.timeout = const Duration(seconds: 15),
+      this.onClosed,
+      this.wireLog}) {
     _responses = StreamIterator(_incoming.stream);
     // Keep reading while idle so a paused response iterator cannot conceal EOF.
     _subscription = _socket.listen((bytes) {
       if (_closed) return;
+      if (_tracingUpload) wireLog?.record('RX', bytes);
       try {
         for (final frame in decoder.add(bytes)) {
           _incoming.add(frame);
@@ -68,6 +72,7 @@ class P20V2Connection {
         onDone: () => unawaited(close()),
         onError: (Object _) => unawaited(close()));
   }
+  final P20WireLog? wireLog;
   final decoder = P20V2Decoder();
   final Socket _socket;
   final Duration timeout;
@@ -77,6 +82,7 @@ class P20V2Connection {
   late final StreamIterator<P20Frame> _responses;
   Future<void> _tail = Future.value();
   bool _closed = false;
+  bool _tracingUpload = false;
   int _requestStartRx = 0;
 
   Future<T> _exclusive<T>(Future<T> Function() action) {
@@ -113,8 +119,9 @@ class P20V2Connection {
     return frame;
   }
 
-  Future<void> _write(List<int> bytes) async {
+  Future<void> _write(List<int> bytes, {bool media = false}) async {
     if (_closed) throw StateError('P20 connection is closed');
+    if (_tracingUpload) wireLog?.record('TX', bytes, media: media);
     _socket.add(bytes);
     await _socket.flush().timeout(timeout);
   }
@@ -138,6 +145,7 @@ class P20V2Connection {
           void Function(P20UploadSnapshot)? onState}) =>
       _exclusive(() async {
         final input = await file.open();
+        _tracingUpload = true;
         try {
           final size = await input.length();
           final header = P20V2Protocol.uploadHeader(listId, size, gbkName);
@@ -168,7 +176,7 @@ class P20V2Connection {
               }
               sent += chunk.length;
               report();
-              await _write(chunk);
+              await _write(chunk, media: true);
               flushed = sent;
               if (sent == size) phase = P20UploadPhase.awaitingCompletion;
               report();
@@ -211,6 +219,7 @@ class P20V2Connection {
             onProgress?.call(acknowledged, size);
           }
         } finally {
+          _tracingUpload = false;
           await input.close();
         }
       });

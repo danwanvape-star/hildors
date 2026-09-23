@@ -1,4 +1,5 @@
 import 'dart:async';
+import '../../localization/localization.dart';
 import '../../device/p20_v2_connection.dart';
 import 'dart:io';
 import 'dart:math';
@@ -229,6 +230,16 @@ class _P20UploadPageState extends State<P20UploadPage> {
                             'TX queued=${widget.client.lastUploadSnapshot!.sent} flushed=${widget.client.lastUploadSnapshot!.flushed} ACK=${widget.client.lastUploadSnapshot!.acknowledged}'),
                       ]),
               ],
+              if (!_busy && _attempted)
+                OutlinedButton.icon(
+                    icon: const Icon(Icons.copy),
+                    label: Text(context.l10n.copyDeviceLog),
+                    onPressed: () async {
+                      await Clipboard.setData(
+                          ClipboardData(text: widget.client.wireLog.text));
+                      if (!context.mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(context.l10n.deviceLogCopied)));
+                    }),
               if (_flow?.audioUploaded == true && !finishedFile)
                 Text(text.partial),
               if (_cleanupPending) Text(text.cleanupPending),

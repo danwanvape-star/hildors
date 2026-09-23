@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'p20_wire_log.dart';
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -36,6 +37,7 @@ class P20DeviceClient {
       this.modernProtocol = false,
       this.verifyOnConnect = false});
 
+  final wireLog = P20WireLog();
   final int frameCrc;
   final bool modernProtocol;
   final bool verifyOnConnect;
@@ -96,7 +98,7 @@ class P20DeviceClient {
       _socket = socket;
       if (modernProtocol) {
         late final P20V2Connection transport;
-        transport = P20V2Connection(socket, onClosed: () {
+        transport = P20V2Connection(socket, wireLog: wireLog, onClosed: () {
           if (identical(_modern, transport)) {
             unawaited(_handleTransportClosed());
           }
@@ -107,7 +109,11 @@ class P20DeviceClient {
           if (reply.data.length != 1 || reply.data.single > 100) {
             throw const FormatException('Invalid device brightness response');
           }
-          if (_disposed || _manualDisconnect || !identical(_modern, transport)) { return; }
+          if (_disposed ||
+              _manualDisconnect ||
+              !identical(_modern, transport)) {
+            return;
+          }
         }
       } else {
         _subscription = socket.listen(

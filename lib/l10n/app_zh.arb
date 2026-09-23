@@ -1,4 +1,6 @@
 {
+"copyDeviceLog": "复制设备通信日志",
+"deviceLogCopied": "日志已复制，包含协议数据，不包含音视频正文。",
   "deviceDeleteAudioNote": "配套音频也会一起删除。",
   "@@locale": "zh",
   "accountTitle": "账号管理",

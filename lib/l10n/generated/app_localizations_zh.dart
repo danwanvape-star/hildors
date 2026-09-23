@@ -9,6 +9,12 @@ class AppLocalizationsZh extends AppLocalizations {
   AppLocalizationsZh([String locale = 'zh']) : super(locale);
 
   @override
+  String get copyDeviceLog => '复制设备通信日志';
+
+  @override
+  String get deviceLogCopied => '日志已复制，包含协议数据，不包含音视频正文。';
+
+  @override
   String get deviceDeleteAudioNote => '配套音频也会一起删除。';
 
   @override

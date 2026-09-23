@@ -98,6 +98,18 @@ abstract class AppLocalizations {
     Locale('zh')
   ];
 
+  /// No description provided for @copyDeviceLog.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy device communication log'**
+  String get copyDeviceLog;
+
+  /// No description provided for @deviceLogCopied.
+  ///
+  /// In en, this message translates to:
+  /// **'Log copied. It contains protocol metadata; media payloads are omitted.'**
+  String get deviceLogCopied;
+
   /// No description provided for @deviceDeleteAudioNote.
   ///
   /// In en, this message translates to:
