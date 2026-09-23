@@ -2,6 +2,24 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hildors_cockpit/src/device/p20_v2_protocol.dart';
 
 void main() {
+  const vendorUploads = [
+    (0, 20529, '001.mp3', 'aa0000000d3100000050313030312e6d70338ea5'),
+    (0, 6060176, '001.mp4', 'aa0000000d3100005c78903030312e6d703472a5'),
+    (1, 20529, '001.mp3', 'aa0000000d3101000050313030312e6d70338fa5'),
+    (1, 7628628, '001.mp4', 'aa0000000d3101007467543030312e6d70343ea5'),
+  ];
+  for (final sample in vendorUploads) {
+    test(['manufacturer upload golden:', sample.$1, sample.$3].join(' '), () {
+      final expected = [
+        for (var i = 0; i < sample.$4.length; i += 2)
+          int.parse(sample.$4.substring(i, i + 2), radix: 16)
+      ];
+      final header =
+          P20V2Protocol.uploadHeader(sample.$1, sample.$2, sample.$3.codeUnits);
+      expect(P20V2Protocol.request(0x31, header), expected);
+    });
+  }
+
   test('length bytes and checksum overflow use the full big endian body', () {
     final request = P20V2Protocol.request(0xff, List.filled(256, 0xff));
     expect(request.sublist(0, 6), [0xaa, 0, 0, 1, 1, 0xff]);
