@@ -92,7 +92,7 @@ void main() {
             final sequence = received ~/ 32768;
             Timer(const Duration(milliseconds: 40), () {
               permitted = sequence == 1 ? 65536 : 65537;
-              socket.add(reply(0x31, [1, 0, 0, 0, sequence]));
+              socket.add(reply(0x31, [1, 0, 0, 0, 2]));
             });
           }
           if (received == 65537) socket.add(reply(0x31, [2]));

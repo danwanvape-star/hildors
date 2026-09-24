@@ -205,15 +205,14 @@ class P20V2Connection {
               throw P20UploadResponseMismatch(
                   'Invalid upload progress', response, sequence + 1);
             }
-            final acknowledgedSequence = (response.data[1] << 24) |
-                (response.data[2] << 16) |
-                (response.data[3] << 8) |
-                response.data[4];
-            if (acknowledgedSequence != sequence + 1 || acknowledged >= sent) {
+            // Manufacturer confirmed firmware may return a constant SEQ=2.
+            // A valid progress status acknowledges only the one outstanding
+            // block; never derive byte progress from the sequence field.
+            if (acknowledged >= sent) {
               throw P20UploadResponseMismatch(
-                  'Unexpected upload sequence', response, sequence + 1);
+                  'Progress without outstanding data', response, sequence + 1);
             }
-            sequence = acknowledgedSequence;
+            sequence++;
             acknowledged = sent;
             report();
             onProgress?.call(acknowledged, size);
