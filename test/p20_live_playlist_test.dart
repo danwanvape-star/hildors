@@ -8,6 +8,9 @@ import 'package:hildors_cockpit/src/features/video/p20_live_playlist.dart';
 class LiveClient extends P20DeviceClient {
   final states = StreamController<DeviceConnectionState>.broadcast();
   bool online = false;
+  int epoch = 0;
+  @override
+  int get generation => epoch;
   @override
   P20DeviceProfile get profile =>
       const P20DeviceProfile.forKind(P20DeviceKind.dual);
@@ -16,6 +19,7 @@ class LiveClient extends P20DeviceClient {
   @override
   Stream<DeviceConnectionState> get connectionStates => states.stream;
   void setOnline(bool value) {
+    epoch++;
     online = value;
     states.add(value
         ? DeviceConnectionState.connected

@@ -3,7 +3,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hildors_cockpit/src/experience/projection_service.dart';
 
 class SwitchingClient extends LiveClient {
-  int epoch = 0;
   @override
   int get generation => epoch;
 }

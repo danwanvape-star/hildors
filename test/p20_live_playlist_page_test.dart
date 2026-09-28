@@ -4,12 +4,36 @@ import 'package:hildors_cockpit/src/features/video/playlist_management_page.dart
 import 'p20_live_playlist_test.dart' show LiveClient, LiveSession;
 
 void main() {
-  testWidgets('long list scrolls independently of fixed controls', (tester) async {
+  testWidgets('delete confirmation cannot delete a replacement device file',
+      (tester) async {
+    final client = LiveClient()..online = true;
+    final session = LiveSession(client);
+    await tester.pumpWidget(MaterialApp(
+        home: PlaylistManagementPage(client: client, session: session)));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byIcon(Icons.delete_outline).first);
+    await tester.pumpAndSettle();
+    client.setOnline(false);
+    await tester.pump();
+    client.setOnline(true);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('永久删除'));
+    await tester.pumpAndSettle();
+    expect(session.calls.where((s) => s.startsWith('delete:')), isEmpty);
+    expect(find.text('a.mp4'), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+    await session.dispose();
+    await client.dispose();
+  });
+  testWidgets('long list scrolls independently of fixed controls',
+      (tester) async {
     final client = LiveClient()..online = true;
     final session = LiveSession(client);
     session.files[0] = List.generate(30, (i) => ['video_', i, '.mp4'].join());
-    addTearDown(session.dispose); addTearDown(client.dispose);
-    await tester.pumpWidget(MaterialApp(home: PlaylistManagementPage(client: client, session: session)));
+    addTearDown(session.dispose);
+    addTearDown(client.dispose);
+    await tester.pumpWidget(MaterialApp(
+        home: PlaylistManagementPage(client: client, session: session)));
     await tester.pumpAndSettle();
     final tabs = find.text('A 日常播放');
     final before = tester.getTopLeft(tabs);
@@ -21,11 +45,14 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('device delete requires confirmation and add remains pinned', (tester) async {
+  testWidgets('device delete requires confirmation and add remains pinned',
+      (tester) async {
     final client = LiveClient()..online = true;
     final session = LiveSession(client);
-    addTearDown(session.dispose); addTearDown(client.dispose);
-    await tester.pumpWidget(MaterialApp(home: PlaylistManagementPage(client: client, session: session)));
+    addTearDown(session.dispose);
+    addTearDown(client.dispose);
+    await tester.pumpWidget(MaterialApp(
+        home: PlaylistManagementPage(client: client, session: session)));
     await tester.pumpAndSettle();
     final add = find.byIcon(Icons.playlist_add);
     final position = tester.getTopLeft(add);

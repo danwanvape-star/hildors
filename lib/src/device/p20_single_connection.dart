@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:collection';
 import 'dart:io';
 import '../protocol/p20_protocol.dart';
 import 'p20_upload_policy.dart';
@@ -9,7 +10,15 @@ class P20SingleConnection {
   P20SingleConnection(this.socket, {required this.onClosed}) {
     _subscription = socket.listen((bytes) {
       for (final frame in _decoder.add(bytes)) {
-        if (frame.command == _command && _reply?.isCompleted == false) {
+        if (_uploading && frame.command == 0x31) {
+          _uploadReplies.add(frame);
+          if (_uploadReplies.length > 2) {
+            unawaited(close());
+          }
+          if (_uploadAvailable?.isCompleted == false) {
+            _uploadAvailable!.complete();
+          }
+        } else if (frame.command == _command && _reply?.isCompleted == false) {
           _reply!.complete(frame);
         }
       }
@@ -26,6 +35,8 @@ class P20SingleConnection {
   int? _command;
   bool _closed = false;
   bool _uploading = false;
+  final _uploadReplies = Queue<P20Frame>();
+  Completer<void>? _uploadAvailable;
 
   Future<P20Frame> request(int command, List<int> data,
       {Duration timeout = const Duration(seconds: 3)}) {
@@ -96,12 +107,16 @@ class P20SingleConnection {
         size & 255,
         ...name
       ];
-      final ready = await _request(0x31, header, timeout);
+      final length = header.length + 1;
+      socket.add([0xaa, 0, 0, 0, length, 0x31, ...header, 2, 0xa5]);
+      final ready = await _nextUploadReply(timeout);
       _checkStatus(ready);
       if (ready.data.length != 1 || ready.data.single != 0) {
         throw const FormatException('Expected upload ready');
       }
-      _command = 0x31;
+      if (_uploadReplies.isNotEmpty) {
+        throw const FormatException('Unexpected early upload reply');
+      }
       var sent = 0;
       int? previousSequence;
       while (sent < size) {
@@ -111,15 +126,19 @@ class P20SingleConnection {
           throw const FormatException('Video changed during upload');
         }
         if (_closed) throw StateError('Device connection closed');
-        final pending = Completer<P20Frame>();
-        _reply = pending;
+        if (_uploadReplies.isNotEmpty) {
+          throw const FormatException('Unexpected early upload reply');
+        }
         socket.add(bytes);
         sent += bytes.length;
-        final ack = await pending.future.timeout(timeout);
+        final ack = await _nextUploadReply(timeout);
         _checkStatus(ack);
         if (ack.data.length == 1 && ack.data.single == 2) {
           if (sent != size) {
             throw const FormatException('Premature upload completion');
+          }
+          if (_uploadReplies.isNotEmpty) {
+            throw const FormatException('Unexpected reply after completion');
           }
           onProgress?.call(sent, size);
           return;
@@ -131,11 +150,11 @@ class P20SingleConnection {
         previousSequence = seq;
         onProgress?.call(sent, size);
       }
-      final pending = Completer<P20Frame>();
-      _reply = pending;
-      final complete = await pending.future.timeout(timeout);
+      final complete = await _nextUploadReply(timeout);
       _checkStatus(complete);
-      if (complete.data.length != 1 || complete.data.single != 2) {
+      if (complete.data.length != 1 ||
+          complete.data.single != 2 ||
+          _uploadReplies.isNotEmpty) {
         throw const FormatException('Expected upload completion');
       }
     } catch (_) {
@@ -145,8 +164,24 @@ class P20SingleConnection {
       await source?.close();
       _command = null;
       _reply = null;
+      _uploadReplies.clear();
       _uploading = false;
     }
+  }
+
+  Future<P20Frame> _nextUploadReply(Duration timeout) async {
+    if (_closed) throw StateError('Device connection closed');
+    if (_uploadReplies.isEmpty) {
+      final available = Completer<void>();
+      _uploadAvailable = available;
+      try {
+        await available.future.timeout(timeout);
+      } finally {
+        _uploadAvailable = null;
+      }
+    }
+    if (_closed) throw StateError('Device connection closed');
+    return _uploadReplies.removeFirst();
   }
 
   void _checkStatus(P20Frame frame) {
@@ -159,6 +194,9 @@ class P20SingleConnection {
   Future<void> close() async {
     if (_closed) return;
     _closed = true;
+    if (_uploadAvailable?.isCompleted == false) {
+      _uploadAvailable!.complete();
+    }
     if (_reply?.isCompleted == false) {
       _reply!.completeError(StateError('Device connection closed'));
     }

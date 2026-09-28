@@ -124,6 +124,7 @@ class _SettingsPageState extends State<SettingsPage> {
             children: [
               const LanguageSettingsTile(),
               DropdownButtonFormField<P20DevicePreference>(
+                isExpanded: true,
                 initialValue: widget.client.preference,
                 decoration:
                     InputDecoration(labelText: context.l10n.p20DeviceType),

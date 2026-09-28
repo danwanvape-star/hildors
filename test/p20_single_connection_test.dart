@@ -120,6 +120,75 @@ void main() {
     await transport.close();
     await check;
   });
+  test('coalesced final progress and completion are both consumed', () async {
+    final upload = transport.upload(await sample(35700), 'x.bin'.codeUnits,
+        timeout: const Duration(milliseconds: 100));
+    await peer.take(17);
+    peer.reply([0]);
+    await peer.take(35700);
+    peer.socket.add([
+      0x55,
+      0,
+      0,
+      0,
+      6,
+      0x31,
+      1,
+      0,
+      0,
+      0,
+      1,
+      2,
+      0x5a,
+      0x55,
+      0,
+      0,
+      0,
+      2,
+      0x31,
+      2,
+      2,
+      0x5a
+    ]);
+    await upload;
+  });
+  test('coalesced early duplicate ACK cannot advance another packet', () async {
+    final upload = transport.upload(await sample(71400), 'x.bin'.codeUnits,
+        timeout: const Duration(milliseconds: 100));
+    final check = expectLater(upload, throwsA(isA<FormatException>()));
+    await peer.take(17);
+    peer.reply([0]);
+    await peer.take(35700);
+    peer.socket.add([
+      0x55,
+      0,
+      0,
+      0,
+      6,
+      0x31,
+      1,
+      0,
+      0,
+      0,
+      1,
+      2,
+      0x5a,
+      0x55,
+      0,
+      0,
+      0,
+      6,
+      0x31,
+      1,
+      0,
+      0,
+      0,
+      1,
+      2,
+      0x5a
+    ]);
+    await check;
+  });
   test('missing completion times out and closes', () async {
     final upload = transport.upload(await sample(35700), 'x.bin'.codeUnits,
         timeout: const Duration(milliseconds: 50));

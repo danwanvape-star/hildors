@@ -67,8 +67,9 @@ class P20ProjectionService implements ProjectionService {
     if (!deviceConnected) return ProjectionOutcome.phoneOnly;
     final epoch = client.generation;
     final videos = await _loadVideoCatalog();
-    if (!client.isConnected || epoch != client.generation)
+    if (!client.isConnected || epoch != client.generation) {
       return ProjectionOutcome.phoneOnly;
+    }
     if (!hasDeviceVideo(videos, result.deviceVideo)) {
       return ProjectionOutcome.missingMaterial;
     }
@@ -108,8 +109,9 @@ class P20ProjectionService implements ProjectionService {
       return cached;
     }
     final videos = await session.queryVideos();
-    if (!client.isConnected || epoch != client.generation)
+    if (!client.isConnected || epoch != client.generation) {
       throw StateError('Device changed');
+    }
     _catalogGeneration = epoch;
     final names = videos.map((video) => video.fileName).toSet();
     _availableVideos = names;

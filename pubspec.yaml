@@ -45,3 +45,8 @@ flutter:
     - family: Poppins
       fonts:
         - asset: assets/fonts/Poppins-Regular.ttf
+
+# Preserve existing GBK mappings while avoiding large runtime map initialization.
+dependency_overrides:
+  gbk_codec:
+    path: third_party/gbk_codec

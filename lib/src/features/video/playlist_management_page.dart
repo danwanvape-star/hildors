@@ -51,6 +51,7 @@ class _PlaylistManagementPageState extends State<PlaylistManagementPage> {
 
   Future<void> _deleteDeviceVideo(String name) async {
     final listId = _live.listId;
+    final deviceGeneration = widget.client.generation;
     final confirmed = await showDialog<bool>(
         context: context,
         builder: (context) => AlertDialog(
@@ -77,6 +78,7 @@ class _PlaylistManagementPageState extends State<PlaylistManagementPage> {
             ));
     if (!mounted ||
         confirmed != true ||
+        deviceGeneration != widget.client.generation ||
         listId != _live.listId ||
         !_live.canEdit) {
       return;

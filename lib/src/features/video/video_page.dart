@@ -76,6 +76,7 @@ class _VideoPageState extends State<VideoPage> {
   }
 
   Future<void> _delete(P20VideoEntry video) async {
+    final deviceGeneration = widget.client.generation;
     if (_playingIndex == video.index) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(context.l10n.devicePlayingDelete)),
@@ -119,7 +120,12 @@ class _VideoPageState extends State<VideoPage> {
         ],
       ),
     );
-    if (confirmed != true) return;
+    if (confirmed != true ||
+        !mounted ||
+        !widget.client.isConnected ||
+        deviceGeneration != widget.client.generation) {
+      return;
+    }
     try {
       await widget.session.deleteVideo(video.fileName);
       await _refresh();
