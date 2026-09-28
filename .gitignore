@@ -39,3 +39,5 @@ id_ed25519
 *.db-*
 /backend/data/
 /user-media/
+
+.worktrees/
