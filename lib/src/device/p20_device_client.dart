@@ -63,6 +63,14 @@ class P20DeviceClient {
   final bool verifyOnConnect;
   P20V2Connection? _modern;
   P20UploadSnapshot? lastUploadSnapshot;
+  bool _uploading = false;
+  static const singleUploadValidationEnabled =
+      bool.fromEnvironment('HILDORS_SINGLE_UPLOAD_VALIDATION');
+  bool get canUploadVideo =>
+      isConnected &&
+      (profile.kind == P20DeviceKind.dual ||
+          (profile.kind == P20DeviceKind.single &&
+              singleUploadValidationEnabled));
   Socket? _socket;
   Timer? _reconnectTimer;
   final _frames = StreamController<P20Frame>.broadcast();
@@ -177,7 +185,7 @@ class P20DeviceClient {
     if (_manualDisconnect || _disposed) return;
     await _closeTransport();
     _emitConnection(DeviceConnectionState.disconnected);
-    _scheduleReconnect();
+    if (!_uploading) _scheduleReconnect();
   }
 
   void _scheduleReconnect() {
@@ -198,6 +206,7 @@ class P20DeviceClient {
 
   Future<void> retryNow() async {
     if (_disposed) throw StateError('Client has been disposed');
+    if (_uploading) throw StateError('Device upload in progress');
     _manualDisconnect = false;
     _reconnectTimer?.cancel();
     _backoff.reset();
@@ -279,10 +288,27 @@ class P20DeviceClient {
   }
 
   Future<void> uploadFile(File file, int listId, List<int> gbkName,
-      {void Function(int acknowledged, int total)? onProgress}) {
+      {void Function(int acknowledged, int total)? onProgress}) async {
+    if (!canUploadVideo)
+      throw StateError('Device video upload is not available');
+    if (_uploading) throw StateError('Device upload in progress');
+    _uploading = true;
     lastUploadSnapshot = null;
-    return _requireModern().upload(file, listId, gbkName,
-        onProgress: onProgress, onState: (state) => lastUploadSnapshot = state);
+    final epoch = generation;
+    try {
+      if (profile.kind == P20DeviceKind.single) {
+        if (listId != 0) throw ArgumentError.value(listId, 'listId');
+        await _single!.upload(file, gbkName, onProgress: onProgress);
+      } else {
+        await _requireModern().upload(file, listId, gbkName,
+            onProgress: onProgress, onState: (state) {
+          if (epoch == generation) lastUploadSnapshot = state;
+        });
+      }
+      if (epoch != generation) throw StateError('Device changed');
+    } finally {
+      _uploading = false;
+    }
   }
 
   void setPower(bool on) => send(P20Command.power, [on ? 0x01 : 0x02]);
