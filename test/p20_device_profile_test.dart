@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import '../lib/src/device/p20_device_profile.dart';
+import 'package:hildors_cockpit/src/device/p20_device_profile.dart';
 
 void main() {
   test('single profile restricts the device to one silent list', () {

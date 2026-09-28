@@ -2406,4 +2406,27 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get creatorMediaPreview => 'Preview video';
+
+  @override
+  String get p20SingleList => 'Device videos';
+
+  @override
+  String get p20SingleValidationPending =>
+      'Video upload for this device is awaiting hardware validation.';
+
+  @override
+  String get p20SingleTransferComplete =>
+      'Transfer confirmed. Playback is awaiting hardware validation.';
+
+  @override
+  String get p20DeviceType => 'Device type';
+
+  @override
+  String get p20DeviceAuto => 'Detect automatically';
+
+  @override
+  String get p20DeviceSingle => 'Single list (CS_P20)';
+
+  @override
+  String get p20DeviceDual => 'Dual list (HILDORS_P20)';
 }

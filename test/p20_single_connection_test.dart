@@ -1,9 +1,9 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
-import '../lib/src/device/p20_single_connection.dart';
-import '../lib/src/device/p20_device_client.dart';
-import '../lib/src/device/p20_device_profile.dart';
+import 'package:hildors_cockpit/src/device/p20_single_connection.dart';
+import 'package:hildors_cockpit/src/device/p20_device_client.dart';
+import 'package:hildors_cockpit/src/device/p20_device_profile.dart';
 
 class Peer {
   Peer(this.socket) : input = StreamIterator(socket);

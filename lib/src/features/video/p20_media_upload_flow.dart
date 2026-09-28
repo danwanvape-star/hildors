@@ -1,4 +1,5 @@
 import 'dart:io';
+import '../../device/p20_device_profile.dart';
 
 enum P20MediaList { daily, bluetooth }
 
@@ -44,7 +45,10 @@ abstract interface class P20MediaDestination {
 /// One instance represents one attempt; failed paired uploads must be reconciled
 /// explicitly, never blindly retried over existing device files.
 class P20MediaUploadFlow {
-  P20MediaUploadFlow(this.media, this.destination, {this.onStage});
+  P20MediaUploadFlow(this.media, this.destination,
+      {this.onStage,
+      this.profile = const P20DeviceProfile.forKind(P20DeviceKind.dual)});
+  final P20DeviceProfile profile;
   final P20MediaPreparation media;
   final P20MediaDestination destination;
   final void Function(P20MediaStage stage)? onStage;
@@ -79,6 +83,10 @@ class P20MediaUploadFlow {
   Future<void> run(File source, P20MediaList list, String baseName) async {
     // Generated ASCII device identifiers are a valid subset of CP936. User
     // display titles stay separate; full GBK title encoding belongs to the UI adapter.
+    if (!profile.supportsList(list.index) ||
+        baseName.length + 4 > profile.maxNameBytes) {
+      throw ArgumentError('Unsupported device list or file name');
+    }
     if (!RegExp(r'^[A-Za-z0-9][A-Za-z0-9_-]{0,56}$').hasMatch(baseName) ||
         baseName.toLowerCase().startsWith('a_') ||
         baseName.toLowerCase().startsWith('b_')) {
@@ -88,7 +96,7 @@ class P20MediaUploadFlow {
     _started = true;
     try {
       File? audio;
-      if (list == P20MediaList.daily) {
+      if (profile.supportsAudio && list == P20MediaList.daily) {
         _set(P20MediaStage.extractingAudio);
         try {
           audio = await media.extractAudio(source);
@@ -105,7 +113,8 @@ class P20MediaUploadFlow {
         audioUploaded = true;
       }
       _set(P20MediaStage.uploadingVideo);
-      await destination.upload(video, list.index, '$baseName.mp4');
+      await destination.upload(
+          video, list.index, '$baseName${profile.videoExtension}');
       videoUploaded = true;
       _set(P20MediaStage.refreshing);
       await destination.refresh(list.index);

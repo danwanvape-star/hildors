@@ -2251,4 +2251,25 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get creatorMediaPreview => '预览视频';
+
+  @override
+  String get p20SingleList => '设备视频';
+
+  @override
+  String get p20SingleValidationPending => '该机型视频上传待实机验证。';
+
+  @override
+  String get p20SingleTransferComplete => '传输完成，播放待实机验证。';
+
+  @override
+  String get p20DeviceType => '设备类型';
+
+  @override
+  String get p20DeviceAuto => '自动识别';
+
+  @override
+  String get p20DeviceSingle => '单列表（CS_P20）';
+
+  @override
+  String get p20DeviceDual => '双列表（HILDORS_P20）';
 }
