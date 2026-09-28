@@ -88,6 +88,8 @@ class P20Protocol {
 
 /// Incremental decoder for TCP fragmentation and sticky packets.
 class P20FrameDecoder {
+  P20FrameDecoder({this.allowLegacyCrc = true});
+  final bool allowLegacyCrc;
   final List<int> _buffer = [];
 
   List<P20Frame> add(List<int> bytes) {
@@ -115,8 +117,8 @@ class P20FrameDecoder {
       final frameLength = 1 + 4 + length + 1 + 1;
       if (_buffer.length < frameLength) break;
       final frameCrc = _buffer[frameLength - 2];
-      final validCrc =
-          frameCrc == P20Protocol.crc || frameCrc == P20Protocol.legacyCrc;
+      final validCrc = frameCrc == P20Protocol.crc ||
+          (allowLegacyCrc && frameCrc == P20Protocol.legacyCrc);
       if (!validCrc || _buffer[frameLength - 1] != P20Protocol.responseEnd) {
         _buffer.removeAt(0);
         continue;

@@ -1,3 +1,4 @@
+import '../../device/p20_device_profile.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -148,6 +149,8 @@ class _HomePageState extends State<HomePage> {
                               ),
                               SizedBox(height: 10),
                               _NowPlayingCard(
+                                single: widget.client.profile.kind ==
+                                    P20DeviceKind.single,
                                 height: (constraints.maxHeight - 258)
                                         .clamp(286.0, 600.0) *
                                     MediaQuery.textScalerOf(context)
@@ -257,6 +260,7 @@ class _CustomizationShortcut extends StatelessWidget {
 class _NowPlayingCard extends StatelessWidget {
   const _NowPlayingCard({
     required this.height,
+    required this.single,
     required this.connected,
     required this.onOpenStartup,
     required this.onOpenBluetooth,
@@ -264,6 +268,7 @@ class _NowPlayingCard extends StatelessWidget {
 
   final bool connected;
   final double height;
+  final bool single;
   final VoidCallback onOpenStartup;
   final VoidCallback onOpenBluetooth;
 
@@ -290,24 +295,31 @@ class _NowPlayingCard extends StatelessWidget {
           Text(context.l10n.corePlaylists,
               style: Theme.of(context).textTheme.headlineSmall),
           const SizedBox(height: 4),
-          Text(context.l10n.corePlaylistSubtitle,
+          Text(
+              single
+                  ? context.l10n.p20SingleList
+                  : context.l10n.corePlaylistSubtitle,
               style: const TextStyle(fontSize: 12)),
           const SizedBox(height: 8),
           _StatusPill(connected: connected),
           const SizedBox(height: 16),
           _PlaylistShortcut(
             icon: Icons.wb_sunny_outlined,
-            title: context.l10n.coreDisplay,
-            subtitle: context.l10n.coreStartupSubtitle,
+            title:
+                single ? context.l10n.p20SingleList : context.l10n.coreDisplay,
+            subtitle: single
+                ? context.l10n.p20DeviceSingle
+                : context.l10n.coreStartupSubtitle,
             onTap: onOpenStartup,
           ),
           const SizedBox(height: 10),
-          _PlaylistShortcut(
-            icon: Icons.graphic_eq,
-            title: context.l10n.coreMusic,
-            subtitle: context.l10n.coreBluetoothSubtitle,
-            onTap: onOpenBluetooth,
-          ),
+          if (!single)
+            _PlaylistShortcut(
+              icon: Icons.graphic_eq,
+              title: context.l10n.coreMusic,
+              subtitle: context.l10n.coreBluetoothSubtitle,
+              onTap: onOpenBluetooth,
+            ),
         ],
       ),
     );

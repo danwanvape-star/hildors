@@ -1,3 +1,4 @@
+import '../../device/p20_device_profile.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:hildors_cockpit/src/localization/localization.dart';
@@ -25,7 +26,9 @@ class _DashboardPageState extends State<DashboardPage>
   Future<void> _autoConnect() async {
     if (!mounted ||
         _autoConnecting ||
-        _client.connectionState != DeviceConnectionState.disconnected) { return; }
+        _client.connectionState != DeviceConnectionState.disconnected) {
+      return;
+    }
     _autoConnecting = true;
     try {
       await _client.connect();
@@ -61,7 +64,8 @@ class _DashboardPageState extends State<DashboardPage>
   @override
   void initState() {
     super.initState();
-    _client = P20DeviceClient(modernProtocol: true, verifyOnConnect: true);
+    _client = P20DeviceClient(
+        preference: P20DevicePreference.auto, verifyOnConnect: true);
     _session = P20CommandSession(_client);
     _projection = P20ProjectionService(_client, _session);
     WidgetsBinding.instance.addObserver(this);

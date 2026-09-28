@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:collection';
 import 'dart:convert';
 import 'package:gbk_codec/gbk_codec.dart';
 
@@ -49,44 +48,26 @@ class P20CommandException implements Exception {
 /// Matches one response to each request of the same command. This prevents
 /// unrelated replies from being consumed when controls are used rapidly.
 class P20CommandSession {
-  P20CommandSession(this.client) {
-    _subscription = client.frames.listen(_onFrame);
-  }
-
+  P20CommandSession(this.client);
   final P20DeviceClient client;
-  final Map<int, Queue<Completer<P20Frame>>> _pending = {};
-  late final StreamSubscription<P20Frame> _subscription;
 
   Future<P20Frame> request(
     P20Command command, [
     List<int>? data,
     Duration timeout = const Duration(seconds: 3),
-  ]) {
-    if (client.modernProtocol) {
-      return client.requestFrame(command, data ?? const []);
+  ]) async {
+    if (!client.modernProtocol &&
+        const {
+          P20Command.switchPlaylist,
+          P20Command.queryBluetoothSpeakerName,
+          P20Command.setBluetoothSpeakerName,
+          P20Command.factoryReset,
+          P20Command.formatStorage,
+        }.contains(command)) {
+      throw const P20CommandException('该设备不支持此操作');
     }
-    final completer = Completer<P20Frame>();
-    (_pending[command.code] ??= Queue()).add(completer);
-    try {
-      client.send(command, data ?? const [0x00]);
-    } catch (error, stackTrace) {
-      _pending[command.code]?.remove(completer);
-      completer.completeError(error, stackTrace);
-    }
-    return completer.future.timeout(
-      timeout,
-      onTimeout: () {
-        _pending[command.code]?.remove(completer);
-        throw TimeoutException('设备未在 ${timeout.inSeconds} 秒内应答');
-      },
-    );
-  }
-
-  void _onFrame(P20Frame frame) {
-    final queue = _pending[frame.command];
-    if (queue == null || queue.isEmpty) return;
-    queue.removeFirst().complete(frame);
-    if (queue.isEmpty) _pending.remove(frame.command);
+    return client.requestFrame(
+        command, data ?? (client.modernProtocol ? const [] : const [0x00]));
   }
 
   Future<DeviceStatus> queryDeviceStatus() async {
@@ -185,12 +166,24 @@ class P20CommandSession {
           listId: listId,
           fileName: gbk_bytes.decode(frame.data.sublist(3)));
     }
-    if (index < 0 || index > 254) {
-      throw RangeError.range(index, 0, 254, 'index');
-    }
+    RangeError.checkValueInInterval(index, 0, 49, 'index');
     final frame = await request(P20Command.queryVideoList, [index]);
     _requireLength(frame, 2);
+    if (frame.data[0] > 50 || frame.data[1] != index) {
+      throw const P20CommandException('播放列表应答不匹配');
+    }
     if (frame.data[0] == 0) return null;
+    if (index >= frame.data[0] ||
+        frame.data.length < 3 ||
+        frame.data.length > 34) {
+      throw const P20CommandException('视频文件名或索引不合法');
+    }
+    final nameBytes = frame.data.sublist(2);
+    if (nameBytes.any((byte) => byte < 32 || byte > 126) ||
+        nameBytes.contains(47) ||
+        nameBytes.contains(92)) {
+      throw const P20CommandException('设备文件名编码尚未验证');
+    }
     return P20VideoEntry(
       total: frame.data[0],
       index: frame.data[1],
@@ -224,7 +217,9 @@ class P20CommandSession {
           playing: frame.data[2] == 1,
           playerStatus: frame.data[2]);
     }
-    _requireLength(frame, 2);
+    if (frame.data.length != 2 || ![1, 2].contains(frame.data[1])) {
+      throw const P20CommandException('播放状态应答不合法');
+    }
     return P20CurrentVideo(index: frame.data[0], playing: frame.data[1] == 1);
   }
 
@@ -265,12 +260,21 @@ class P20CommandSession {
     }
   }
 
-  static void _validateList(int listId) =>
-      RangeError.checkValueInInterval(listId, 0, 1, 'listId');
+  void _validateList(int listId) => RangeError.checkValueInInterval(
+      listId, 0, client.modernProtocol ? 1 : 0, 'listId');
 
   List<int> _filePayload(String name, int listId) {
     _validateList(listId);
-    if (!client.modernProtocol) return utf8.encode(name);
+    if (!client.modernProtocol) {
+      if (name.isEmpty ||
+          name.length > 32 ||
+          name.codeUnits.any((b) => b < 32 || b > 126) ||
+          name.contains('/') ||
+          name.contains('\\')) {
+        throw const P20CommandException('设备文件名不合法');
+      }
+      return name.codeUnits;
+    }
     final bytes = gbk_bytes.encode(name);
     if (bytes.isEmpty ||
         bytes.length > 61 ||
@@ -346,15 +350,5 @@ class P20CommandSession {
     }
   }
 
-  Future<void> dispose() async {
-    await _subscription.cancel();
-    for (final queue in _pending.values) {
-      for (final completer in queue) {
-        if (!completer.isCompleted) {
-          completer.completeError(const P20CommandException('会话已关闭'));
-        }
-      }
-    }
-    _pending.clear();
-  }
+  Future<void> dispose() async {}
 }

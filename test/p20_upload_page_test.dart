@@ -1,5 +1,6 @@
 import 'package:hildors_cockpit/src/localization/localization.dart';
 import 'dart:async';
+import 'package:hildors_cockpit/src/device/p20_device_profile.dart';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -18,6 +19,9 @@ class ConnectedClient extends P20DeviceClient {
   bool failUpload = false;
   @override
   bool get isConnected => true;
+  @override
+  P20DeviceProfile get profile =>
+      const P20DeviceProfile.forKind(P20DeviceKind.dual);
   @override
   Future<void> uploadFile(File file, int listId, List<int> name,
       {void Function(int, int)? onProgress}) async {

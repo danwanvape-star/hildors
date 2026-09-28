@@ -4369,6 +4369,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Preview video'**
   String get creatorMediaPreview;
+
+  /// No description provided for @p20SingleList.
+  ///
+  /// In en, this message translates to:
+  /// **'Device videos'**
+  String get p20SingleList;
+
+  /// No description provided for @p20SingleValidationPending.
+  ///
+  /// In en, this message translates to:
+  /// **'Video upload for this device is awaiting hardware validation.'**
+  String get p20SingleValidationPending;
+
+  /// No description provided for @p20SingleTransferComplete.
+  ///
+  /// In en, this message translates to:
+  /// **'Transfer confirmed. Playback is awaiting hardware validation.'**
+  String get p20SingleTransferComplete;
+
+  /// No description provided for @p20DeviceType.
+  ///
+  /// In en, this message translates to:
+  /// **'Device type'**
+  String get p20DeviceType;
+
+  /// No description provided for @p20DeviceAuto.
+  ///
+  /// In en, this message translates to:
+  /// **'Detect automatically'**
+  String get p20DeviceAuto;
+
+  /// No description provided for @p20DeviceSingle.
+  ///
+  /// In en, this message translates to:
+  /// **'Single list (CS_P20)'**
+  String get p20DeviceSingle;
+
+  /// No description provided for @p20DeviceDual.
+  ///
+  /// In en, this message translates to:
+  /// **'Dual list (HILDORS_P20)'**
+  String get p20DeviceDual;
 }
 
 class _AppLocalizationsDelegate

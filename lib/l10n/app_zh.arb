@@ -804,5 +804,12 @@
     }
   },
   "creatorMediaThumbnailPending": "缩略图暂未就绪，点击预览",
-  "creatorMediaPreview": "预览视频"
+  "creatorMediaPreview": "预览视频",
+  "p20SingleList": "设备视频",
+  "p20SingleValidationPending": "该机型视频上传待实机验证。",
+  "p20SingleTransferComplete": "传输完成，播放待实机验证。",
+  "p20DeviceType": "设备类型",
+  "p20DeviceAuto": "自动识别",
+  "p20DeviceSingle": "单列表（CS_P20）",
+  "p20DeviceDual": "双列表（HILDORS_P20）"
 }

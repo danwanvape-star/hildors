@@ -1074,5 +1074,12 @@
     }
   },
   "creatorMediaThumbnailPending": "Thumbnail not ready. Tap to preview.",
-  "creatorMediaPreview": "Preview video"
+  "creatorMediaPreview": "Preview video",
+  "p20SingleList": "Device videos",
+  "p20SingleValidationPending": "Video upload for this device is awaiting hardware validation.",
+  "p20SingleTransferComplete": "Transfer confirmed. Playback is awaiting hardware validation.",
+  "p20DeviceType": "Device type",
+  "p20DeviceAuto": "Detect automatically",
+  "p20DeviceSingle": "Single list (CS_P20)",
+  "p20DeviceDual": "Dual list (HILDORS_P20)"
 }

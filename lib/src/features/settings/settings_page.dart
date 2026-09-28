@@ -1,3 +1,4 @@
+import '../../device/p20_device_profile.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -122,6 +123,39 @@ class _SettingsPageState extends State<SettingsPage> {
             padding: EdgeInsets.fromLTRB(18, 8, 18, 32),
             children: [
               const LanguageSettingsTile(),
+              DropdownButtonFormField<P20DevicePreference>(
+                isExpanded: true,
+                initialValue: widget.client.preference,
+                decoration:
+                    InputDecoration(labelText: context.l10n.p20DeviceType),
+                items: [
+                  DropdownMenuItem(
+                      value: P20DevicePreference.auto,
+                      child: Text(context.l10n.p20DeviceAuto)),
+                  DropdownMenuItem(
+                      value: P20DevicePreference.single,
+                      child: Text(context.l10n.p20DeviceSingle)),
+                  DropdownMenuItem(
+                      value: P20DevicePreference.dual,
+                      child: Text(context.l10n.p20DeviceDual)),
+                ],
+                onChanged: _busy
+                    ? null
+                    : (value) async {
+                        if (value == null) return;
+                        setState(() {
+                          _busy = true;
+                          _message = null;
+                        });
+                        try {
+                          await widget.client.setPreference(value);
+                        } catch (_) {
+                          if (mounted) setState(() => _message = 'read');
+                        } finally {
+                          if (mounted) setState(() => _busy = false);
+                        }
+                      },
+              ),
               _ConnectionPanel(
                 state: _connection,
                 busy: _busy,

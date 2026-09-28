@@ -1,3 +1,4 @@
+import '../../device/p20_device_profile.dart';
 import '../../localization/localization.dart';
 import 'dart:io';
 import 'package:flutter/material.dart';
@@ -50,6 +51,7 @@ class _PlaylistManagementPageState extends State<PlaylistManagementPage> {
 
   Future<void> _deleteDeviceVideo(String name) async {
     final listId = _live.listId;
+    final deviceGeneration = widget.client.generation;
     final confirmed = await showDialog<bool>(
         context: context,
         builder: (context) => AlertDialog(
@@ -61,7 +63,8 @@ class _PlaylistManagementPageState extends State<PlaylistManagementPage> {
                       children: [
                     Text(context.l10n.deviceDeleteIntro),
                     Text(name),
-                    Text(context.l10n.deviceDeleteAudioNote),
+                    if (widget.client.profile.supportsAudio)
+                      Text(context.l10n.deviceDeleteAudioNote),
                     Text(context.l10n.deviceDeleteNote),
                   ])),
               actions: [
@@ -75,6 +78,7 @@ class _PlaylistManagementPageState extends State<PlaylistManagementPage> {
             ));
     if (!mounted ||
         confirmed != true ||
+        deviceGeneration != widget.client.generation ||
         listId != _live.listId ||
         !_live.canEdit) {
       return;
@@ -366,22 +370,28 @@ class _PlaylistManagementPageState extends State<PlaylistManagementPage> {
                                   crossAxisAlignment:
                                       CrossAxisAlignment.stretch,
                                   children: [
-                                    SegmentedButton<DevicePlaylistKind>(
-                                      segments: [
-                                        ButtonSegment(
-                                            value: DevicePlaylistKind.startup,
-                                            label: Text(context.l10n.p20Daily)),
-                                        ButtonSegment(
-                                            value: DevicePlaylistKind.bluetooth,
-                                            label: Text(
-                                                context.l10n.p20Bluetooth)),
-                                      ],
-                                      selected: {_kind},
-                                      onSelectionChanged: _live.busy
-                                          ? null
-                                          : (value) => _live
-                                              .selectList(value.single.index),
-                                    ),
+                                    if (widget.client.profile.kind ==
+                                        P20DeviceKind.single)
+                                      Text(context.l10n.p20SingleList)
+                                    else
+                                      SegmentedButton<DevicePlaylistKind>(
+                                        segments: [
+                                          ButtonSegment(
+                                              value: DevicePlaylistKind.startup,
+                                              label:
+                                                  Text(context.l10n.p20Daily)),
+                                          ButtonSegment(
+                                              value:
+                                                  DevicePlaylistKind.bluetooth,
+                                              label: Text(
+                                                  context.l10n.p20Bluetooth)),
+                                        ],
+                                        selected: {_kind},
+                                        onSelectionChanged: _live.busy
+                                            ? null
+                                            : (value) => _live
+                                                .selectList(value.single.index),
+                                      ),
                                     SizedBox(height: 12),
                                     if (!_live.connected) ...[
                                       Text(context.l10n.p20ConnectNote),
