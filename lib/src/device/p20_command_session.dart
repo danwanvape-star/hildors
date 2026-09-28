@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:collection';
 import 'dart:convert';
 import 'package:gbk_codec/gbk_codec.dart';
 
@@ -49,44 +48,16 @@ class P20CommandException implements Exception {
 /// Matches one response to each request of the same command. This prevents
 /// unrelated replies from being consumed when controls are used rapidly.
 class P20CommandSession {
-  P20CommandSession(this.client) {
-    _subscription = client.frames.listen(_onFrame);
-  }
-
+  P20CommandSession(this.client);
   final P20DeviceClient client;
-  final Map<int, Queue<Completer<P20Frame>>> _pending = {};
-  late final StreamSubscription<P20Frame> _subscription;
 
   Future<P20Frame> request(
     P20Command command, [
     List<int>? data,
     Duration timeout = const Duration(seconds: 3),
   ]) {
-    if (client.modernProtocol) {
-      return client.requestFrame(command, data ?? const []);
-    }
-    final completer = Completer<P20Frame>();
-    (_pending[command.code] ??= Queue()).add(completer);
-    try {
-      client.send(command, data ?? const [0x00]);
-    } catch (error, stackTrace) {
-      _pending[command.code]?.remove(completer);
-      completer.completeError(error, stackTrace);
-    }
-    return completer.future.timeout(
-      timeout,
-      onTimeout: () {
-        _pending[command.code]?.remove(completer);
-        throw TimeoutException('设备未在 ${timeout.inSeconds} 秒内应答');
-      },
-    );
-  }
-
-  void _onFrame(P20Frame frame) {
-    final queue = _pending[frame.command];
-    if (queue == null || queue.isEmpty) return;
-    queue.removeFirst().complete(frame);
-    if (queue.isEmpty) _pending.remove(frame.command);
+    return client.requestFrame(
+        command, data ?? (client.modernProtocol ? const [] : const [0x00]));
   }
 
   Future<DeviceStatus> queryDeviceStatus() async {
@@ -346,15 +317,5 @@ class P20CommandSession {
     }
   }
 
-  Future<void> dispose() async {
-    await _subscription.cancel();
-    for (final queue in _pending.values) {
-      for (final completer in queue) {
-        if (!completer.isCompleted) {
-          completer.completeError(const P20CommandException('会话已关闭'));
-        }
-      }
-    }
-    _pending.clear();
-  }
+  Future<void> dispose() async {}
 }
