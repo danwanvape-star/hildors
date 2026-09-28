@@ -1,3 +1,4 @@
+import 'package:hildors_cockpit/src/device/p20_device_profile.dart';
 import 'dart:async';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hildors_cockpit/src/device/p20_device_client.dart';
@@ -7,6 +8,9 @@ import 'package:hildors_cockpit/src/features/video/p20_live_playlist.dart';
 class LiveClient extends P20DeviceClient {
   final states = StreamController<DeviceConnectionState>.broadcast();
   bool online = false;
+  @override
+  P20DeviceProfile get profile =>
+      const P20DeviceProfile.forKind(P20DeviceKind.dual);
   @override
   bool get isConnected => online;
   @override
@@ -40,6 +44,7 @@ class LiveSession extends P20CommandSession {
     if (reject) throw StateError('rejected');
     files[listId]!.remove(name);
   }
+
   P20PlayMode mode = P20PlayMode.sequenceLoop;
   @override
   Future<List<P20VideoEntry>> queryVideos({int listId = 0}) async {

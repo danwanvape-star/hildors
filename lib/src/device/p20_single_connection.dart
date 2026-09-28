@@ -29,8 +29,9 @@ class P20SingleConnection {
 
   Future<P20Frame> request(int command, List<int> data,
       {Duration timeout = const Duration(seconds: 3)}) {
-    if (_uploading)
+    if (_uploading) {
       return Future.error(StateError('Device upload in progress'));
+    }
     final result = _tail.then((_) => _request(command, data, timeout));
     _tail = result.then<void>((_) {}, onError: (Object _) {});
     return result;
@@ -106,8 +107,9 @@ class P20SingleConnection {
       while (sent < size) {
         if (_closed) throw StateError('Device connection closed');
         final bytes = await source.read(35700);
-        if (bytes.length != 35700)
+        if (bytes.length != 35700) {
           throw const FormatException('Video changed during upload');
+        }
         if (_closed) throw StateError('Device connection closed');
         final pending = Completer<P20Frame>();
         _reply = pending;
@@ -116,8 +118,9 @@ class P20SingleConnection {
         final ack = await pending.future.timeout(timeout);
         _checkStatus(ack);
         if (ack.data.length == 1 && ack.data.single == 2) {
-          if (sent != size)
+          if (sent != size) {
             throw const FormatException('Premature upload completion');
+          }
           onProgress?.call(sent, size);
           return;
         }

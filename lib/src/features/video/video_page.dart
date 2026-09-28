@@ -31,7 +31,14 @@ class _VideoPageState extends State<VideoPage> {
     super.initState();
     _connection = widget.client.connectionState;
     _connectionSubscription = widget.client.connectionStates.listen((value) {
-      if (mounted) setState(() => _connection = value);
+      if (mounted) {
+        setState(() {
+          _connection = value;
+          _videos = const [];
+          _playingIndex = null;
+          _message = null;
+        });
+      }
     });
   }
 
@@ -41,10 +48,11 @@ class _VideoPageState extends State<VideoPage> {
       _loading = true;
       _message = null;
     });
+    final generation = widget.client.generation;
     try {
       final videos = await widget.session.queryVideos();
       final current = await widget.session.queryCurrentVideo();
-      if (mounted) {
+      if (mounted && widget.client.generation == generation) {
         setState(() {
           _videos = videos;
           _playingIndex =

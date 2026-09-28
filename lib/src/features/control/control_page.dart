@@ -1,3 +1,4 @@
+import '../../device/p20_device_profile.dart';
 import '../../localization/localization.dart';
 import 'dart:async';
 
@@ -44,7 +45,8 @@ class _ControlPageState extends State<ControlPage> with WidgetsBindingObserver {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _ownsClient = widget.client == null;
-    _client = widget.client ?? P20DeviceClient(modernProtocol: true);
+    _client =
+        widget.client ?? P20DeviceClient(preference: P20DevicePreference.auto);
     _session = P20CommandSession(_client);
     _connection = _client.connectionState;
     if (_client.isConnected) {
@@ -57,6 +59,8 @@ class _ControlPageState extends State<ControlPage> with WidgetsBindingObserver {
         setState(() {
           _connection = state;
           _playing = null;
+          _status = const DeviceStatus();
+          _bluetoothSpeakerName = null;
           _commandBusy = false;
         });
       }
@@ -169,7 +173,7 @@ class _ControlPageState extends State<ControlPage> with WidgetsBindingObserver {
             SizedBox(height: 12),
             DeviceStatusPanel(connection: _connection, runtime: _runtime),
             SizedBox(height: 12),
-            _bluetoothCard(),
+            if (_client.profile.kind != P20DeviceKind.single) _bluetoothCard(),
             if (_error != null) ...[
               SizedBox(height: 12),
               Text(
@@ -218,7 +222,11 @@ class _ControlPageState extends State<ControlPage> with WidgetsBindingObserver {
   }
 
   Future<void> _refreshBluetoothName() async {
-    if (!_connected || _loadingBluetoothName) return;
+    if (!_connected ||
+        _loadingBluetoothName ||
+        _client.profile.kind == P20DeviceKind.single) {
+      return;
+    }
     setState(() => _loadingBluetoothName = true);
     try {
       final name = await _session.queryBluetoothSpeakerName();

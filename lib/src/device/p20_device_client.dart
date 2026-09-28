@@ -278,6 +278,10 @@ class P20DeviceClient {
   Future<P20Frame> requestFrame(P20Command command,
       [List<int> data = const []]) async {
     if (!isConnected) throw StateError('Device is not connected');
+    if (!modernProtocol &&
+        const {0x10, 0x73, 0x74, 0xc1, 0xc2}.contains(command.code)) {
+      throw UnsupportedError('Unsupported single-list command');
+    }
     final epoch = generation;
     final frame = modernProtocol
         ? await _requireModern().request(command.code, data)
@@ -289,8 +293,9 @@ class P20DeviceClient {
 
   Future<void> uploadFile(File file, int listId, List<int> gbkName,
       {void Function(int acknowledged, int total)? onProgress}) async {
-    if (!canUploadVideo)
+    if (!canUploadVideo) {
       throw StateError('Device video upload is not available');
+    }
     if (_uploading) throw StateError('Device upload in progress');
     _uploading = true;
     lastUploadSnapshot = null;

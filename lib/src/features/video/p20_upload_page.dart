@@ -20,8 +20,9 @@ class P20DeviceDestination implements P20MediaDestination {
       : generation = client.generation;
   final int generation;
   void _checkDevice() {
-    if (!client.isConnected || client.generation != generation)
+    if (!client.isConnected || client.generation != generation) {
       throw StateError('Device changed');
+    }
   }
 
   final P20DeviceClient client;

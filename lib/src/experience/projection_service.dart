@@ -57,6 +57,7 @@ class P20ProjectionService implements ProjectionService {
   final P20CommandSession session;
   Set<String>? _availableVideos;
   DateTime? _catalogLoadedAt;
+  int? _catalogGeneration;
 
   @override
   bool get deviceConnected => client.isConnected;
@@ -64,7 +65,10 @@ class P20ProjectionService implements ProjectionService {
   @override
   Future<ProjectionOutcome> present(ExperienceResult result) async {
     if (!deviceConnected) return ProjectionOutcome.phoneOnly;
+    final epoch = client.generation;
     final videos = await _loadVideoCatalog();
+    if (!client.isConnected || epoch != client.generation)
+      return ProjectionOutcome.phoneOnly;
     if (!hasDeviceVideo(videos, result.deviceVideo)) {
       return ProjectionOutcome.missingMaterial;
     }
@@ -94,6 +98,8 @@ class P20ProjectionService implements ProjectionService {
   }
 
   Future<Set<String>> _loadVideoCatalog() async {
+    final epoch = client.generation;
+    if (_catalogGeneration != epoch) invalidateVideoCatalog();
     final loadedAt = _catalogLoadedAt;
     final cached = _availableVideos;
     if (cached != null &&
@@ -102,6 +108,9 @@ class P20ProjectionService implements ProjectionService {
       return cached;
     }
     final videos = await session.queryVideos();
+    if (!client.isConnected || epoch != client.generation)
+      throw StateError('Device changed');
+    _catalogGeneration = epoch;
     final names = videos.map((video) => video.fileName).toSet();
     _availableVideos = names;
     _catalogLoadedAt = DateTime.now();

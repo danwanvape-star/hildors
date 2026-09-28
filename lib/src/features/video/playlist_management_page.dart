@@ -1,3 +1,4 @@
+import '../../device/p20_device_profile.dart';
 import '../../localization/localization.dart';
 import 'dart:io';
 import 'package:flutter/material.dart';
@@ -61,7 +62,8 @@ class _PlaylistManagementPageState extends State<PlaylistManagementPage> {
                       children: [
                     Text(context.l10n.deviceDeleteIntro),
                     Text(name),
-                    Text(context.l10n.deviceDeleteAudioNote),
+                    if (widget.client.profile.supportsAudio)
+                      Text(context.l10n.deviceDeleteAudioNote),
                     Text(context.l10n.deviceDeleteNote),
                   ])),
               actions: [
@@ -366,22 +368,28 @@ class _PlaylistManagementPageState extends State<PlaylistManagementPage> {
                                   crossAxisAlignment:
                                       CrossAxisAlignment.stretch,
                                   children: [
-                                    SegmentedButton<DevicePlaylistKind>(
-                                      segments: [
-                                        ButtonSegment(
-                                            value: DevicePlaylistKind.startup,
-                                            label: Text(context.l10n.p20Daily)),
-                                        ButtonSegment(
-                                            value: DevicePlaylistKind.bluetooth,
-                                            label: Text(
-                                                context.l10n.p20Bluetooth)),
-                                      ],
-                                      selected: {_kind},
-                                      onSelectionChanged: _live.busy
-                                          ? null
-                                          : (value) => _live
-                                              .selectList(value.single.index),
-                                    ),
+                                    if (widget.client.profile.kind ==
+                                        P20DeviceKind.single)
+                                      Text(context.l10n.p20SingleList)
+                                    else
+                                      SegmentedButton<DevicePlaylistKind>(
+                                        segments: [
+                                          ButtonSegment(
+                                              value: DevicePlaylistKind.startup,
+                                              label:
+                                                  Text(context.l10n.p20Daily)),
+                                          ButtonSegment(
+                                              value:
+                                                  DevicePlaylistKind.bluetooth,
+                                              label: Text(
+                                                  context.l10n.p20Bluetooth)),
+                                        ],
+                                        selected: {_kind},
+                                        onSelectionChanged: _live.busy
+                                            ? null
+                                            : (value) => _live
+                                                .selectList(value.single.index),
+                                      ),
                                     SizedBox(height: 12),
                                     if (!_live.connected) ...[
                                       Text(context.l10n.p20ConnectNote),
