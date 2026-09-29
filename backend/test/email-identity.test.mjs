@@ -3,10 +3,10 @@ import assert from 'node:assert/strict';
 import { DatabaseSync } from 'node:sqlite';
 import { emailIdentityOperations } from '../src/email-identity.mjs';
 
-function fixture(t) {
+function fixture(t,options={}) {
   const db = new DatabaseSync(':memory:');
   db.exec('PRAGMA foreign_keys=ON; CREATE TABLE users(id TEXT PRIMARY KEY); CREATE TABLE issued_sessions(user_id TEXT REFERENCES users(id));');
-  const ops = { ...emailIdentityOperations(db), createDeviceSession(userId) {
+  const ops = { ...emailIdentityOperations(db,options), createDeviceSession(userId) {
     db.exec('SAVEPOINT session');
     db.prepare('INSERT INTO issued_sessions VALUES (?)').run(userId);
     db.exec('RELEASE session');
@@ -15,6 +15,25 @@ function fixture(t) {
   t.after(() => db.close());
   return {db,ops};
 }
+
+test('configured review code signs the isolated email into the same account repeatedly', t=>{
+  const {db,ops}=fixture(t,{reviewAccess:{email:'review@example.com',code:'123456'}});
+  const first=ops.startEmailChallenge(' Review@Example.com ');
+  assert.equal(JSON.stringify(db.prepare('SELECT * FROM email_auth_challenges').get()).includes('123456'),false);
+  assert.throws(()=>ops.verifyEmailChallenge(first.challengeId,'654321'),/INVALID_EMAIL_CHALLENGE/);
+  const owner=ops.verifyEmailChallenge(first.challengeId,'123456');
+  db.prepare('UPDATE email_auth_challenges SET created_at=created_at-61000').run();
+  const second=ops.startEmailChallenge('review@example.com');
+  assert.equal(ops.verifyEmailChallenge(second.challengeId,'123456').userId,owner.userId);
+});
+
+test('configured review code cannot authenticate any other email', t=>{
+  const {ops}=fixture(t,{reviewAccess:{email:'review@example.com',code:'123456'}});
+  const ordinary=ops.startEmailChallenge('person@example.com');
+  assert.notEqual(ordinary.code,'123456');
+  assert.throws(()=>ops.verifyEmailChallenge(ordinary.challengeId,'123456'),/INVALID_EMAIL_CHALLENGE/);
+  assert.equal(ops.verifyEmailChallenge(ordinary.challengeId,ordinary.code).email,'person@example.com');
+});
 
 test('normalized email binds authenticated guest and code is single use and hashed at rest', t => {
   const {db,ops}=fixture(t);

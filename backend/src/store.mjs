@@ -30,7 +30,7 @@ const defaultLayout = () => ({
   },
 });
 
-export function createStore(path = ':memory:', {emailCodeSecret} = {}) {
+export function createStore(path = ':memory:', {emailCodeSecret,reviewAccess} = {}) {
   const db = new DatabaseSync(path);
   const needsTagSetup = !db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='content_tags'").get();
   db.exec(`PRAGMA foreign_keys=ON;
@@ -118,7 +118,7 @@ export function createStore(path = ':memory:', {emailCodeSecret} = {}) {
   }
   return {
     ...operatorOperations(db),
-    ...emailIdentityOperations(db,{codeSecret:emailCodeSecret}),
+    ...emailIdentityOperations(db,{codeSecret:emailCodeSecret,reviewAccess}),
     ...orderEmailOutboxOperations(db),
     ...governanceOperations(db),
     ...orderOperations(db),

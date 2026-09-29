@@ -5,7 +5,7 @@ import { createHmac, randomBytes, randomInt, randomUUID, timingSafeEqual } from 
 const processSecret = randomBytes(32);
 const invalid = () => new Error('INVALID_EMAIL_CHALLENGE');
 
-export function emailIdentityOperations(db, { codeSecret = processSecret } = {}) {
+export function emailIdentityOperations(db, { codeSecret = processSecret, reviewAccess = null } = {}) {
   if (!(typeof codeSecret === 'string' || Buffer.isBuffer(codeSecret)) || Buffer.byteLength(codeSecret) < 32) {
     throw new Error('INVALID_EMAIL_CODE_SECRET');
   }
@@ -48,7 +48,7 @@ export function emailIdentityOperations(db, { codeSecret = processSecret } = {})
         if (userId && db.prepare('SELECT id FROM users WHERE id=?').get(userId)
           && !db.prepare('SELECT 1 FROM verified_emails WHERE user_id=?').get(userId)) bindingUser = userId;
         const challengeId = randomBytes(32).toString('base64url');
-        const code = String(randomInt(0, 1000000)).padStart(6, '0');
+        const code = email===reviewAccess?.email?reviewAccess.code:String(randomInt(0, 1000000)).padStart(6, '0');
         // A resend replaces the old code without erasing its rate-limit record.
         db.prepare('UPDATE email_auth_challenges SET consumed=1 WHERE email=?').run(email);
         db.prepare(`INSERT INTO email_auth_challenges
