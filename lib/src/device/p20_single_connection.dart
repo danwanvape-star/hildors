@@ -35,7 +35,8 @@ class P20SingleConnection {
   bool traceConnectionProbe;
   final Socket socket;
   final void Function() onClosed;
-  final _decoder = P20FrameDecoder(allowLegacyCrc: false);
+  final _decoder =
+      P20FrameDecoder(allowLegacyCrc: false, allowAdditiveCrc: true);
   late final StreamSubscription<List<int>> _subscription;
   Future<void> _tail = Future.value();
   Completer<P20Frame>? _reply;

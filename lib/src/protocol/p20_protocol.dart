@@ -88,7 +88,10 @@ class P20Protocol {
 
 /// Incremental decoder for TCP fragmentation and sticky packets.
 class P20FrameDecoder {
-  P20FrameDecoder({this.allowLegacyCrc = true});
+  P20FrameDecoder({this.allowLegacyCrc = true, this.allowAdditiveCrc = false});
+  // Some single-list firmware replies with an additive checksum even though
+  // it accepts fixed-0x02 requests (captured on CS_P20_999999).
+  final bool allowAdditiveCrc;
   final bool allowLegacyCrc;
   final List<int> _buffer = [];
 
@@ -117,7 +120,11 @@ class P20FrameDecoder {
       final frameLength = 1 + 4 + length + 1 + 1;
       if (_buffer.length < frameLength) break;
       final frameCrc = _buffer[frameLength - 2];
-      final validCrc = frameCrc == P20Protocol.crc ||
+      final additiveCrc = _buffer
+          .sublist(1, frameLength - 2)
+          .fold<int>(0, (sum, value) => (sum + value) & 0xff);
+      final validCrc = (allowAdditiveCrc && frameCrc == additiveCrc) ||
+          frameCrc == P20Protocol.crc ||
           (allowLegacyCrc && frameCrc == P20Protocol.legacyCrc);
       if (!validCrc || _buffer[frameLength - 1] != P20Protocol.responseEnd) {
         _buffer.removeAt(0);

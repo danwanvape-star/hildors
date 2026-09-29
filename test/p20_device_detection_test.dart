@@ -7,6 +7,26 @@ import 'package:hildors_cockpit/src/device/p20_device_profile.dart';
 import 'package:hildors_cockpit/src/device/p20_single_connection.dart';
 
 void main() {
+  test('single accepts captured additive brightness response and next query',
+      () async {
+    final server = await ServerSocket.bind('127.0.0.1', 0);
+    final client = P20DeviceClient(preference: P20DevicePreference.single);
+    server.listen((socket) {
+      socket.listen((bytes) {
+        expect(bytes, [0xaa, 0, 0, 0, 2, 4, 0, 2, 0xa5]);
+        socket.add([0x55, 0, 0, 0, 2, 4, 0x3c, 0x42, 0x5a]);
+      });
+    });
+    try {
+      await client.connect(host: '127.0.0.1', port: server.port);
+      expect(client.profile.kind, P20DeviceKind.single);
+      final reply = await client.requestFrame(P20Command.queryBrightness, [0]);
+      expect(reply.data, [60]);
+    } finally {
+      await client.dispose();
+      await server.close();
+    }
+  });
   test('auto fallback probes single using a fresh socket', () async {
     final server = await ServerSocket.bind('127.0.0.1', 0);
     final client = P20DeviceClient(preference: P20DevicePreference.auto);
