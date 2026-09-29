@@ -1,3 +1,5 @@
+import 'package:hildors_cockpit/src/device/p20_wire_log.dart';
+import 'package:hildors_cockpit/src/device/p20_v2_connection.dart';
 import 'dart:async';
 import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
@@ -29,6 +31,7 @@ void main() {
   late Peer peer;
   late P20SingleConnection transport;
   late Directory dir;
+  late P20WireLog wireLog;
   Future<File> sample(int count) =>
       File('${dir.path}/sample.bin').writeAsBytes(List.filled(count, 0x19));
   setUp(() async {
@@ -37,7 +40,8 @@ void main() {
     final incoming = server.first;
     final socket = await Socket.connect('127.0.0.1', server.port);
     peer = Peer(await incoming);
-    transport = P20SingleConnection(socket, onClosed: () {});
+    wireLog = P20WireLog();
+    transport = P20SingleConnection(socket, onClosed: () {}, wireLog: wireLog);
   });
   tearDown(() async {
     await transport.close();
@@ -133,6 +137,44 @@ void main() {
         expected);
     peer.reply([0x82]);
     await check;
+  });
+  for (final split in [false, true]) {
+    test('raw 0x87 reply is preserved before decoding, split=$split', () async {
+      final upload = transport.upload(await sample(32768), 'x.mp4'.codeUnits);
+      final check = expectLater(
+          upload,
+          throwsA(isA<P20DeviceUploadRejected>()
+              .having((e) => e.status, 'wire status', 0x87)));
+      await peer.take(17);
+      const raw = [0x55, 0, 0, 0, 2, 0x31, 0x87, 0xba, 0x5a];
+      if (split) {
+        peer.socket.add(raw.sublist(0, 6));
+        await peer.socket.flush();
+        await Future<void>.delayed(const Duration(milliseconds: 20));
+        peer.socket.add(raw.sublist(6));
+      } else {
+        peer.socket.add(raw);
+      }
+      await check;
+      final received = wireLog.text
+          .split('\n')
+          .where((line) => line.contains(' RX bytes= '))
+          .map((line) =>
+              line.split(' RX bytes= ').last.split(' ').skip(1).join(' '))
+          .join(' ');
+      expect(received, '55 00 00 00 02 31 87 ba 5a');
+      expect(wireLog.text, isNot(contains('[media omitted]')));
+      expect(await peer.input.moveNext(), isFalse);
+    });
+  }
+  test('silent peer causes timeout, never synthesized 0x87', () async {
+    final upload = transport.upload(await sample(32768), 'x.mp4'.codeUnits,
+        timeout: const Duration(milliseconds: 80));
+    final check = expectLater(upload, throwsA(isA<TimeoutException>()));
+    await peer.take(17);
+    await check;
+    expect(wireLog.text, isNot(contains(' RX bytes= ')));
+    expect(wireLog.text, isNot(contains('[media omitted]')));
   });
   test('cancel closes active upload', () async {
     final upload = transport.upload(await sample(32768), 'x.mp4'.codeUnits);
