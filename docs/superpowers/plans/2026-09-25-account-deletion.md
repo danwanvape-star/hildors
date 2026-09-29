@@ -1,146 +1,87 @@
-# Hildors Account Deletion Implementation Plan
+# Hildors Immediate Account Deletion Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Build a disabled-by-default, retryable workflow that deletes a Hildors account and its associated database, media, and configured processor data, while preserving only approved de-identified evidence.
+**Goal:** Let an existing Hildors user verify their email, irreversibly confirm deletion, immediately lose access and public content, and receive a receipt while a retryable worker removes all associated server data.
 
-**Architecture:** Operator approval atomically locks the account, revokes sessions, hides public content, and creates an immutable deletion inventory. A leased worker then executes idempotent database, filesystem, provider, retention, and verification items; only verified items can produce `completed`. A hashed public receipt provides post-logout status, and a keyed deletion ledger prevents backup restoration from reviving deleted accounts.
+**Architecture:** A deletion-specific OTP produces a short-lived, single-use confirmation token. Final user confirmation atomically creates an immutable deletion inventory, locks the account, revokes sessions, hides public content, and queues a leased asynchronous job. Idempotent database, media, provider, and verification steps complete the job; a hashed public receipt exposes only progress, while a keyed ledger keeps deleted accounts deleted across backups for at most 30 days.
 
-**Tech Stack:** Node.js 24 ESM, `node:sqlite` `DatabaseSync`, Node HTTP server, `node:test`, Flutter/Dart, SQLite, local media storage.
+**Tech Stack:** Node.js 24 ESM, `node:sqlite` `DatabaseSync`, Node HTTP server and `node:test`; Flutter/Dart; local media storage; Resend email transport; Tencent Cloud production host.
 
 **Spec:** `docs/superpowers/specs/2026-09-25-account-deletion-design.md`
 
 ## Global Constraints
 
-- Keep `HILDORS_ACCOUNT_DELETION_EXECUTION=0` as the default; no plan step enables it in production.
-- Never run deletion tests against production user data or the production database/media directory.
-- Approval is irreversible; cancellation is accepted only before `approved`.
-- Completion is derived from verified items and cannot be set directly by an operator.
-- Raw email, user ID, filenames, tokens, content, and provider payloads must not remain in completed audit or ledger records.
-- Missing policy, unknown media namespace, unsafe path, incomplete inventory, or unconfigured processor must fail closed.
-- Existing request IDs and pre-approval request behavior must survive schema migration.
-- Do not publish Shopify content, change store declarations, build a release AAB, or deploy production services in this plan.
-- Exact legal retention periods are inputs in an approved policy file; source code must not invent them.
+- Default `HILDORS_ACCOUNT_DELETION_EXECUTION=0`; no implementation task enables production execution.
+- Final confirmation, rather than operator approval, is the irreversible boundary.
+- Confirmation requires a deletion-specific email OTP; ordinary login tokens and admin credentials cannot substitute.
+- Confirmation immediately revokes sessions and removes all user-created public content from read paths.
+- Delete all `us_free` account, creator, order, entitlement, governance, email-queue, media, and derivative data; no blanket retention exception.
+- Historical backups may retain deleted data for no more than 30 days, only for disaster recovery, and restore must replay deletions before traffic is served.
+- After verified completion, the same email may create a new empty account without restoring or rebinding old data.
+- Keep only a random request reference, timestamps, counts, safe result codes, and keyed backup-replay fingerprint; never retain raw email, user ID, token, filename, content, or provider payload in completed evidence.
+- Never recursively delete media directories; expand only allowlisted UUID-based file targets and reject symlinks or traversal.
+- Do not publish Shopify policy text, submit Play declarations, activate production deletion, or delete a real account as part of implementation.
 
 ## Review Focus
 
-- A second request races operator approval: exactly one job is created, cancellation loses after approval, and no session remains valid.
-- A worker crashes after deleting a file but before recording success: retry treats the absent file as success and reaches verification.
-- A new user-data table or media namespace appears: the inventory coverage test fails until it receives a deletion classification.
-- An expired lease is reclaimed while a stale worker reports success: token-guarded updates reject the stale worker.
-- A backup containing a completed subject is restored: replay re-locks and deletes the subject before the server becomes ready.
+- Two concurrent final confirmations for one account must create exactly one request/job, return the same logical result, and never strand a locked account without inventory (Task 4).
+- A process crash after deleting a row or file but before recording success must resume safely and treat absence as success (Task 5).
+- A newly added table with a direct user relation or known user-owned JSON field must fail deletion coverage tests until classified (Task 3).
+- Re-registering the same email after completion must create a new user ID with no old content, entitlement, order, or session (Tasks 4 and 5).
+- Restoring any backup within the 30-day window must replay deletion before readiness succeeds; an expired ledger must be purged without reviving data (Task 6).
 
 ---
 
-## File map
+## File structure
 
-| File | Responsibility |
-|---|---|
-| `backend/src/account-deletion-schema.mjs` | Idempotent migration for requests, jobs, items, account locks, and deletion ledger |
-| `backend/src/account-deletion-policy.mjs` | Parse and validate approved retention rules and processor declarations |
-| `backend/src/account-deletion-inventory.mjs` | Enumerate every database, media, and processor deletion item for one user |
-| `backend/src/account-deletion-dry-run.mjs` | Count-only sanitized inventory command for staging rehearsal |
-| `backend/src/account-deletion-media.mjs` | Allowlisted media-path expansion, deletion, and verification |
-| `backend/src/account-deletion-providers.mjs` | Provider adapter contract and required/manual processor items |
-| `backend/src/account-deletion-worker.mjs` | Lease jobs/items, execute idempotent steps, verify, retry, and complete |
-| `backend/src/account-deletion.mjs` | Request, receipt, review, approval, retry, retention-review, and HTTP routes |
-| `backend/src/store.mjs` | Compose deletion operations and enforce the central account lock |
-| `backend/src/runtime-config.mjs` | Disabled-by-default execution, secret file, policy file, and worker interval |
-| `backend/src/server.mjs` | Inject deletion dependencies, start/stop worker, readiness and restore gate |
-| `backend/src/operators.mjs` | Separate review, execute, and retry permissions |
-| `backend/public/account-deletion.*` | Public receipt/status flow and truthful deployed wording |
-| `backend/public/account-deletions-admin.*` | Operator approval, retry, and retained-item review controls |
-| `lib/src/features/profile/account_deletion_service.dart` | Focused App API and local receipt storage for deletion status after logout |
-| `lib/src/features/profile/account_deletion_page.dart` | In-App irreversible-boundary copy, receipt status, and cancellation UI |
-| `backend/test/account-deletion-*.test.mjs` | Migration, inventory, worker, media, provider, restore, HTTP, and crash tests |
-| `test/account_deletion_page_test.dart` | Mobile state and copy tests |
+- `backend/src/account-deletion-schema.mjs`: schema migration and request/job/item/lock/ledger persistence primitives.
+- `backend/src/account-deletion-policy.mjs`: strict 30-day backup and processor-policy validation.
+- `backend/src/account-deletion-confirmation.mjs`: deletion-specific OTP proof, explicit confirmation, receipt hashing, and account lock boundary.
+- `backend/src/account-deletion-inventory.mjs`: complete database/media/provider inventory and schema coverage guard.
+- `backend/src/account-deletion-media.mjs`: allowlisted media target expansion, deletion, and verification.
+- `backend/src/account-deletion-worker.mjs`: leases, retries, ordered execution, and final verification.
+- `backend/src/account-deletion-replay.mjs`: backup restore replay and ledger expiry.
+- `backend/src/account-deletion.mjs`: HTTP routing and public/operator response mapping only.
+- `backend/public/account-deletion.*`: public OTP, confirmation, receipt, and status UI.
+- `backend/public/account-deletions-admin.*`: non-identifying progress and retry UI.
+- `lib/src/features/profile/account_deletion_page.dart`: in-App final confirmation and receipt flow.
 
-### Task 1: Runtime configuration and idempotent schema migration
+### Task 1: Schema, configuration, and strict deletion policy
 
 **Files:**
 - Create: `backend/src/account-deletion-schema.mjs`
 - Create: `backend/src/account-deletion-policy.mjs`
-- Create: `backend/test/account-deletion-schema.test.mjs`
 - Modify: `backend/src/runtime-config.mjs`
-- Modify: `backend/test/runtime-config.test.mjs`
 - Modify: `backend/src/store.mjs`
+- Create: `backend/test/account-deletion-schema.test.mjs`
+- Modify: `backend/test/runtime-config.test.mjs`
 
 **Interfaces:**
 - Produces: `migrateAccountDeletion(db): void`
 - Produces: `loadDeletionPolicy(path): DeletionPolicy`
-- Produces: `runtimeConfig(...).accountDeletion = { executionEnabled, ledgerSecret, policy, intervalMs }`
-- Consumes: existing `createStore(path, options)` and `runtimeConfig(env, defaultDirectory)`
+- Produces: `runtimeConfig(...).accountDeletion = {executionEnabled, ledgerSecret, policy, intervalMs}`
+- `DeletionPolicy.backupReplayDays` must equal `30` for this release.
 
 - [ ] **Step 1: Write failing migration and configuration tests**
 
-```js
-test('migration preserves a legacy request and adds deletion tables idempotently', () => {
-  const store = createLegacyDeletionDatabase(file);
-  migrateAccountDeletion(store.db); migrateAccountDeletion(store.db);
-  assert.equal(store.db.prepare('SELECT id,status FROM account_deletion_requests').get().id, 'request-1');
-  for (const name of ['account_deletion_jobs','account_deletion_items','account_deletion_locks','account_deletion_ledger'])
-    assert.ok(store.db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name=?").get(name));
-});
+Add tests named `migration preserves legacy ids but supersedes unverified requests`, `execution defaults off`, `enabled execution requires a 32-byte ledger secret`, and `policy rejects backupReplayDays other than 30`. Assert tables `account_deletion_requests`, `account_deletion_jobs`, `account_deletion_items`, `account_deletion_locks`, and `account_deletion_ledger` exist after two migration calls.
 
-test('execution defaults off and enabled staging requires secret and policy files', () => {
-  assert.equal(runtimeConfig({}, directory).accountDeletion.executionEnabled, false);
-  assert.throws(() => runtimeConfig({...staging,HILDORS_ACCOUNT_DELETION_EXECUTION:'1'}, directory), /deletion ledger secret/i);
-  assert.throws(() => runtimeConfig({...staging,HILDORS_ACCOUNT_DELETION_EXECUTION:'1',
-    HILDORS_DELETION_LEDGER_SECRET_FILE:secretFile}, directory), /retention policy/i);
-});
-```
-
-- [ ] **Step 2: Run the focused tests and verify the new interfaces are absent**
+- [ ] **Step 2: Run the focused tests and verify failure**
 
 Run: `cd backend && node --test test/account-deletion-schema.test.mjs test/runtime-config.test.mjs`
 
-Expected: FAIL because `account-deletion-schema.mjs` and `accountDeletion` runtime configuration do not exist.
+Expected: FAIL because the new modules and configuration are absent.
 
-- [ ] **Step 3: Implement schema and strict policy parsing**
+- [ ] **Step 3: Implement schema and policy parsing**
 
-Use these exact tables and status checks in `migrateAccountDeletion`:
+Use request states `superseded`, `deleting`, `completed`, `delayed`; job states `queued`, `deleting`, `verifying`, `retry_wait`, `blocked_by_retention`, `failed_terminal`, `completed`; item states `pending`, `running`, `retry_wait`, `retained`, `failed_terminal`, `completed`. Rebuild legacy request rows transactionally, preserve IDs, and mark every unverified legacy row `superseded`. Parse only the keys defined by the spec and reject unknown processor modes or backup durations other than 30 days.
 
-```sql
-CREATE TABLE IF NOT EXISTS account_deletion_jobs (
-  id TEXT PRIMARY KEY, request_id TEXT NOT NULL UNIQUE,
-  state TEXT NOT NULL CHECK(state IN ('queued','locking','deleting','verifying','retry_wait','blocked_by_retention','failed_terminal','completed')),
-  version INTEGER NOT NULL, lease_token TEXT, lease_until INTEGER,
-  attempts INTEGER NOT NULL DEFAULT 0, next_attempt_at INTEGER NOT NULL,
-  subject_fingerprint TEXT NOT NULL, planned_count INTEGER NOT NULL DEFAULT 0,
-  completed_count INTEGER NOT NULL DEFAULT 0, retained_count INTEGER NOT NULL DEFAULT 0,
-  failed_count INTEGER NOT NULL DEFAULT 0, error_code TEXT NOT NULL DEFAULT '',
-  approved_at TEXT NOT NULL, locked_at TEXT, started_at TEXT, completed_at TEXT, updated_at TEXT NOT NULL);
-CREATE TABLE IF NOT EXISTS account_deletion_items (
-  id TEXT PRIMARY KEY, job_id TEXT NOT NULL REFERENCES account_deletion_jobs(id),
-  kind TEXT NOT NULL, opaque_reference TEXT NOT NULL, payload TEXT NOT NULL,
-  state TEXT NOT NULL CHECK(state IN ('pending','running','retry_wait','retained','failed_terminal','completed')),
-  attempts INTEGER NOT NULL DEFAULT 0, lease_token TEXT, lease_until INTEGER,
-  next_attempt_at INTEGER NOT NULL, error_code TEXT NOT NULL DEFAULT '',
-  policy_code TEXT, retention_until TEXT, verified_at TEXT, updated_at TEXT NOT NULL,
-  UNIQUE(job_id,kind,opaque_reference));
-CREATE TABLE IF NOT EXISTS account_deletion_locks (
-  user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
-  request_id TEXT NOT NULL UNIQUE, locked_at TEXT NOT NULL);
-CREATE TABLE IF NOT EXISTS account_deletion_ledger (
-  request_id TEXT PRIMARY KEY, subject_fingerprint TEXT NOT NULL UNIQUE,
-  backup_replay_until TEXT NOT NULL, completed_at TEXT NOT NULL, replayed_at TEXT);
-```
+- [ ] **Step 4: Implement runtime wiring with execution disabled by default**
 
-Rebuild the legacy request table inside a transaction so `user_id` is nullable with `ON DELETE SET NULL`, and add `approved_at`, `approved_by`, `job_id`, and `public_receipt_hash`. Validate policy JSON as `{version,effectiveAt,backupReplayDays,rules,processors}`; reject unknown keys, non-positive durations, missing processor deletion modes, and duplicate codes.
+Accept `HILDORS_ACCOUNT_DELETION_EXECUTION`, `HILDORS_DELETION_LEDGER_SECRET_FILE`, `HILDORS_RETENTION_POLICY_FILE`, and `HILDORS_ACCOUNT_DELETION_INTERVAL_MS`. Fail closed in `team-staging` when execution is enabled without valid secret/policy inputs; pass `deletionLedgerSecret` into `createStore` only when enabled.
 
-- [ ] **Step 4: Add exact runtime variables and fail-closed checks**
-
-```js
-const deletionEnabled = env.HILDORS_ACCOUNT_DELETION_EXECUTION === '1';
-if (!['0','1'].includes(env.HILDORS_ACCOUNT_DELETION_EXECUTION ?? '0')) throw new Error('Invalid account deletion execution flag');
-const ledgerSecret = deletionEnabled ? readSecret(env.HILDORS_DELETION_LEDGER_SECRET_FILE, 32, 'deletion ledger secret') : '';
-const policy = deletionEnabled ? loadDeletionPolicy(env.HILDORS_RETENTION_POLICY_FILE) : null;
-const intervalMs = parseBoundedInteger(env.HILDORS_ACCOUNT_DELETION_INTERVAL_MS ?? '30000', 1000, 300000);
-```
-
-Pass `{deletionLedgerSecret}` into `createStore` only when execution is enabled. Call `migrateAccountDeletion(db)` before composing deletion operations.
-
-- [ ] **Step 5: Run focused and full backend tests**
+- [ ] **Step 5: Run focused tests and backend regression**
 
 Run: `cd backend && node --test test/account-deletion-schema.test.mjs test/runtime-config.test.mjs`
 
@@ -148,311 +89,216 @@ Expected: PASS.
 
 Run: `cd backend && npm test`
 
-Expected: all backend tests PASS.
+Expected: all tests unrelated to unavailable local media tools pass; record any existing `ffmpeg/ffprobe` environment skips separately.
 
-- [ ] **Step 6: Commit the migration boundary**
+- [ ] **Step 6: Commit**
 
 ```bash
 git add backend/src/account-deletion-schema.mjs backend/src/account-deletion-policy.mjs backend/src/runtime-config.mjs backend/src/store.mjs backend/test/account-deletion-schema.test.mjs backend/test/runtime-config.test.mjs
-git commit -m "Add deletion workflow schema and configuration"
+git commit -m "Add immediate deletion schema and policy"
 ```
 
-### Task 2: Approval boundary, public receipt, permissions, and central account lock
+### Task 2: Deletion-specific OTP proof
 
 **Files:**
-- Modify: `backend/src/account-deletion.mjs`
-- Modify: `backend/src/store.mjs`
+- Create: `backend/src/account-deletion-confirmation.mjs`
 - Modify: `backend/src/email-identity.mjs`
-- Modify: `backend/src/operators.mjs`
-- Modify: `backend/test/account-deletion.test.mjs`
-- Modify: `backend/test/operator-live-permissions.test.mjs`
-- Modify: `backend/test/unified-us-permissions.test.mjs`
+- Modify: `backend/src/store.mjs`
+- Modify: `backend/src/server.mjs`
+- Modify: `backend/test/email-identity.test.mjs`
+- Modify: `backend/test/email-auth-api.test.mjs`
 
 **Interfaces:**
-- Consumes: migrated deletion tables and `deletionLedgerSecret`
-- Produces: `approveAccountDeletion(id, value, actor): {request,job}`
-- Produces: `accountDeletionStatusByReceipt(receipt): PublicDeletionStatus|null`
-- Produces: `assertAccountActive(userId): void`
-- Produces: operator permissions `account_deletions.execute` and `account_deletions.retry`
+- Produces: `startDeletionChallenge(email, ip): {challengeId,expiresIn,resendAfter}`
+- Produces: `verifyDeletionChallenge(challengeId, code): {confirmationToken,expiresIn}`
 
-- [ ] **Step 1: Extend tests around the irreversible boundary**
+- [ ] **Step 1: Write failing deletion-proof security tests**
 
-```js
-test('approval creates one job, locks account, revokes sessions and defeats racing cancel', () => {
-  const request = store.requestAccountDeletion(user,{confirm:true});
-  const approved = store.approveAccountDeletion(request.id,{version:request.version,confirm:'DELETE',idempotencyKey:'approval-1'},executor);
-  assert.equal(approved.request.status,'approved');
-  assert.equal(store.authenticate(accessToken),null);
-  assert.equal(store.refreshDeviceSession(refreshToken),null);
-  assert.throws(() => store.cancelAccountDeletion(user,{version:approved.request.version}),/DELETION_CONFLICT/);
-  assert.equal(store.approveAccountDeletion(request.id,{version:request.version,confirm:'DELETE',idempotencyKey:'approval-1'},executor).job.id,approved.job.id);
-});
+Test that deletion verification accepts only an existing verified email, returns no login token, expires in 10 minutes, is single use, and uses a distinct HMAC domain from ordinary login. Assert admin credentials, ordinary login challenges, and ordinary login tokens cannot produce a deletion confirmation token.
 
-test('receipt lookup has constant public shape and stores only a hash', () => {
-  const {request,receipt}=store.requestAccountDeletion(user,{confirm:true});
-  assert.match(receipt,/^[A-Za-z0-9_-]{43}$/);
-  assert.deepEqual(Object.keys(store.accountDeletionStatusByReceipt(receipt)).sort(),['reference','status','updatedAt']);
-  assert.equal(store.accountDeletionStatusByReceipt('A'.repeat(43)),null);
-  const stored=db.prepare('SELECT public_receipt_hash FROM account_deletion_requests WHERE id=?').get(request.id);
-  assert.notEqual(stored.public_receipt_hash,receipt);
-});
-```
+- [ ] **Step 2: Run focused tests and verify failure**
 
-Add permission tests that review-only operators receive 403 for approval/retry and execute operators can approve.
+Run: `cd backend && node --test test/email-identity.test.mjs test/email-auth-api.test.mjs`
 
-- [ ] **Step 2: Run the focused tests and observe approval/receipt failures**
+Expected: FAIL on missing deletion-specific proof behavior.
 
-Run: `cd backend && node --test test/account-deletion.test.mjs test/operator-live-permissions.test.mjs test/unified-us-permissions.test.mjs`
+- [ ] **Step 3: Implement deletion proof**
 
-Expected: FAIL on missing receipt, approval, lock, and permission interfaces.
+Use a separate challenge purpose and HMAC domain from ordinary login. Hash confirmation tokens before storage, bind them to the existing user ID, expire them after 10 minutes, and consume them exactly once. Verification returns only the short-lived confirmation token and expiry.
 
-- [ ] **Step 3: Implement request receipt and approval transaction**
+- [ ] **Step 4: Run focused and backend regression tests**
 
-Generate the receipt with `randomBytes(32).toString('base64url')`, persist `sha256(receipt)`, and return it only from initial request creation. Approval must use one database savepoint to:
+Run: `cd backend && node --test test/account-deletion.test.mjs test/email-identity.test.mjs test/email-auth-api.test.mjs`
 
-```js
-assertApprovalInput(value);
-const fingerprint = createHmac('sha256', deletionLedgerSecret).update(`user:${row.user_id}`).digest('hex');
-insertJobAndInventoryShell({requestId:id,userId:row.user_id,fingerprint,now});
-db.prepare('INSERT INTO account_deletion_locks VALUES (?,?,?)').run(row.user_id,id,nowIso);
-db.prepare('DELETE FROM refresh_sessions WHERE user_id=?').run(row.user_id);
-db.prepare('DELETE FROM sessions WHERE user_id=?').run(row.user_id);
-withdrawOwnedPackages(row.user_id, nowIso);
-markRequestApproved(id, value.version, actor.id, jobId, nowIso);
-```
-
-Store approval idempotency on the job. The same key returns the same job; a different key or stale version returns `DELETION_CONFLICT`.
-
-- [ ] **Step 4: Centralize lock enforcement**
-
-Implement `assertAccountActive(userId)` in the store and call it from `createSession`, `createDeviceSession`, `refreshDeviceSession`, verified-email completion, and the authenticated request gateway in `server.mjs`. Locked accounts return `ACCOUNT_DELETION_IN_PROGRESS`. Read-only deletion-status endpoints bypass this guard.
-
-- [ ] **Step 5: Run focused and full backend tests**
-
-Run: `cd backend && node --test test/account-deletion.test.mjs test/operator-live-permissions.test.mjs test/unified-us-permissions.test.mjs`
-
-Expected: PASS, including the race test in Review Focus.
+Expected: PASS.
 
 Run: `cd backend && npm test`
 
-Expected: all backend tests PASS.
+Expected: same baseline as Task 1 or better.
 
-- [ ] **Step 6: Commit the approval boundary**
+- [ ] **Step 5: Commit**
 
 ```bash
-git add backend/src/account-deletion.mjs backend/src/store.mjs backend/src/email-identity.mjs backend/src/operators.mjs backend/test/account-deletion.test.mjs backend/test/operator-live-permissions.test.mjs backend/test/unified-us-permissions.test.mjs
-git commit -m "Lock accounts when deletion is approved"
+git add backend/src/account-deletion-confirmation.mjs backend/src/email-identity.mjs backend/src/store.mjs backend/src/server.mjs backend/test/email-identity.test.mjs backend/test/email-auth-api.test.mjs
+git commit -m "Add deletion-specific email proof"
 ```
 
-### Task 3: Complete and testable deletion inventory
+### Task 3: Complete deletion inventory and coverage guard
 
 **Files:**
 - Create: `backend/src/account-deletion-inventory.mjs`
 - Create: `backend/src/account-deletion-dry-run.mjs`
 - Create: `backend/test/account-deletion-inventory.test.mjs`
-- Modify: `backend/src/account-deletion.mjs`
-- Modify: `backend/src/store.mjs`
 
 **Interfaces:**
-- Consumes: SQLite database and one locked `userId`
-- Produces: `buildDeletionInventory(db, userId, policy): DeletionItemInput[]`
+- Produces: `buildDeletionInventory(db,userId,policy): DeletionItemInput[]`
 - Produces: `assertDeletionCoverage(db): void`
-- Produces: `runDeletionDryRun({db,userId,policy}): {itemCounts,retentionCounts,unclassifiedCount}`
-- Produces item shape: `{kind,opaqueReference,payload,policyCode:null|string,retentionUntil:null|string}`
+- Produces: `runDeletionDryRun({dbPath,userId,policyPath}): {itemCounts,unclassifiedCount}`
 
-- [ ] **Step 1: Write a full user-graph inventory test**
+- [ ] **Step 1: Write the full user-graph and unknown-table tests**
 
-Seed sessions, refresh sessions, verified email, auth challenges, entitlements, creator profile/application video, owned package/cover/clips, package audit, reports, blocks, customization order/materials/deliverable, transaction, and email outbox. Assert exact item kinds and that raw email and user ID do not appear in `opaqueReference`.
+Seed access/refresh sessions, verified email, auth challenges, entitlements, creator profile/application media, owned packages and derivatives, audits, reports, blocks, customization orders/materials/deliverables, transactions, and email outbox. Assert every unit appears once and opaque references contain neither raw user ID nor email. Create `unclassified_user_data(user_id TEXT)` and expect `DELETION_INVENTORY_UNCLASSIFIED_TABLE`.
 
-```js
-const kinds = buildDeletionInventory(db,user,policy).map(x=>x.kind).sort();
-assert.deepEqual(kinds, [
-  'auth_challenges','creator_application_media','creator_blocks','creator_profile','customization_order',
-  'customization_transaction','email_outbox','entitlements','general_media','owned_package','package_audit',
-  'private_deliverable','reports','sessions','user_root','verified_email'
-].sort());
-for (const item of buildDeletionInventory(db,user,policy)) {
-  assert.doesNotMatch(item.opaqueReference,new RegExp(user));
-  assert.doesNotMatch(item.opaqueReference,/owner@example\.com/);
-}
-```
-
-Add a coverage test that creates `unclassified_user_data(user_id TEXT)` and expects `assertDeletionCoverage(db)` to throw `DELETION_INVENTORY_UNCLASSIFIED_TABLE`.
-
-- [ ] **Step 2: Run the inventory test and verify it fails**
+- [ ] **Step 2: Run the focused test and verify failure**
 
 Run: `cd backend && node --test test/account-deletion-inventory.test.mjs`
 
 Expected: FAIL because the inventory module is missing.
 
-- [ ] **Step 3: Implement explicit classifiers**
+- [ ] **Step 3: Implement explicit table, JSON, media, and provider classifiers**
 
-Define a frozen classification map for every current table that contains a direct user relation or approved embedded JSON relation. Query JSON ownership with `json_extract(document,'$.ownerId')`, order media fields, creator application videos, cover/media IDs, and generated variants. Use HMAC-based opaque references scoped to job and kind; keep raw deletion coordinates only in the encrypted-at-rest or locally protected temporary `payload` field.
+Inspect direct foreign keys and `user_id` columns plus an explicit allowlist for JSON ownership such as `packages.document.ownerId`. Inventory files by namespace and UUID, never by broad directory. Produce count-only dry-run output from a read-only database connection.
 
-`assertDeletionCoverage` must inspect `PRAGMA foreign_key_list`, table columns ending in `user_id`, and the explicit embedded-JSON allowlist. Its test fixture proves new direct user tables fail the build.
+- [ ] **Step 4: Run focused and backend regression tests**
 
-- [ ] **Step 4: Insert inventory during approval and reject empty/unknown results safely**
-
-Call `buildDeletionInventory` inside the approval savepoint, insert items with `INSERT OR IGNORE`, and set `planned_count` from the inserted rows. A valid account may have only authentication items, but an inventory missing `sessions`, `verified_email` when present, or a user-root finalizer is `DELETION_INVENTORY_INCOMPLETE`.
-
-Implement `account-deletion-dry-run.mjs` as a count-only CLI that requires an explicit SQLite path, user ID, and policy path, calls `assertDeletionCoverage`, and prints only JSON counts grouped by item kind and retention code. It must never print payloads, IDs, emails, filenames, or content and must open the database read-only.
-
-- [ ] **Step 5: Run focused and full backend tests**
-
-Run: `cd backend && node --test test/account-deletion-inventory.test.mjs test/account-deletion.test.mjs`
+Run: `cd backend && node --test test/account-deletion-inventory.test.mjs`
 
 Expected: PASS.
 
 Run: `cd backend && npm test`
 
-Expected: all backend tests PASS.
+Expected: same baseline as Task 1 or better.
 
-- [ ] **Step 6: Commit inventory coverage**
+- [ ] **Step 5: Commit**
 
 ```bash
-git add backend/src/account-deletion-inventory.mjs backend/src/account-deletion-dry-run.mjs backend/src/account-deletion.mjs backend/src/store.mjs backend/test/account-deletion-inventory.test.mjs backend/test/account-deletion.test.mjs
-git commit -m "Inventory all account deletion data"
+git add backend/src/account-deletion-inventory.mjs backend/src/account-deletion-dry-run.mjs backend/test/account-deletion-inventory.test.mjs
+git commit -m "Inventory all data before account deletion"
 ```
 
-### Task 4: Leased, idempotent database deletion worker
+### Task 4: Atomic user confirmation and account lock
 
 **Files:**
-- Create: `backend/src/account-deletion-worker.mjs`
-- Create: `backend/test/account-deletion-worker.test.mjs`
+- Modify: `backend/src/account-deletion-confirmation.mjs`
 - Modify: `backend/src/account-deletion.mjs`
 - Modify: `backend/src/store.mjs`
+- Modify: `backend/src/server.mjs`
+- Modify: `backend/test/account-deletion.test.mjs`
 
 **Interfaces:**
-- Consumes: inventory items from Task 3
-- Produces: `createDeletionWorker({store,mediaDirectory,providers,policy,now,leaseMs}): DeletionWorker`
-- Produces: `DeletionWorker.runOnce(): Promise<{claimed:boolean,jobId?:string,state?:string}>`
-- Produces: store methods `claimDeletionJob`, `claimDeletionItem`, `completeDeletionItem`, `failDeletionItem`, `verifyDeletionJob`
+- Consumes: Task 2 deletion confirmation token and Task 3 `buildDeletionInventory`.
+- Produces: `confirmAccountDeletion({confirmationToken,confirmation,idempotencyKey}): {reference,status}`
+- Produces: `accountDeletionStatusByReceipt(receipt): {reference,status,updatedAt}|null`
+- Produces: `assertAccountActive(userId): void`
 
-- [ ] **Step 1: Write lease, crash, retry, and stale-worker tests**
+- [ ] **Step 1: Write failing boundary, concurrency, and receipt tests**
 
-```js
-test('expired work resumes and stale lease cannot complete an item', async () => {
-  const first=store.claimDeletionItem(job,1000,now);
-  clock.advance(1001);
-  const second=store.claimDeletionItem(job,1000,clock.now());
-  assert.notEqual(second.leaseToken,first.leaseToken);
-  assert.equal(store.completeDeletionItem(first.id,first.leaseToken,clock.now()),false);
-  assert.equal(store.completeDeletionItem(second.id,second.leaseToken,clock.now()),true);
-});
+Require exact confirmation `DELETE MY HILDORS ACCOUNT`. Race two confirmations with one idempotency key and assert one request/job, immutable complete inventory, account lock, revoked access/refresh sessions, and withdrawn owned packages. Reject a different key after the boundary. Assert public receipt storage is hashed and unknown receipt responses have the same public shape.
 
-test('database deletion is idempotent after crash before success record', async () => {
-  await executor.execute(item);
-  await assert.rejects(()=>executor.simulateCrashBeforeRecord(item),/SIMULATED_CRASH/);
-  assert.equal((await executor.execute(item)).status,'completed');
-});
-```
+- [ ] **Step 2: Run focused tests and verify failure**
 
-- [ ] **Step 2: Run the worker test and verify missing worker failures**
+Run: `cd backend && node --test test/account-deletion.test.mjs test/email-identity.test.mjs`
 
-Run: `cd backend && node --test test/account-deletion-worker.test.mjs`
+Expected: FAIL on missing confirmation, receipt, lock, and concurrency behavior.
 
-Expected: FAIL because worker and lease methods do not exist.
+- [ ] **Step 3: Implement the atomic final-confirmation transaction**
 
-- [ ] **Step 3: Implement lease-guarded claims and retry schedule**
+Validate and consume the deletion proof, explicit confirmation, and idempotency key. Build and validate the inventory before mutation. In one SQLite savepoint create request/job/items, lock the user, withdraw owned packages, revoke sessions, and return the receipt once. Reject with `DELETION_INVENTORY_INCOMPLETE` before locking when any relation is unclassified or the user-root finalizer is absent.
 
-Use `UPDATE ... RETURNING` inside `BEGIN IMMEDIATE` for job and item claims. Every mutation includes `WHERE lease_token=? AND state='running'`. Use delays `[60000,300000,1800000,3600000]`; after the fifth failure mark `failed_terminal`. Error codes are from an allowlist: `TRANSIENT_IO`, `PROVIDER_UNAVAILABLE`, `POLICY_BLOCKED`, `INVENTORY_MISMATCH`, `UNSAFE_PATH`, `UNCLASSIFIED_DATA`.
+- [ ] **Step 4: Centralize lock enforcement**
 
-- [ ] **Step 4: Implement FK-safe database executors**
+Call `assertAccountActive` from authenticated routing, access/refresh session creation, and email-login completion. Block all sign-in and writes while the deletion lock exists; receipt status remains public and rate limited.
 
-Delete in this order: queued email, challenges, blocks, reports, entitlements, transactions, order rows, package audits, owned packages, creator profile, verified email, sessions, refresh sessions, then `users`. Each executor verifies absence using the same selector that built the item. `SQLITE_CONSTRAINT` becomes `INVENTORY_MISMATCH`, not a broad retry.
+- [ ] **Step 5: Run focused and backend regression tests**
 
-When all non-media items are complete or validly retained, set the job to `verifying`; `verifyDeletionJob` reruns all selectors and refuses completion while any live reference remains.
+Run: `cd backend && node --test test/account-deletion.test.mjs test/email-identity.test.mjs test/email-auth-api.test.mjs`
 
-- [ ] **Step 5: Run crash-boundary and full backend tests**
-
-Run: `cd backend && node --test test/account-deletion-worker.test.mjs`
-
-Expected: PASS, including stale-lease and crash tests from Review Focus.
+Expected: PASS.
 
 Run: `cd backend && npm test`
 
-Expected: all backend tests PASS.
+Expected: same baseline as Task 1 or better.
 
-- [ ] **Step 6: Commit the database worker**
+- [ ] **Step 6: Commit**
 
 ```bash
-git add backend/src/account-deletion-worker.mjs backend/src/account-deletion.mjs backend/src/store.mjs backend/test/account-deletion-worker.test.mjs
-git commit -m "Execute account deletion jobs safely"
+git add backend/src/account-deletion-confirmation.mjs backend/src/account-deletion.mjs backend/src/store.mjs backend/src/server.mjs backend/test/account-deletion.test.mjs backend/test/email-identity.test.mjs backend/test/email-auth-api.test.mjs
+git commit -m "Lock accounts after deletion confirmation"
 ```
 
-### Task 5: Allowlisted media deletion and derivative verification
+### Task 5: Leased database and media deletion worker
 
 **Files:**
 - Create: `backend/src/account-deletion-media.mjs`
+- Create: `backend/src/account-deletion-worker.mjs`
 - Create: `backend/test/account-deletion-media.test.mjs`
-- Modify: `backend/src/account-deletion-worker.mjs`
+- Create: `backend/test/account-deletion-worker.test.mjs`
+- Modify: `backend/src/server.mjs`
+- Modify: `backend/src/store.mjs`
+- Modify: `backend/src/operators.mjs`
+- Modify: `backend/test/operator-live-permissions.test.mjs`
+- Modify: `backend/test/unified-us-permissions.test.mjs`
 
 **Interfaces:**
-- Consumes: `{namespace,id,extension}` media payloads and `mediaDirectory`
-- Produces: `mediaTargets(mediaDirectory,payload): string[]`
-- Produces: `deleteMediaItem(mediaDirectory,payload): Promise<{deleted:number,absent:number}>`
-- Produces: `verifyMediaItem(mediaDirectory,payload): Promise<boolean>`
+- Produces: `mediaTargets(root,payload): string[]`
+- Produces: `deleteMediaItem(root,payload): Promise<{deleted,absent}>`
+- Produces: `createDeletionWorker({store,mediaDirectory,providers,policy,now,leaseMs}).runOnce()`
+- Produces store claim/complete/fail/verify methods guarded by lease token.
 
-- [ ] **Step 1: Write namespace and traversal tests**
+- [ ] **Step 1: Write failing lease, crash, ordering, and path-safety tests**
 
-```js
-for (const payload of [
-  {namespace:'general',id:'../escape',extension:'mp4'},
-  {namespace:'unknown',id:uuid,extension:'mp4'},
-  {namespace:'order-materials',id:uuid,extension:'../../db'}
-]) assert.throws(()=>mediaTargets(root,payload),/UNSAFE_PATH|UNKNOWN_MEDIA_NAMESPACE/);
+Cover stale leases, crash after deletion before success recording, retry of already absent rows/files, fifth-failure terminal state, user-root deletion last, UUID/extension validation, traversal, symlinks, unknown namespace, and derivative enumeration. Verify a published creator item is already unavailable before its files are removed. Verify completion notification is attempted before temporary contact data is cleared, while mail failure does not block verified deletion.
 
-test('retry after file removal treats absence as success and removes derivatives', async () => {
-  await seedGeneralVideoAndPreviews(root,uuid);
-  await deleteMediaItem(root,{namespace:'general',id:uuid,extension:'mp4'});
-  const again=await deleteMediaItem(root,{namespace:'general',id:uuid,extension:'mp4'});
-  assert.equal(again.deleted,0); assert.equal(await verifyMediaItem(root,payload),true);
-});
-```
-
-- [ ] **Step 2: Run the media test and verify it fails**
-
-Run: `cd backend && node --test test/account-deletion-media.test.mjs`
-
-Expected: FAIL because the media module is missing.
-
-- [ ] **Step 3: Implement exact namespace expansion**
-
-Allow only:
-
-```js
-const namespaces = Object.freeze({
-  general: ['', 'video-previews-v1', 'cover-thumbnails', 'image-previews'],
-  'creator-applications': ['creator-applications'],
-  'order-materials': ['order-materials'],
-  'private-deliverables': ['private-deliverables'],
-});
-```
-
-Require UUID IDs, an extension allowlist `mp4,jpg,png,webp,heic,heif`, and `relative(root,target)` that neither starts with `..` nor is absolute. Use `lstat` and refuse symlinks. Delete explicit filenames only; never recursively delete a directory.
-
-- [ ] **Step 4: Connect media items to the worker**
-
-Map `general_media`, `creator_application_media`, `order_material`, and `private_deliverable` item kinds to `deleteMediaItem`. A missing file completes the item. Unsafe or unknown targets become terminal safety errors.
-
-- [ ] **Step 5: Run media, worker, and full backend tests**
+- [ ] **Step 2: Run focused tests and verify failure**
 
 Run: `cd backend && node --test test/account-deletion-media.test.mjs test/account-deletion-worker.test.mjs`
+
+Expected: FAIL because media and worker modules are missing.
+
+- [ ] **Step 3: Implement allowlisted media operations**
+
+Allow namespaces `general`, `creator-applications`, `order-materials`, and `private-deliverables`; extensions `mp4`, `jpg`, `png`, `webp`, `heic`, and `heif`; and known preview/thumbnail derivatives only. Use `lstat`, reject symlinks, and unlink explicit files without recursive directory operations.
+
+- [ ] **Step 4: Implement leased idempotent execution and verification**
+
+Process queued email, challenges, blocks, reports, entitlements, transactions, orders, audits, packages, creator profile, verified email, sessions, refresh sessions, then user root. Use retry delays `60s`, `5m`, `30m`, `1h`; the fifth failure becomes terminal. Rerun all inventory selectors before setting `completed`, clear temporary payloads, and retain only the allowed receipt/ledger evidence.
+
+- [ ] **Step 5: Add retry-only operator permission**
+
+Replace legacy `account_deletions.review` with `account_deletions.retry` for the retry endpoint. Operators cannot create, approve, complete, or skip deletion jobs. Update permission catalog, presets, route mapping, and live-permission tests.
+
+- [ ] **Step 6: Wire the disabled-by-default worker loop and test same-email re-registration**
+
+Start the interval only when execution is enabled. Attempt a completion email without retaining the address after the attempt. After completion, verify the same email creates a new user ID and every old selector remains empty.
+
+- [ ] **Step 7: Run focused and backend regression tests**
+
+Run: `cd backend && node --test test/account-deletion-media.test.mjs test/account-deletion-worker.test.mjs test/account-deletion.test.mjs test/operator-live-permissions.test.mjs test/unified-us-permissions.test.mjs`
 
 Expected: PASS.
 
 Run: `cd backend && npm test`
 
-Expected: all backend tests PASS.
+Expected: same baseline as Task 1 or better.
 
-- [ ] **Step 6: Commit media deletion**
+- [ ] **Step 8: Commit**
 
 ```bash
-git add backend/src/account-deletion-media.mjs backend/src/account-deletion-worker.mjs backend/test/account-deletion-media.test.mjs backend/test/account-deletion-worker.test.mjs
-git commit -m "Delete account media with safe paths"
+git add backend/src/account-deletion-media.mjs backend/src/account-deletion-worker.mjs backend/src/server.mjs backend/src/store.mjs backend/src/operators.mjs backend/test/account-deletion-media.test.mjs backend/test/account-deletion-worker.test.mjs backend/test/account-deletion.test.mjs backend/test/operator-live-permissions.test.mjs backend/test/unified-us-permissions.test.mjs
+git commit -m "Delete account data with a retryable worker"
 ```
 
-### Task 6: Processor deletion, retention exceptions, and backup replay
+### Task 6: Provider deletion and 30-day backup replay
 
 **Files:**
 - Create: `backend/src/account-deletion-providers.mjs`
@@ -460,59 +306,32 @@ git commit -m "Delete account media with safe paths"
 - Create: `backend/test/account-deletion-providers.test.mjs`
 - Create: `backend/test/account-deletion-replay.test.mjs`
 - Modify: `backend/src/account-deletion-worker.mjs`
-- Modify: `backend/src/account-deletion-policy.mjs`
 - Modify: `backend/src/server.mjs`
 
 **Interfaces:**
-- Produces: provider adapter `{id,deleteSubject(reference),verifySubjectAbsent(reference)}`
-- Produces: `sendDeletionCompletion({to,reference}): Promise<void>` injected from the configured mail transport
-- Produces: `createProviderRegistry(policy, adapters): ProviderRegistry`
-- Produces: `replayDeletionLedger({store,policy}): {checked,redeleted,failed}`
-- Consumes: policy rules and subject fingerprints from Tasks 1 and 2
+- Produces: `createDeletionProviders(policy, adapters): ProviderRegistry`
+- Produces: `replayDeletedSubjects({db,ledgerSecret,policy}): ReplayResult`
+- Produces: readiness failure `DELETION_REPLAY_REQUIRED` until replay is verified after restore.
 
-- [ ] **Step 1: Write provider, exception-expiry, and restore tests**
+- [ ] **Step 1: Write failing provider and restore tests**
 
-```js
-test('declared processor without adapter blocks completion', async () => {
-  const registry=createProviderRegistry(policyWithRequiredEmailProcessor,[]);
-  await assert.rejects(()=>registry.delete('email',reference),/PROCESSOR_NOT_CONFIGURED/);
-});
+Test an unavailable provider enters retry without completion, unsupported processors fail closed, provider payloads are cleared after success, a restored deleted subject is removed before readiness, and ledger entries cannot outlive 30 days. Test expiry removes the ledger only after no restorable backup can contain the subject.
 
-test('retained item needs active matching rule and is deleted after expiry', async () => {
-  assert.throws(()=>store.retainDeletionItem(item,{policyCode:'missing'}),/POLICY_BLOCKED/);
-  store.retainDeletionItem(item,{policyCode:'security-30d'});
-  clock.advance(days(31));
-  assert.equal(store.claimExpiredRetentionItem(clock.now()).id,item.id);
-});
-
-test('restore replay deletes a completed subject before readiness', async () => {
-  restoreFixtureWithCompletedUser();
-  const result=await replayDeletionLedger({store,policy});
-  assert.equal(result.failed,0); assert.equal(result.redeleted,1); assert.equal(findRestoredSubject(),null);
-});
-```
-
-- [ ] **Step 2: Run provider and replay tests and verify they fail**
+- [ ] **Step 2: Run focused tests and verify failure**
 
 Run: `cd backend && node --test test/account-deletion-providers.test.mjs test/account-deletion-replay.test.mjs`
 
 Expected: FAIL because provider and replay modules are missing.
 
-- [ ] **Step 3: Implement provider registry and manual completion evidence**
+- [ ] **Step 3: Implement provider registry and fail-closed modes**
 
-Every processor entry in policy has `mode: 'adapter'|'manual'`. Adapter mode requires both deletion and verification methods. Manual mode creates an operator item that requires `processorRequestReference`, `confirmedAt`, `confirmedBy`, and a non-empty `evidenceHash`; it never accepts a raw screenshot or personal payload in SQLite.
+Support policy modes `none`, `api`, and `manual_evidence`. Resend transactional mail uses `none` only after local queued messages and authentication challenges are deleted; any future storage/CDN/support processor must supply an adapter or manual evidence item.
 
-Create one `completion_notification` item when a verified email exists. Attempt it after local account/media deletion verifies but before deleting the email-processor subject. A permanent or exhausted notification failure records the safe outcome `notification_failed` and does not retain or recreate the account; the receipt remains authoritative. After the attempt, process the email-provider deletion item and clear the temporary contact address whether delivery succeeded or failed.
+- [ ] **Step 4: Implement keyed restore replay and 30-day expiry**
 
-- [ ] **Step 4: Implement strict retention transitions**
+Replay uses the ledger fingerprint to locate restored subjects, reruns deletion before readiness, records only counts/timestamps, and purges the ledger after `backupReplayDays=30` when backups from before completion have expired.
 
-Match an item only when policy code, item kind, purpose, fields, and effective date agree. Compute expiry from the rule's start event and duration. Expired items return to `pending`; they cannot remain `retained`. Completion may include retained items only while every rule is active and carries a future expiry or review date.
-
-- [ ] **Step 5: Implement ledger completion and restore gate**
-
-On verified completion, insert `{request_id,subject_fingerprint,backup_replay_until,completed_at}` and clear user ID, contact, free text, and item payloads. `server.mjs` must call `replayDeletionLedger` before `/ready` returns 200 whenever execution is enabled. Any replay failure keeps readiness at 503 and prevents traffic startup.
-
-- [ ] **Step 6: Run focused and full backend tests**
+- [ ] **Step 5: Run focused and backend regression tests**
 
 Run: `cd backend && node --test test/account-deletion-providers.test.mjs test/account-deletion-replay.test.mjs test/account-deletion-worker.test.mjs`
 
@@ -520,208 +339,115 @@ Expected: PASS.
 
 Run: `cd backend && npm test`
 
-Expected: all backend tests PASS.
+Expected: same baseline as Task 1 or better.
 
-- [ ] **Step 7: Commit provider, retention, and replay behavior**
+- [ ] **Step 6: Commit**
 
 ```bash
-git add backend/src/account-deletion-providers.mjs backend/src/account-deletion-replay.mjs backend/src/account-deletion-policy.mjs backend/src/account-deletion-worker.mjs backend/src/server.mjs backend/test/account-deletion-providers.test.mjs backend/test/account-deletion-replay.test.mjs backend/test/account-deletion-worker.test.mjs
-git commit -m "Verify processor deletion and backup replay"
+git add backend/src/account-deletion-providers.mjs backend/src/account-deletion-replay.mjs backend/src/account-deletion-worker.mjs backend/src/server.mjs backend/test/account-deletion-providers.test.mjs backend/test/account-deletion-replay.test.mjs
+git commit -m "Replay account deletion across backups"
 ```
 
-### Task 7: HTTP routes, background worker, and web/operator UI
+### Task 7: Public webpage, App flow, and operator retry view
 
 **Files:**
-- Modify: `backend/src/account-deletion.mjs`
-- Modify: `backend/src/server.mjs`
 - Modify: `backend/public/account-deletion.html`
 - Modify: `backend/public/account-deletion.js`
 - Modify: `backend/public/account-deletion.css`
 - Modify: `backend/public/account-deletions-admin.html`
 - Modify: `backend/public/account-deletions-admin.js`
 - Modify: `backend/test/account-deletion.test.mjs`
-- Create: `backend/test/account-deletion-http.test.mjs`
-
-**Interfaces:**
-- Adds: `GET /account-deletion/status?receipt=...`
-- Adds: `POST /admin/account-deletions/:id/approve`
-- Adds: `POST /admin/account-deletions/:id/retry`
-- Adds: `POST /admin/account-deletions/:id/retention`
-- Consumes: worker, receipt, permission, and policy interfaces from Tasks 1–6
-
-- [ ] **Step 1: Write HTTP security and behavior tests**
-
-Test rate limiting, constant-shaped unknown receipt responses, review-only 403, execute permission, stale versions, idempotency keys, cancellation boundary, CSP, truthful wording, and worker shutdown.
-
-```js
-const unknown=await fetch(base+'/account-deletion/status?receipt='+unknownReceipt);
-const known=await fetch(base+'/account-deletion/status?receipt='+receipt);
-assert.deepEqual(Object.keys(await unknown.json()),Object.keys(await known.json()));
-assert.equal((await approveAs(reviewOnly)).status,403);
-assert.equal((await approveAs(executor)).status,200);
-assert.equal((await cancelAsUser()).status,409);
-```
-
-- [ ] **Step 2: Run HTTP tests and verify missing-route failures**
-
-Run: `cd backend && node --test test/account-deletion.test.mjs test/account-deletion-http.test.mjs`
-
-Expected: FAIL on missing receipt/approval/retry/retention routes.
-
-- [ ] **Step 3: Implement endpoints and rate limits**
-
-Use the existing JSON body limit and post-read authorization recheck. Receipt lookup accepts exactly 43 base64url characters, hashes before lookup, and returns `{reference:null,status:'not_found',updatedAt:null}` for unknown values. Rate-limit by bounded proxy-resolved IP and receipt hash without logging either raw value.
-
-- [ ] **Step 4: Run the worker only behind the feature flag**
-
-Create one non-overlapping `runOnce` loop using the configured interval. Catch errors as `ACCOUNT_DELETION_WORKER_FAILED` without payloads. On SIGINT/SIGTERM, stop the timer, await active deletion work, await email work, close the server, then close the store.
-
-- [ ] **Step 5: Update web and operator pages**
-
-Public copy must state that approval is irreversible, active sessions end, associated cloud data is deleted subject to disclosed exceptions, and phone/display-device files remain local. Store the public receipt in the page's session storage, provide a copy button, and show cancellation only before approval.
-
-The operator page separates review from execute, requires typing `DELETE`, supplies an idempotency key, and shows safe counts, policy codes, retry times, and verification state. It has no direct `completed` control.
-
-- [ ] **Step 6: Run focused and full backend tests**
-
-Run: `cd backend && node --test test/account-deletion.test.mjs test/account-deletion-http.test.mjs`
-
-Expected: PASS.
-
-Run: `cd backend && npm test`
-
-Expected: all backend tests PASS.
-
-- [ ] **Step 7: Commit HTTP and web flows**
-
-```bash
-git add backend/src/account-deletion.mjs backend/src/server.mjs backend/public/account-deletion.html backend/public/account-deletion.js backend/public/account-deletion.css backend/public/account-deletions-admin.html backend/public/account-deletions-admin.js backend/test/account-deletion.test.mjs backend/test/account-deletion-http.test.mjs
-git commit -m "Expose verifiable account deletion status"
-```
-
-### Task 8: Mobile deletion receipt and post-lock experience
-
-**Files:**
-- Create: `lib/src/features/profile/account_deletion_service.dart`
 - Modify: `lib/src/features/profile/account_deletion_page.dart`
-- Modify: `lib/src/features/customization/cloud_business_intake.dart`
-- Create: `lib/l10n/fragments/account_deletion_en.json`
-- Create: `lib/l10n/fragments/account_deletion_zh.json`
-- Regenerate: `lib/l10n/app_en.arb`
-- Regenerate: `lib/l10n/app_zh.arb`
-- Regenerate: `lib/l10n/generated/app_localizations.dart`
-- Regenerate: `lib/l10n/generated/app_localizations_en.dart`
-- Regenerate: `lib/l10n/generated/app_localizations_zh.dart`
-- Create: `test/account_deletion_page_test.dart`
+- Modify: `lib/l10n/fragments/deletion_en.json`
+- Modify: `lib/l10n/fragments/deletion_zh.json`
+- Modify generated localization files through `python3 tool/merge_l10n.py && flutter gen-l10n`
+- Modify: `test/account_deletion_page_test.dart`
 
 **Interfaces:**
-- Consumes: request response `{request,receipt?}` and receipt status endpoint
-- Produces: `AccountDeletionService` and `CloudAccountDeletionService`
-- Produces: locally persisted `deletionReceipt` and status polling independent of authenticated session
-- Preserves: cancellation only for received/in-review/needs-information states
+- Consumes Task 4 confirmation/status endpoints and Task 5 retry status.
+- Produces a public and in-App flow that never stores an ordinary access token solely to delete an account.
 
-- [ ] **Step 1: Write widget tests for receipt and irreversible states**
+- [ ] **Step 1: Write failing web and Flutter behavior tests**
 
-```dart
-testWidgets('approval state hides cancel and continues status by receipt after logout',(tester) async {
-  final service=FakeAccountDeletionService(status:'deleting',receipt:List.filled(43,'A').join());
-  await tester.pumpWidget(testApp(AccountDeletionPage(service:service)));
-  expect(find.text('Deletion in progress'),findOneWidget);
-  expect(find.text('Cancel request'),findNothing);
-  expect(service.authenticatedStatusCalls,0);
-  expect(service.receiptStatusCalls,1);
-});
-```
+Assert the pages disclose irreversible server deletion, immediate sign-out/public-content removal, local phone/P20 file exclusion, and the 30-day backup maximum. Assert the UI requires exact confirmation, displays/copies the one-time receipt, continues status lookup after logout, exposes no cancel action after confirmation, and operator UI shows no raw user ID/email or manual-complete button.
 
-Add tests for copy, local-file warning, cancellation before approval, unknown/expired receipt, network retry, and `ACCOUNT_DELETION_IN_PROGRESS` from unrelated authenticated calls.
+- [ ] **Step 2: Run focused tests and verify failure**
 
-- [ ] **Step 2: Run the widget test and verify missing UI behavior**
+Run: `cd backend && node --test test/account-deletion.test.mjs`
 
-Run: `flutter test --no-pub test/account_deletion_page_test.dart`
+Run: `flutter test test/account_deletion_page_test.dart`
 
-Expected: FAIL because receipt persistence and deleting/completed states are absent.
+Expected: FAIL on the old request/review/cancel flow.
 
-- [ ] **Step 3: Implement the focused service, receipt persistence, and public-status polling**
+- [ ] **Step 3: Implement the public webpage and operator retry view**
 
-Define `AccountDeletionService` with `load()`, `submit()`, `cancel(version)`, `refreshByReceipt()`, and `clearAuthenticatedSessionKeepingReceipt()` methods. `CloudAccountDeletionService` delegates authenticated calls to `CloudBusinessIntake`, stores the 43-character receipt in `account_deletion_receipt.json` under application support, and calls a new `CloudBusinessIntake.clearSessionForApprovedDeletion()` method that removes access/refresh credentials without deleting the receipt. Never log the receipt. Prefer receipt status whenever present, bound automatic polling to one request on page load, and expose manual refresh.
+Use deletion-specific OTP endpoints, explicit confirmation, receipt persistence in the page session, and receipt-based polling. The operator view shows request reference, state, counts, safe error, retry time, and retry action only.
 
-- [ ] **Step 4: Replace provisional copy and regenerate localization**
+- [ ] **Step 4: Implement the in-App flow and regenerate localization output**
 
-English and Chinese copy must cover the irreversible boundary, cloud deletion, disclosed exceptions, local phone/display files, receipt recovery, delayed state, and support contact. Run `python3 tool/merge_l10n.py` followed by `flutter gen-l10n` so generated files match the reviewed fragments.
+Require fresh OTP and exact confirmation, clear local authentication immediately after server confirmation, show/copy the receipt, and explain that phone/P20 files must be deleted locally. Do not add remote local-device deletion claims.
 
-- [ ] **Step 5: Run focused analysis and tests**
+Run `python3 tool/merge_l10n.py` and `flutter gen-l10n` after editing the two deletion fragments.
+
+- [ ] **Step 5: Run focused, static, and full app tests**
+
+Run: `cd backend && node --test test/account-deletion.test.mjs`
 
 Run: `flutter analyze --no-pub`
 
-Expected: `No issues found!`
+Run: `HILDORS_RELEASE_PROFILE=us_free flutter test --concurrency=1`
 
-Run: `flutter test --no-pub test/account_deletion_page_test.dart test/widget_test.dart`
+Expected: PASS with only documented environment skips.
 
-Expected: PASS.
-
-- [ ] **Step 6: Commit the mobile flow**
+- [ ] **Step 6: Commit**
 
 ```bash
-git add lib/src/features/profile/account_deletion_service.dart lib/src/features/profile/account_deletion_page.dart lib/src/features/customization/cloud_business_intake.dart lib/l10n/fragments/account_deletion_en.json lib/l10n/fragments/account_deletion_zh.json lib/l10n/app_en.arb lib/l10n/app_zh.arb lib/l10n/generated/app_localizations.dart lib/l10n/generated/app_localizations_en.dart lib/l10n/generated/app_localizations_zh.dart test/account_deletion_page_test.dart
-git commit -m "Track account deletion after logout"
+git add backend/public/account-deletion.html backend/public/account-deletion.js backend/public/account-deletion.css backend/public/account-deletions-admin.html backend/public/account-deletions-admin.js backend/test/account-deletion.test.mjs lib/src/features/profile/account_deletion_page.dart lib/l10n test/account_deletion_page_test.dart
+git commit -m "Add immediate account deletion user flows"
 ```
 
-### Task 9: Full deletion acceptance, documentation, and release gate
+### Task 8: Isolated acceptance, runbook, and store-material reconciliation
 
 **Files:**
-- Create: `backend/test/account-deletion-e2e.test.mjs`
-- Create: `backend/docs/account-deletion-runbook.md`
-- Modify: `backend/UNIFIED-RELEASE.md`
-- Modify: `docs/customization_data_map_and_retention.md`
-- Modify: `docs/superpowers/specs/2026-09-25-account-deletion-design.md` only if implementation details expose a verified contradiction
+- Create: `backend/test/account-deletion-acceptance.test.mjs`
+- Create: `docs/account-deletion-runbook.md`
+- Modify: `../launch-preparation-2026-09-22/hildors-app-privacy-policy-draft.md`
+- Modify: `../launch-preparation-2026-09-22/privacy-and-review-evidence.md`
+- Modify: `../launch-preparation-2026-09-22/google-play-submission-worksheet.md`
 
 **Interfaces:**
-- Consumes: all Tasks 1–8
-- Produces: a repeatable sanitized acceptance fixture and operator runbook
+- Consumes all prior tasks.
+- Produces repeatable isolated deletion and restore evidence with no personal payloads.
 
-- [ ] **Step 1: Build the end-to-end sanitized fixture**
+- [ ] **Step 1: Write the isolated acceptance test**
 
-Create an isolated temporary database/media tree with one complete user graph and a fake required processor. Exercise web request, operator review/approval, immediate session revocation, public withdrawal, worker crashes before and after every item class, retries, provider verification, database/media absence, completion receipt, and backup replay.
+Seed two users and every supported data class in a temporary database/media tree. Confirm deletion for one user, inject a worker restart, verify immediate access/public withdrawal, finish deletion, verify the other user is unchanged, restore a pre-deletion backup, replay deletion, and prove readiness only after replay. Assert retained evidence contains none of the seeded email, user ID, filenames, content, or tokens.
 
-- [ ] **Step 2: Run the end-to-end test and fix only integration defects**
+- [ ] **Step 2: Run acceptance and full regression suites**
 
-Run: `cd backend && node --test test/account-deletion-e2e.test.mjs`
-
-Expected: PASS. Any failure must be fixed in the owning module with a focused regression test before rerunning E2E.
-
-- [ ] **Step 3: Write the disabled-by-default operations runbook**
-
-Document exact environment variables, sanitized migration rehearsal, policy validation, processor adapter verification, dry-run inventory, feature-flag activation, queue/failed-item monitoring, manual evidence hashing, retention review, backup replay, emergency disablement, and the rule that operators cannot mark completion directly.
-
-- [ ] **Step 4: Run the complete verification set**
+Run: `cd backend && node --test test/account-deletion-acceptance.test.mjs`
 
 Run: `cd backend && npm test`
 
-Expected: all backend tests PASS.
-
 Run: `flutter analyze --no-pub`
 
-Expected: `No issues found!`
+Run: `HILDORS_RELEASE_PROFILE=us_free flutter test --concurrency=1`
 
-Run: `HILDORS_RELEASE_PROFILE=us_free flutter test --no-pub --concurrency=1`
+Expected: account-deletion acceptance passes; all non-media backend tests pass; Flutter analysis/tests pass; local `ffmpeg/ffprobe` limitations are recorded rather than misreported as product failures.
 
-Expected: all applicable Flutter tests PASS; environment-gated skips must be listed with their names and reasons.
+- [ ] **Step 3: Write the operations runbook**
 
-Run: `git diff --check HEAD~9..HEAD`
+Document disabled-by-default deployment, sanitized migration rehearsal, secret/policy file creation, count-only dry run, backup rotation proof, restore replay, readiness gate, retry handling, rollback while execution remains disabled, and the separate authorization required before production activation.
 
-Expected: no whitespace errors.
+- [ ] **Step 4: Reconcile the privacy and Play drafts with verified behavior**
 
-- [ ] **Step 5: Reconcile—but do not publish—compliance drafts**
+Replace deletion-specific placeholders with tested facts: immediate online deletion after confirmation, public-content removal, local-device exclusion, same-email empty re-registration, and 30-day backup maximum. Keep the documents marked internal until production activation, processor/region register, privacy mailing address, company approval, and Shopify publication authorization are complete. Do not submit Play Data safety.
 
-Compare observed E2E data categories, processor actions, exception rules, and completion timing with `../launch-preparation-2026-09-22/hildors-app-privacy-policy-draft.md` and `../launch-preparation-2026-09-22/google-play-submission-worksheet.md`. Update internal drafts only. Keep all publication and Play submission actions outside this implementation.
-
-- [ ] **Step 6: Commit acceptance evidence and documentation**
+- [ ] **Step 5: Commit**
 
 ```bash
-git add backend/test/account-deletion-e2e.test.mjs backend/docs/account-deletion-runbook.md backend/UNIFIED-RELEASE.md docs/customization_data_map_and_retention.md
-git commit -m "Document verified account deletion operations"
+git add backend/test/account-deletion-acceptance.test.mjs docs/account-deletion-runbook.md
+git commit -m "Document and verify account deletion operations"
 ```
 
-- [ ] **Step 7: Request whole-branch review**
-
-Review the branch against `docs/superpowers/specs/2026-09-25-account-deletion-design.md`, with special attention to undeleted JSON references, media derivatives, stale leases, receipt enumeration, retention-policy bypass, provider verification, and restore-before-ready behavior. Resolve every blocking finding and repeat Step 4 before presenting the branch for deployment approval.
+The launch-preparation files live outside the `hildors` Git repository. Update and verify them as workspace records after the code commit; do not try to include them in the repository commit.
