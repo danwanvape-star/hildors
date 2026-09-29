@@ -39,7 +39,7 @@ class _HomePageState extends State<HomePage> {
     super.initState();
     _connection = widget.client.connectionState;
     _subscription = widget.client.connectionStates.listen((state) {
-      if (mounted) setState(() => _connection = state);
+      if (mounted) setState(() { _connection = state; if (state == DeviceConnectionState.connected) _error = null; });
     });
   }
 
@@ -140,7 +140,42 @@ class _HomePageState extends State<HomePage> {
                           padding: EdgeInsets.fromLTRB(16, 4, 16, 8),
                           child: Column(
                             children: [
+                              DropdownButtonFormField<P20DevicePreference>(
+                                initialValue: widget.client.preference,
+                                isExpanded: true,
+                                decoration: InputDecoration(
+                                    labelText: context.l10n.p20DeviceType),
+                                items: [
+                                  DropdownMenuItem(
+                                      value: P20DevicePreference.auto,
+                                      child: Text(context.l10n.p20DeviceAuto)),
+                                  DropdownMenuItem(
+                                      value: P20DevicePreference.single,
+                                      child:
+                                          Text(context.l10n.p20DeviceSingle)),
+                                  DropdownMenuItem(
+                                      value: P20DevicePreference.dual,
+                                      child: Text(context.l10n.p20DeviceDual)),
+                                ],
+                                onChanged: (value) async {
+                                  if (value == null) return;
+                                  try {
+                                    await widget.client.setPreference(value);
+                                  } catch (_) {
+                                    if (mounted) {
+                                      setState(() => _error = "connection");
+                                    }
+                                  }
+                                },
+                              ),
                               _DeviceCard(
+                                model: widget.client.profile.kind ==
+                                        P20DeviceKind.single
+                                    ? "P20"
+                                    : widget.client.profile.kind ==
+                                            P20DeviceKind.dual
+                                        ? "P20 PORTAL"
+                                        : null,
                                 connection: _connection,
                                 busy: _busy,
                                 error: _error,
@@ -151,7 +186,7 @@ class _HomePageState extends State<HomePage> {
                               _NowPlayingCard(
                                 single: widget.client.profile.kind ==
                                     P20DeviceKind.single,
-                                height: (constraints.maxHeight - 258)
+                                height: (constraints.maxHeight - 330)
                                         .clamp(286.0, 600.0) *
                                     MediaQuery.textScalerOf(context)
                                         .scale(1)
@@ -431,12 +466,14 @@ class _PlaylistShortcut extends StatelessWidget {
 
 class _DeviceCard extends StatelessWidget {
   const _DeviceCard(
-      {required this.connection,
+      {this.model,
+      required this.connection,
       required this.busy,
       required this.error,
       required this.onConnect,
       required this.onControl});
 
+  final String? model;
   final DeviceConnectionState connection;
   final bool busy;
   final String? error;
@@ -471,7 +508,7 @@ class _DeviceCard extends StatelessWidget {
                     children: [
                       Text(status,
                           style: Theme.of(context).textTheme.titleMedium),
-                      Text(context.l10n.coreLanControl),
+                      Text(model ?? context.l10n.coreLanControl),
                     ],
                   ),
                 ),

@@ -16,7 +16,7 @@
   "p20Unconfirmed": "The device did not confirm the change. Its current state has been refreshed. Check it and try again.",
   "p20UploadEntry": "Open from a device playlist to upload",
   "p20UploadAction": "Convert and upload",
-  "p20FramingNote": "Saving records only the framing. Tap Convert and upload to prepare and transfer the device files.",
+  "p20FramingNote": "Upload uses the current framing. No separate save is needed.",
   "p20ConnectedCount": "Device connected · {count} videos",
   "@p20ConnectedCount": {
     "placeholders": {
@@ -105,6 +105,6 @@
   "p20SingleTransferComplete": "Transfer confirmed. Playback is awaiting hardware validation.",
   "p20DeviceType": "Device type",
   "p20DeviceAuto": "Detect automatically",
-  "p20DeviceSingle": "Single list (CS_P20)",
-  "p20DeviceDual": "Dual list (HILDORS_P20)"
+  "p20DeviceSingle": "P20 (single list, silent)",
+  "p20DeviceDual": "P20 PORTAL (dual lists, Bluetooth)"
 }

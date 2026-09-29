@@ -1,6 +1,6 @@
 {
-"copyDeviceLog": "Copy device communication log",
-"deviceLogCopied": "Log copied. It contains protocol metadata; media payloads are omitted.",
+  "copyDeviceLog": "Copy device communication log",
+  "deviceLogCopied": "Log copied. It contains protocol metadata; media payloads are omitted.",
   "deviceDeleteAudioNote": "The paired audio file will also be deleted.",
   "@@locale": "en",
   "accountTitle": "Account",
@@ -464,8 +464,8 @@
   "coreConnecting": "Connecting…",
   "coreReconnecting": "Reconnecting…",
   "coreDeviceDisconnected": "Device disconnected",
-  "coreLanControl": "Local network control · P20 / P11",
-  "coreConnectP20": "Connect P20",
+  "coreLanControl": "Local network control · P20 / P20 PORTAL",
+  "coreConnectP20": "Connect device",
   "coreConnectionSettings": "Connection settings",
   "coreDeviceManagement": "Device management",
   "coreDevices": "Devices",
@@ -480,11 +480,11 @@
   "corePlaybackGuide": "Playback modes",
   "corePlaybackGuideSubtitle": "Learn how display and music modes switch",
   "coreLanHelp": "Local network help",
-  "coreLanHelpSubtitle": "Connect to a P20/P11 hotspot and troubleshoot",
+  "coreLanHelpSubtitle": "Connect to a P20 / P20 PORTAL hotspot and troubleshoot",
   "coreAppSettings": "Device and app settings",
   "coreAppSettingsSubtitle": "Device options, playback preferences and version",
   "coreAbout": "About HILDORS",
-  "coreAboutSubtitle": "Character Portal · P20/P11 support",
+  "coreAboutSubtitle": "Character Portal · P20 / P20 PORTAL support",
   "corePlayerProfile": "Player profile",
   "coreLocalAccount": "Local device profile · Stored on this device",
   "coreDeviceSettings": "Device settings",
@@ -504,7 +504,7 @@
   "coreDeviceConnecting": "Connecting to device",
   "coreDeviceReconnecting": "Restoring connection",
   "coreCockpitOnline": "Device online",
-  "coreGoHomeConnect": "Go to Home to connect your P20 / P11",
+  "coreGoHomeConnect": "Go to Home to connect your P20 / P20 PORTAL",
   "coreOpeningLan": "Establishing local network control",
   "coreRetryingLan": "Connection interrupted. Retrying automatically",
   "coreLanReady": "Local network control connected",
@@ -991,7 +991,7 @@
   "p20Unconfirmed": "The device did not confirm the change. Its current state has been refreshed. Check it and try again.",
   "p20UploadEntry": "Open from a device playlist to upload",
   "p20UploadAction": "Convert and upload",
-  "p20FramingNote": "Saving records only the framing. Tap Convert and upload to prepare and transfer the device files.",
+  "p20FramingNote": "Upload uses the current framing. No separate save is needed.",
   "p20ConnectedCount": "Device connected · {count} videos",
   "@p20ConnectedCount": {
     "placeholders": {
@@ -1080,6 +1080,6 @@
   "p20SingleTransferComplete": "Transfer confirmed. Playback is awaiting hardware validation.",
   "p20DeviceType": "Device type",
   "p20DeviceAuto": "Detect automatically",
-  "p20DeviceSingle": "Single list (CS_P20)",
-  "p20DeviceDual": "Dual list (HILDORS_P20)"
+  "p20DeviceSingle": "P20 (single list, silent)",
+  "p20DeviceDual": "P20 PORTAL (dual lists, Bluetooth)"
 }

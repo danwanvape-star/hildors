@@ -953,10 +953,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get coreDeviceDisconnected => 'Device disconnected';
 
   @override
-  String get coreLanControl => 'Local network control · P20 / P11';
+  String get coreLanControl => 'Local network control · P20 / P20 PORTAL';
 
   @override
-  String get coreConnectP20 => 'Connect P20';
+  String get coreConnectP20 => 'Connect device';
 
   @override
   String get coreConnectionSettings => 'Connection settings';
@@ -1005,7 +1005,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get coreLanHelpSubtitle =>
-      'Connect to a P20/P11 hotspot and troubleshoot';
+      'Connect to a P20 / P20 PORTAL hotspot and troubleshoot';
 
   @override
   String get coreAppSettings => 'Device and app settings';
@@ -1018,7 +1018,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get coreAbout => 'About HILDORS';
 
   @override
-  String get coreAboutSubtitle => 'Character Portal · P20/P11 support';
+  String get coreAboutSubtitle => 'Character Portal · P20 / P20 PORTAL support';
 
   @override
   String get corePlayerProfile => 'Player profile';
@@ -1082,7 +1082,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get coreCockpitOnline => 'Device online';
 
   @override
-  String get coreGoHomeConnect => 'Go to Home to connect your P20 / P11';
+  String get coreGoHomeConnect => 'Go to Home to connect your P20 / P20 PORTAL';
 
   @override
   String get coreOpeningLan => 'Establishing local network control';
@@ -2231,7 +2231,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get p20FramingNote =>
-      'Saving records only the framing. Tap Convert and upload to prepare and transfer the device files.';
+      'Upload uses the current framing. No separate save is needed.';
 
   @override
   String p20ConnectedCount(int count) {
@@ -2425,8 +2425,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get p20DeviceAuto => 'Detect automatically';
 
   @override
-  String get p20DeviceSingle => 'Single list (CS_P20)';
+  String get p20DeviceSingle => 'P20 (single list, silent)';
 
   @override
-  String get p20DeviceDual => 'Dual list (HILDORS_P20)';
+  String get p20DeviceDual => 'P20 PORTAL (dual lists, Bluetooth)';
 }

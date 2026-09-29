@@ -1,3 +1,7 @@
+import 'device/device_access.dart';
+import 'device/p20_device_client.dart';
+import 'device/p20_device_profile.dart';
+import 'device/p20_command_session.dart';
 import 'package:flutter/material.dart';
 import '../l10n/generated/app_localizations.dart';
 import 'localization/locale_controller.dart';
@@ -15,6 +19,9 @@ class CockpitApp extends StatefulWidget {
 }
 
 class _CockpitAppState extends State<CockpitApp> {
+  late final _client = P20DeviceClient(
+      preference: P20DevicePreference.auto, verifyOnConnect: true);
+  late final _session = P20CommandSession(_client);
   late final _controller = widget.localeController ?? LocaleController();
   @override
   void initState() {
@@ -25,6 +32,8 @@ class _CockpitAppState extends State<CockpitApp> {
   @override
   void dispose() {
     if (widget.localeController == null) _controller.dispose();
+    _session.dispose();
+    _client.dispose();
     super.dispose();
   }
 
@@ -44,7 +53,12 @@ class _CockpitAppState extends State<CockpitApp> {
                   localizationsDelegates:
                       AppLocalizations.localizationsDelegates,
                   theme: buildHildorsTheme(),
-                  home: DashboardPage(autoConnect: widget.autoConnectDevice),
+                  builder: (context, child) => DeviceAccess(
+                      client: _client, session: _session, child: child!),
+                  home: DashboardPage(
+                      autoConnect: widget.autoConnectDevice,
+                      client: _client,
+                      session: _session),
                 )),
       );
 }

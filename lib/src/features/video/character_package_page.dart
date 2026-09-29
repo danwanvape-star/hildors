@@ -1,3 +1,6 @@
+import '../../device/device_access.dart';
+import 'p20_media_upload_flow.dart';
+import 'p20_upload_page.dart';
 import '../../localization/localization.dart';
 import 'dart:io';
 import 'package:flutter/material.dart';
@@ -20,6 +23,60 @@ class CharacterPackagePage extends StatefulWidget {
 class _CharacterPackagePageState extends State<CharacterPackagePage> {
   final Set<String> selected = {};
   bool _removing = false;
+  Future<void> _upload(String source, bool asset) async {
+    final device = DeviceAccess.maybeOf(context);
+    if (device == null || !device.client.isConnected) {
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.l10n.coreDeviceDisconnected)));
+      return;
+    }
+    final generation = device.client.generation;
+    var list = P20MediaList.daily;
+    if (device.client.profile.listCount == 2) {
+      final selected = await showModalBottomSheet<P20MediaList>(
+          context: context,
+          builder: (context) => SafeArea(
+                  child: Column(mainAxisSize: MainAxisSize.min, children: [
+                ListTile(title: Text(context.l10n.controlsChooseList)),
+                ListTile(
+                    title: Text(context.l10n.controlsStartup),
+                    onTap: () => Navigator.pop(context, P20MediaList.daily)),
+                ListTile(
+                    title: Text(context.l10n.controlsBluetooth),
+                    onTap: () =>
+                        Navigator.pop(context, P20MediaList.bluetooth)),
+              ])));
+      if (selected == null) return;
+      list = selected;
+    }
+    if (!mounted || generation != device.client.generation) return;
+    await Navigator.of(context).push(MaterialPageRoute<void>(
+        builder: (_) => FanFramingPage(
+            source: source,
+            asset: asset,
+            onUpload: (frameContext, framing) async {
+              if (generation != device.client.generation ||
+                  !device.client.isConnected) {
+                ScaffoldMessenger.of(frameContext).showSnackBar(SnackBar(
+                    content: Text(frameContext.l10n.coreDeviceDisconnected)));
+                return;
+              }
+              final name = await Navigator.of(frameContext).push<String>(
+                  MaterialPageRoute(
+                      builder: (_) => P20UploadPage(
+                          autoStart: true,
+                          client: device.client,
+                          session: device.session,
+                          source: source,
+                          asset: asset,
+                          framing: framing,
+                          list: list)));
+              if (name != null && frameContext.mounted) {
+                Navigator.pop(frameContext);
+              }
+            })));
+  }
+
   Future<void> _remove() async {
     final confirmed = await showDialog<bool>(
         context: context,
@@ -42,8 +99,8 @@ class _CharacterPackagePageState extends State<CharacterPackagePage> {
     } catch (_) {
       if (mounted) {
         setState(() => _removing = false);
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(context.l10n.controlsDeleteFailed)));
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(context.l10n.controlsDeleteFailed)));
       }
     }
   }
@@ -60,8 +117,8 @@ class _CharacterPackagePageState extends State<CharacterPackagePage> {
         body: ListView(padding: EdgeInsets.all(16), children: [
           Text(context.l10n.controlsPackageCount(widget.package.videos.length)),
           if (widget.package.downloaded)
-            Text(
-                context.l10n.controlsDownloaded(widget.package.videos.length, widget.package.totalVideos ?? widget.package.videos.length)),
+            Text(context.l10n.controlsDownloaded(widget.package.videos.length,
+                widget.package.totalVideos ?? widget.package.videos.length)),
           if (widget.package.credit.isNotEmpty) Text(widget.package.credit),
           if (widget.package.description.isNotEmpty)
             Text(widget.package.description),
@@ -83,7 +140,8 @@ class _CharacterPackagePageState extends State<CharacterPackagePage> {
                       : Image.asset(video.thumbnail!,
                           width: 56, height: 56, fit: BoxFit.contain),
               title: Text(video.title),
-              subtitle: Text(context.l10n.controlsSeconds(video.durationSeconds)),
+              subtitle:
+                  Text(context.l10n.controlsSeconds(video.durationSeconds)),
               trailing: widget.picking
                   ? Row(mainAxisSize: MainAxisSize.min, children: [
                       if (!video.asset)
@@ -103,7 +161,10 @@ class _CharacterPackagePageState extends State<CharacterPackagePage> {
                                     : selected.remove(video.id);
                               }))
                     ])
-                  : Icon(Icons.crop),
+                  : IconButton(
+                      tooltip: context.l10n.p20UploadAction,
+                      icon: Icon(Icons.upload),
+                      onPressed: () => _upload(video.source, video.asset)),
               onTap: () {
                 if (widget.picking) {
                   setState(() {
@@ -112,9 +173,7 @@ class _CharacterPackagePageState extends State<CharacterPackagePage> {
                         : selected.add(video.id);
                   });
                 } else {
-                  Navigator.of(context).push(MaterialPageRoute<void>(
-                      builder: (_) => FanFramingPage(
-                          source: video.source, asset: video.asset)));
+                  _upload(video.source, video.asset);
                 }
               },
             )),
@@ -145,7 +204,8 @@ class OfficialPackageLibrary extends StatelessWidget {
           Card(
               child: ListTile(
             title: Text(package.title),
-            subtitle: Text(context.l10n.controlsVideoCount(package.videos.length)),
+            subtitle:
+                Text(context.l10n.controlsVideoCount(package.videos.length)),
             leading: Image.asset(package.videos.first.thumbnail!,
                 width: 56, height: 56, fit: BoxFit.contain),
             trailing: Icon(Icons.chevron_right),

@@ -1787,13 +1787,13 @@ abstract class AppLocalizations {
   /// No description provided for @coreLanControl.
   ///
   /// In en, this message translates to:
-  /// **'Local network control · P20 / P11'**
+  /// **'Local network control · P20 / P20 PORTAL'**
   String get coreLanControl;
 
   /// No description provided for @coreConnectP20.
   ///
   /// In en, this message translates to:
-  /// **'Connect P20'**
+  /// **'Connect device'**
   String get coreConnectP20;
 
   /// No description provided for @coreConnectionSettings.
@@ -1883,7 +1883,7 @@ abstract class AppLocalizations {
   /// No description provided for @coreLanHelpSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Connect to a P20/P11 hotspot and troubleshoot'**
+  /// **'Connect to a P20 / P20 PORTAL hotspot and troubleshoot'**
   String get coreLanHelpSubtitle;
 
   /// No description provided for @coreAppSettings.
@@ -1907,7 +1907,7 @@ abstract class AppLocalizations {
   /// No description provided for @coreAboutSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Character Portal · P20/P11 support'**
+  /// **'Character Portal · P20 / P20 PORTAL support'**
   String get coreAboutSubtitle;
 
   /// No description provided for @corePlayerProfile.
@@ -2027,7 +2027,7 @@ abstract class AppLocalizations {
   /// No description provided for @coreGoHomeConnect.
   ///
   /// In en, this message translates to:
-  /// **'Go to Home to connect your P20 / P11'**
+  /// **'Go to Home to connect your P20 / P20 PORTAL'**
   String get coreGoHomeConnect;
 
   /// No description provided for @coreOpeningLan.
@@ -4073,7 +4073,7 @@ abstract class AppLocalizations {
   /// No description provided for @p20FramingNote.
   ///
   /// In en, this message translates to:
-  /// **'Saving records only the framing. Tap Convert and upload to prepare and transfer the device files.'**
+  /// **'Upload uses the current framing. No separate save is needed.'**
   String get p20FramingNote;
 
   /// No description provided for @p20ConnectedCount.
@@ -4403,13 +4403,13 @@ abstract class AppLocalizations {
   /// No description provided for @p20DeviceSingle.
   ///
   /// In en, this message translates to:
-  /// **'Single list (CS_P20)'**
+  /// **'P20 (single list, silent)'**
   String get p20DeviceSingle;
 
   /// No description provided for @p20DeviceDual.
   ///
   /// In en, this message translates to:
-  /// **'Dual list (HILDORS_P20)'**
+  /// **'P20 PORTAL (dual lists, Bluetooth)'**
   String get p20DeviceDual;
 }
 

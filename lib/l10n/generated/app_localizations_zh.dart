@@ -904,10 +904,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get coreDeviceDisconnected => '设备未连接';
 
   @override
-  String get coreLanControl => '局域网控制 · P20 / P11';
+  String get coreLanControl => '局域网控制 · P20 / P20 PORTAL';
 
   @override
-  String get coreConnectP20 => '连接 P20';
+  String get coreConnectP20 => '连接设备';
 
   @override
   String get coreConnectionSettings => '连接设置';
@@ -952,7 +952,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get coreLanHelp => '局域网连接帮助';
 
   @override
-  String get coreLanHelpSubtitle => '连接 P20/P11 热点及常见问题排查';
+  String get coreLanHelpSubtitle => '连接 P20 / P20 PORTAL 热点及常见问题排查';
 
   @override
   String get coreAppSettings => '设备与 App 设置';
@@ -964,7 +964,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get coreAbout => '关于 HILDORS';
 
   @override
-  String get coreAboutSubtitle => 'Character Portal · P20/P11 兼容架构';
+  String get coreAboutSubtitle => 'Character Portal · P20 / P20 PORTAL 兼容架构';
 
   @override
   String get corePlayerProfile => '玩家档案';
@@ -1024,7 +1024,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get coreCockpitOnline => '座舱在线';
 
   @override
-  String get coreGoHomeConnect => '请先返回首页连接 P20 / P11';
+  String get coreGoHomeConnect => '请先返回首页连接 P20 / P20 PORTAL';
 
   @override
   String get coreOpeningLan => '正在建立局域网控制通道';
@@ -2094,7 +2094,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get p20UploadAction => '转码并上传';
 
   @override
-  String get p20FramingNote => '保存只记录展示范围；点击转码并上传后，才会处理并传输设备文件。';
+  String get p20FramingNote => '上传将使用当前画面大小和位置，无需单独保存。';
 
   @override
   String p20ConnectedCount(int count) {
@@ -2268,8 +2268,8 @@ class AppLocalizationsZh extends AppLocalizations {
   String get p20DeviceAuto => '自动识别';
 
   @override
-  String get p20DeviceSingle => '单列表（CS_P20）';
+  String get p20DeviceSingle => 'P20（单列表 · 无声）';
 
   @override
-  String get p20DeviceDual => '双列表（HILDORS_P20）';
+  String get p20DeviceDual => 'P20 PORTAL（双列表 · 蓝牙）';
 }

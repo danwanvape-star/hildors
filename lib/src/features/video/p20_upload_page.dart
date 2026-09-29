@@ -58,6 +58,7 @@ class P20UploadPage extends StatefulWidget {
       required this.list,
       required this.framing,
       this.engine,
+      this.autoStart = false,
       super.key});
   final P20DeviceClient client;
   final P20CommandSession session;
@@ -66,6 +67,7 @@ class P20UploadPage extends StatefulWidget {
   final P20MediaList list;
   final FanFraming framing;
   final P20MediaEngine? engine;
+  final bool autoStart;
   @override
   State<P20UploadPage> createState() => _P20UploadPageState();
 }
@@ -88,6 +90,11 @@ class _P20UploadPageState extends State<P20UploadPage> {
   @override
   void initState() {
     super.initState();
+    if (widget.autoStart) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _run();
+      });
+    }
     _connection = widget.client.connectionStates.listen((_) {
       if (_busy &&
           (!widget.client.isConnected ||

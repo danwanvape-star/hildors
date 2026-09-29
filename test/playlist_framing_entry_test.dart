@@ -1,3 +1,6 @@
+import 'package:hildors_cockpit/src/device/device_access.dart';
+import 'package:hildors_cockpit/src/device/p20_device_profile.dart';
+import 'package:hildors_cockpit/src/features/video/character_package_page.dart';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -60,6 +63,15 @@ class _FramingVideoPlatform extends VideoPlayerPlatform {
   Widget buildViewWithOptions(VideoViewOptions options) => const SizedBox();
 }
 
+class UploadClient extends P20DeviceClient {
+  UploadClient(this.kind);
+  final P20DeviceKind kind;
+  @override
+  bool get isConnected => true;
+  @override
+  P20DeviceProfile get profile => P20DeviceProfile.forKind(kind);
+}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   const pathProvider = MethodChannel('plugins.flutter.io/path_provider');
@@ -104,6 +116,41 @@ void main() {
     ));
     await pumpUi(tester);
     return (client: client, session: session);
+  }
+
+  for (final kind in [P20DeviceKind.single, P20DeviceKind.dual]) {
+    testWidgets('My characters opens direct upload for $kind', (tester) async {
+      final client = UploadClient(kind);
+      final session = P20CommandSession(client);
+      await tester.pumpWidget(MaterialApp(
+        builder: (context, child) =>
+            DeviceAccess(client: client, session: session, child: child!),
+        home: CharacterPackagePage(
+            package: CharacterVideoPackage(id: 'test', title: 'Test', videos: [
+          PackageVideo(
+              id: 'clip',
+              title: 'Clip',
+              source: '/test.mp4',
+              asset: false,
+              durationSeconds: 1)
+        ])),
+      ));
+      await tester.tap(find.byIcon(Icons.upload));
+      await pumpUi(tester);
+      if (kind == P20DeviceKind.dual) {
+        expect(find.byType(FanFramingPage), findsNothing);
+        await tester.tap(find.text('日常展示'));
+      }
+      await pumpUi(tester);
+      expect(find.byType(FanFramingPage), findsOneWidget);
+      expect(
+          tester.widget<FanFramingPage>(find.byType(FanFramingPage)).onUpload,
+          isNotNull);
+      expect(find.text('保存展示范围'), findsNothing);
+      await tester.pumpWidget(const SizedBox());
+      await session.dispose();
+      await client.dispose();
+    });
   }
 
   testWidgets('HTTPS pending video has a labeled framing action and opens it',

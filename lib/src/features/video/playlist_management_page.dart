@@ -215,6 +215,7 @@ class _PlaylistManagementPageState extends State<PlaylistManagementPage> {
                 final name = await Navigator.of(framingContext).push<String>(
                     MaterialPageRoute(
                         builder: (_) => P20UploadPage(
+                            autoStart: true,
                             client: widget.client,
                             session: widget.session,
                             source: video.source,
