@@ -50,7 +50,7 @@ function publicPackage(item, language, tags) {
     source: item.source, format: item.format, tags: item.tags, demo: item.demo,
     ...(item.cover ? { coverPath: `/v1/covers/${item.cover.id}`, coverThumbnailPath: `/v1/covers/${item.cover.id}/thumbnail`, coverPreviewPath: `/v1/covers/${item.cover.id}/preview` } : {}),
     clips: item.clips.filter(visibleClip).map(c => ({ id: c.id, title: c.title, ...contentFields(c), localized: localizedText(c, language), hardwareReady: false,
-      ...(validPricing(c.pricing) ? { pricing: publicPricing(c.pricing) } : {}),
+      ...(c.pricing === undefined ? { pricing: { mode: 'free', currency: 'USD', amountMinor: 0 } } : validPricing(c.pricing) ? { pricing: publicPricing(c.pricing) } : {}),
       durationSeconds: c.media?.inspection?.durationSeconds ?? c.durationSeconds,
       ...(item.demo ? { bundledAsset: c.bundledAsset, thumbnail: c.thumbnail } : {}),
       ...(!item.demo && c.media?.inspection?.status === 'checked' ? {

@@ -7,7 +7,7 @@ import { createHash, randomUUID } from 'node:crypto';
 import { createStore } from '../src/store.mjs';
 import { app } from '../src/server.mjs';
 
-test('delivery is opt-in, authenticated, entitlement-gated and range-capable', async () => {
+test('delivery is opt-in, authenticated, free-by-default and range-capable', async () => {
   const directory = await mkdtemp(join(tmpdir(), 'hildors-delivery-'));
   const store = createStore();
   const owner = store.createUser(), stranger = store.createUser();
@@ -34,11 +34,11 @@ test('delivery is opt-in, authenticated, entitlement-gated and range-capable', a
     assert.equal((await fetch(publicBase + '/thumbnail')).status, 200);
     assert.equal((await fetch(publicBase, { headers: { Range: 'bytes=2-5' } })).status, 206);
     assert.equal((await (await request('access')).json()).canDownload, true);
-    assert.equal((await (await request('access', other)).json()).canDownload, false);
+    assert.equal((await (await request('access', other)).json()).canDownload, true);
     assert.equal((await (await request('access', token, {}, disabled)).json()).reason, 'DOWNLOAD_NOT_ENABLED');
     assert.equal((await request('manifest', token, {}, disabled)).status, 503);
     assert.equal((await request('download', null)).status, 401);
-    assert.equal((await request('download', other)).status, 404);
+    assert.equal((await request('download', other)).status, 200);
     const manifest = await (await request('manifest')).json();
     assert.equal(manifest.sha256, sha256); assert.equal(manifest.hardwareReady, false);
     assert.equal(manifest.authorizationRequired, true); assert.equal(manifest.id, undefined);
@@ -47,8 +47,8 @@ test('delivery is opt-in, authenticated, entitlement-gated and range-capable', a
     assert.equal(partial.status, 206); assert.deepEqual(Buffer.from(await partial.arrayBuffer()), bytes.subarray(2, 6));
     assert.equal((await request('download', token, { Range: 'bytes=999-' })).status, 416);
     store.setEntitlement(owner, item.id, 'revoked', 'test revoke');
-    assert.equal((await (await request('access')).json()).canDownload, false);
-    assert.equal((await request('download')).status, 404);
+    assert.equal((await (await request('access')).json()).canDownload, true);
+    assert.equal((await request('download')).status, 200);
     store.setEntitlement(owner, item.id, 'active', 'test restore');
     await writeFile(join(directory, `${id}.mp4`), 'short');
     assert.equal((await request('manifest')).status, 409);

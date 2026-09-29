@@ -8,7 +8,7 @@ export function authorizedClip(store, userId, packageId, clipId) {
   if (!clip) return null;
   if (clip.pricing !== undefined) {
     if (!validPricing(clip.pricing) || clip.pricing.mode !== 'free') return null;
-  } else if (!store.entitlements(userId).some(e => e.package_id === packageId && e.status === 'active')) return null;
+  } // Unconfigured pricing is free; explicit paid or malformed pricing stays denied.
   const media = clip.media;
   if (!media || media.inspection?.status !== 'checked'
     || !/^[a-f0-9-]{36}$/.test(media.id) || !/^[a-f0-9]{64}$/.test(media.sha256)
