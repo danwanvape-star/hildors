@@ -179,15 +179,17 @@ class P20CommandSession {
       throw const P20CommandException('视频文件名或索引不合法');
     }
     final nameBytes = frame.data.sublist(2);
-    if (nameBytes.any((byte) => byte < 32 || byte > 126) ||
-        nameBytes.contains(47) ||
-        nameBytes.contains(92)) {
-      throw const P20CommandException('设备文件名编码尚未验证');
+    final name = gbk_bytes.decode(nameBytes);
+    final encoded = _filePayload(name, 0);
+    if (encoded.length != nameBytes.length ||
+        List.generate(encoded.length, (i) => encoded[i] == nameBytes[i])
+            .contains(false)) {
+      throw const P20CommandException('设备文件名编码不合法');
     }
     return P20VideoEntry(
       total: frame.data[0],
       index: frame.data[1],
-      fileName: utf8.decode(frame.data.sublist(2), allowMalformed: true),
+      fileName: name,
     );
   }
 
@@ -265,26 +267,16 @@ class P20CommandSession {
 
   List<int> _filePayload(String name, int listId) {
     _validateList(listId);
-    if (!client.modernProtocol) {
-      if (name.isEmpty ||
-          name.length > 32 ||
-          name.codeUnits.any((b) => b < 32 || b > 126) ||
-          name.contains('/') ||
-          name.contains('\\')) {
-        throw const P20CommandException('设备文件名不合法');
-      }
-      return name.codeUnits;
-    }
     final bytes = gbk_bytes.encode(name);
     if (bytes.isEmpty ||
-        bytes.length > 61 ||
+        bytes.length > (client.modernProtocol ? 61 : 32) ||
         gbk_bytes.decode(bytes) != name ||
         name.contains('/') ||
         name.contains('\\') ||
-        name.contains('\u0000')) {
+        name.runes.any((value) => value < 32 || value == 127)) {
       throw const P20CommandException('设备文件名不合法');
     }
-    return [listId, ...bytes];
+    return [if (client.modernProtocol) listId, ...bytes];
   }
 
   Future<String> queryBluetoothSpeakerName() async {

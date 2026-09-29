@@ -19,17 +19,51 @@ class SingleLiveClient extends LiveClient {
   bool get modernProtocol => false;
   @override
   DeviceConnectionState get connectionState => DeviceConnectionState.connected;
+  List<int> lastData = [];
   final calls = <int>[];
   List<int> reply = [0, 0];
   @override
   Future<P20Frame> requestFrame(P20Command cmd,
       [List<int> data = const []]) async {
     calls.add(cmd.code);
+    lastData = List.of(data);
     return P20Frame(command: cmd.code, data: Uint8List.fromList(reply));
   }
 }
 
 void main() {
+  test('captured single GBK filename round trips for list play and delete',
+      () async {
+    final client = SingleLiveClient();
+    final session = P20CommandSession(client);
+    final bytes = [
+      0x31,
+      0x32,
+      0xc8,
+      0xab,
+      0xcf,
+      0xa2,
+      0xb7,
+      0xbf,
+      0xd7,
+      0xd3,
+      0x2e,
+      0x6d,
+      0x70,
+      0x34
+    ];
+    client.reply = [36, 0, ...bytes];
+    final video = await session.queryVideo(0);
+    expect(video!.fileName, '12全息房子.mp4');
+    expect(video.total, 36);
+    client.reply = [1];
+    await session.playVideo(video.fileName);
+    expect(client.lastData, bytes);
+    await session.deleteVideo(video.fileName);
+    expect(client.lastData, bytes);
+    await session.dispose();
+    await client.dispose();
+  });
   testWidgets('single playlist has no second list switch', (tester) async {
     final client = SingleLiveClient()..online = true;
     final session = LiveSession(client);
