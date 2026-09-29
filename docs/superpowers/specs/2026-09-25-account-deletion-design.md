@@ -1,8 +1,8 @@
 # Hildors Account and Associated-Data Deletion Design
 
-Date: 2026-09-25
+Date: 2026-09-29 (revised from the 2026-09-25 draft)
 
-Status: proposed for user review
+Status: revised after user design approval on 2026-09-29; awaiting written-spec review
 
 Target: Hildors backend and mobile App, initial `us_free` release
 
@@ -10,11 +10,11 @@ Target: Hildors backend and mobile App, initial `us_free` release
 
 Hildors currently lets an authenticated user request account deletion, lets an operator change the request among review states, and exposes a web request page. It does not delete the account or associated data, and its database check constraint rejects a `deleted` status.
 
-The new subsystem must turn an approved request into a verifiable, retryable deletion across the production database, media files, authentication state, and configured service providers. It must satisfy these outcomes:
+The new subsystem must turn a freshly email-verified, explicitly confirmed request into a verifiable, retryable deletion across the production database, media files, authentication state, and configured service providers. It must satisfy these outcomes:
 
 1. A user can initiate deletion from the App or the public web resource without reinstalling the App.
-2. Cancellation is possible until an operator approves execution. Approval is the irreversible boundary.
-3. Approval immediately prevents new authenticated activity and revokes all access and refresh sessions.
+2. The final user confirmation is the irreversible boundary; no operator approval or waiting period follows it.
+3. Final confirmation immediately prevents new authenticated activity, revokes all access and refresh sessions, and removes user-created public content from all read paths.
 4. All data associated with the account is deleted or de-identified unless an explicit, approved retention rule applies.
 5. User-generated public content becomes unavailable before physical deletion begins.
 6. A crash or provider failure can be retried safely without restoring data or duplicating side effects.
@@ -26,7 +26,7 @@ This design covers source changes and tests. Production deployment, irreversible
 
 ## 2. Selected architecture
 
-Use an asynchronous deletion job with an immutable inventory and idempotent steps. The existing request remains the user-facing intake record. Operator approval creates a deletion job and crosses the irreversible boundary. A worker claims the job using a lease, processes its steps, and derives the final status from their verified results.
+Use an asynchronous deletion job with an immutable inventory and idempotent steps. A deletion-specific email verification followed by explicit user confirmation creates the request and job atomically and crosses the irreversible boundary. A worker claims the job using a lease, processes its steps, and derives the final status from their verified results. No operator reviews or approves a valid request.
 
 A single SQL transaction is insufficient because SQLite changes, filesystem deletion, email delivery, backups, and external providers cannot commit atomically. The job therefore uses a saga-style workflow: each step can be retried, deletion operations treat already-absent data as success, and no compensating action recreates deleted personal data.
 
@@ -34,17 +34,15 @@ A single SQL transaction is insufficient because SQLite changes, filesystem dele
 
 ### 3.1 Request states
 
-The request intake state machine is:
+The public request state machine is:
 
 ```text
-received
-  -> in_review
-  -> needs_information -> received
-  -> approved
-  -> cancelled         (only before approved)
+deleting -> completed
+    |
+    +-> delayed
 ```
 
-After `approved`, the user cannot cancel. The API returns a stable public request reference and current public state.
+The request is not persisted until the user completes fresh email verification and final confirmation. Once persisted, it cannot be cancelled. The API returns a stable public request reference and current public state.
 
 ### 3.2 Job states
 
@@ -63,7 +61,7 @@ queued -> locking -> deleting -> verifying -> completed
 - `failed_terminal` means automated retries are exhausted and requires operator remediation. It is never shown as completed.
 - `completed` is set only by the worker after every required step is verified complete or covered by a valid retention exception.
 
-The user sees simplified states: received, under review, deletion in progress, more information required, cancelled, completed, or delayed. Internal error details and provider names are not exposed through the public endpoint.
+The user sees only deletion in progress, completed, or delayed. Internal error details and provider names are not exposed through the public endpoint.
 
 ## 4. Storage model
 
@@ -71,10 +69,9 @@ Replace the current request-only schema with three focused records while preserv
 
 ### 4.1 `account_deletion_requests`
 
-Keep the request record for intake and operator review. Extend its allowed state set and add:
+Keep the request record as the non-identifying public receipt anchor. Rebuild its allowed state set and add:
 
-- `approved_at`
-- `approved_by`
+- `confirmed_at`
 - `job_id`
 - `public_receipt_hash`
 
@@ -88,7 +85,7 @@ Store:
 - current internal state and version;
 - lease token and lease expiry;
 - attempt count and next-attempt time;
-- timestamps for approval, lock, start, completion, and last update;
+- timestamps for confirmation, lock, start, completion, and last update;
 - a keyed subject fingerprint used only to reapply deletions after backup restoration;
 - non-sensitive counts of planned, completed, retained, and failed items;
 - a bounded machine-readable error code.
@@ -99,11 +96,11 @@ The subject fingerprint uses a dedicated deletion-ledger secret and cannot be de
 
 Each item identifies one deletion unit by type and opaque internal reference, with state, attempts, lease data, last safe error code, retention policy code, retention expiry/review date, and verification time. Item payloads may temporarily include file IDs or provider references needed for deletion. Successful item payloads are cleared. All remaining item payloads are removed when the backup replay window ends.
 
-The database migration must be transactional, preserve existing requests, and be safe to run more than once. Startup must fail closed if the migration or required deletion-ledger secret is missing in production mode.
+The database migration must be transactional, preserve existing request IDs, and be safe to run more than once. Legacy requests that never crossed a verified execution boundary are marked `superseded`, never executed, and require a new deletion-specific OTP and final confirmation. Startup must fail closed if the migration or required deletion-ledger secret is missing in production mode.
 
 ## 5. Data inventory
 
-Approval creates an immutable inventory from the same consistent database snapshot used to lock the account. The inventory resolver must cover direct columns and user IDs embedded in JSON documents.
+Final user confirmation creates an immutable inventory from the same consistent database snapshot used to lock the account. The inventory resolver must cover direct columns and user IDs embedded in JSON documents.
 
 Current known scope:
 
@@ -131,24 +128,24 @@ Before implementation is considered complete, an automated schema/inventory test
 
 ## 6. Workflow
 
-### 6.1 Request and verification
+### 6.1 Verification and final confirmation
 
-The App and public webpage keep email OTP verification for request initiation. The response includes the public receipt once, and the user can use it to check status after sessions are revoked. Status lookup reveals only the request reference and public state.
+The App and public webpage require a fresh deletion-specific email OTP for the existing verified account. Successful verification produces a short-lived, single-use deletion confirmation token rather than a login session. The final request must include that token and the exact explicit confirmation value shown by the UI. The response includes the public receipt once, and the user can use it to check status after sessions are revoked. Status lookup reveals only the request reference and public state.
 
-Repeated requests before approval return the active request rather than creating competing jobs. A completed account cannot be recovered by submitting a new request.
+The confirmation token expires after 10 minutes and cannot be reused. Concurrent or repeated confirmations return the same active request and job rather than creating competing jobs. After deletion completes, the same email may register a new empty account; no prior account ID, content, entitlement, profile, order, media, or session may be restored or rebound.
 
-### 6.2 Operator review and approval
+### 6.2 User-confirmed execution boundary
 
-Add a distinct `account_deletions.execute` permission. Review permission may request information or cancel, but execution permission is required to approve deletion. The approval endpoint requires the current version, an explicit confirmation value, and an idempotency key.
+The final confirmation endpoint requires the fresh deletion confirmation token, an explicit confirmation value, and an idempotency key. It does not accept an operator credential as a substitute for user verification.
 
-The approval transaction:
+The confirmation transaction:
 
 1. validates that the request is eligible;
 2. creates the job and inventory;
 3. marks the account as deletion-locked;
 4. withdraws user-owned public content from all read paths;
 5. deletes access and refresh sessions; and
-6. commits the request as approved and job as queued.
+6. commits the request as deleting and the job as queued.
 
 All authenticated write paths and email sign-in must reject deletion-locked accounts. This check must be centralized rather than added independently to individual feature routes.
 
@@ -184,38 +181,38 @@ The implementation does not invent retention periods. Deployment configuration m
 - deletion method after expiry; and
 - approving role and policy version.
 
-Production startup and job approval fail closed if a discovered protected record needs a rule and no active rule exists. Free-launch data has no blanket retention exception. Operator convenience, analytics, product improvement, and an unresolved policy decision are not valid exception reasons.
+Production startup and final confirmation fail closed if a discovered protected record needs a rule and no active rule exists. Free-launch data has no blanket retention exception. Operator convenience, analytics, product improvement, and an unresolved policy decision are not valid exception reasons.
 
 ## 7. Backups and restored data
 
-Online deletion does not rewrite immutable historical backups. The production policy must define backup expiry. Until the oldest relevant backup expires, retain the keyed subject fingerprint and completed job reference in a deletion ledger.
+Online deletion does not rewrite immutable historical backups. Hildors has approved a maximum backup lifetime of 30 days for this release. Until the oldest relevant backup expires, retain the keyed subject fingerprint and completed job reference in a deletion ledger.
 
 Every restore procedure must run a mandatory replay step before restored services accept traffic. Replay identifies restored subjects using the keyed fingerprint, reapplies deletion, and records verification. The ledger and temporary item metadata are removed after the backup replay window and any approved exception periods end.
 
-Backups must be access-controlled and cannot be used for ordinary account recovery after deletion.
+Backups must be access-controlled, used only for disaster recovery, and cannot be used for ordinary account recovery after deletion. Backup rotation must permanently remove the affected backup no later than 30 days after the online deletion.
 
 ## 8. API and UI changes
 
 ### User endpoints
 
-- Existing request, read, and pre-approval cancel endpoints remain compatible.
-- The request response adds a one-time public receipt.
+- Add deletion-specific OTP start and verification endpoints. Verification returns a short-lived single-use confirmation token, not a login session.
+- Replace the current request/cancel workflow with one idempotent final-confirmation endpoint. There is no cancellation endpoint after final confirmation.
+- The final-confirmation response returns a one-time public receipt.
 - Add a rate-limited public receipt status endpoint that does not require an active account.
-- After approval, authenticated endpoints return an account-deletion status response and never silently create a replacement account for the same active deletion identity.
+- After confirmation, authenticated endpoints return an account-deletion status response. Sign-in for that identity remains blocked while deletion is active. After verified completion, the same email may create a new empty account without restoring or rebinding prior data.
 
 ### Operator endpoints
 
-- Review transitions remain separate from execution approval.
-- Add approve/execute, retry, and retention-review actions protected by explicit permissions and optimistic versions.
+- Add retry and retention-review actions protected by explicit permissions and optimistic versions. Operators cannot initiate or approve a user's deletion.
 - Remove the ability to mark a request completed directly.
 - Show inventory counts, safe error codes, retry time, retention policy codes, and verification results. Do not show deleted payloads.
 
 ### App and web UI
 
-- Explain before confirmation that approval is irreversible, sessions will end, public creator content will be removed, and local device files are managed locally.
-- Show cancellation only before approval.
+- Explain before final confirmation that deletion is irreversible, sessions will end, public creator content and server media will be removed, backups can remain for no more than 30 days, and local phone/P20 files are managed locally.
+- Do not show cancellation after final confirmation.
 - Persist the public receipt for status checking and allow the user to copy it.
-- Replace current wording that describes only a reviewed request once the real workflow is deployed.
+- Replace current wording that describes a reviewed request with immediate-deletion wording once the real workflow is deployed.
 
 ## 9. Error handling and operations
 
@@ -226,15 +223,15 @@ Backups must be access-controlled and cannot be used for ordinary account recove
 - Metrics report queue age, jobs by state, retry counts, terminal failures, retained items by policy, and completion duration without user identifiers.
 - Structured logs contain job IDs and item types, not emails, content text, original filenames, tokens, or raw provider payloads.
 - A dry-run inventory command is available for staging and reports counts only. It cannot mutate data.
-- Live approval and worker execution require an explicit production feature flag. Source deployment may occur with execution disabled until policy configuration, backup replay, and operational review are complete.
+- Live final confirmation and worker execution require an explicit production feature flag. Source deployment may occur with execution disabled until policy configuration, backup replay, and operational review are complete.
 
 ## 10. Security controls
 
 - Use high-entropy public receipts and store only hashes.
 - Rate-limit receipt lookups and return the same response shape for unknown receipts.
 - Store the deletion-ledger secret outside the database and rotate it only with a migration plan for active fingerprints.
-- Require fresh operator authorization, execute permission, optimistic version, explicit confirmation, and idempotency key for approval.
-- Keep user-request verification separate from operator approval.
+- Require fresh deletion-specific email verification, a single-use confirmation token, explicit confirmation, and an idempotency key for execution.
+- Operator retry access never substitutes for user confirmation and cannot create a deletion job.
 - Never expose provider payloads or retention evidence through public endpoints.
 - Validate every filesystem target against an allowlisted media root and expected UUID/extension before unlinking.
 
@@ -242,7 +239,7 @@ Backups must be access-controlled and cannot be used for ordinary account recove
 
 ### Unit tests
 
-- state transitions, cancellation boundary, permission checks, idempotency, lease expiry, backoff, and terminal errors;
+- deletion-specific OTP expiry and single use, explicit-confirmation boundary, permission checks, idempotency, lease expiry, backoff, and terminal errors;
 - receipt hashing and constant-shape unknown receipt responses;
 - retention rule validation and fail-closed behavior;
 - inventory classification for every user-data table and media namespace;
@@ -250,7 +247,7 @@ Backups must be access-controlled and cannot be used for ordinary account recove
 
 ### Integration tests
 
-Create one user with email authentication, both session types, creator profile and application video, owned package and media derivatives, entitlements, reports, blocks, an order and its media, email-queue records, and a simulated provider object. Approve deletion and verify:
+Create one user with email authentication, both session types, creator profile and application video, owned package and media derivatives, entitlements, reports, blocks, an order and its media, email-queue records, and a simulated provider object. Complete deletion-specific OTP verification and final confirmation, then verify:
 
 - sessions stop working immediately;
 - the account cannot sign in or create new data during deletion;
@@ -258,8 +255,9 @@ Create one user with email authentication, both session types, creator profile a
 - every scoped database row and file is removed;
 - provider deletion is called and verified;
 - repeated execution is harmless;
-- the public receipt reaches completed while revealing no personal data; and
-- the remaining audit/ledger records contain no raw user identifier, email, content, token, or filename.
+- the public receipt reaches completed while revealing no personal data;
+- the remaining audit/ledger records contain no raw user identifier, email, content, token, or filename; and
+- the same email can subsequently create a new empty account without any prior data reappearing.
 
 Inject a process crash before and after each step and prove another worker resumes correctly. Add provider timeout, permanent rejection, missing file, corrupt inventory, legal-hold, and notification-failure cases.
 
@@ -282,7 +280,7 @@ Implementation can be merged with production execution disabled. Enabling live d
 3. successful database migration rehearsal on a sanitized copy;
 4. full automated suite and crash-recovery tests passing;
 5. staging end-to-end deletion and backup-restore replay passing;
-6. operator permissions and runbook reviewed;
+6. operator retry permissions and runbook reviewed;
 7. final privacy policy and account-deletion page wording approved;
 8. Google Play Data safety answers reconciled with the deployed version; and
 9. a separate authorized production deployment and activation action.
