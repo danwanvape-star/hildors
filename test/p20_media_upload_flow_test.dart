@@ -66,7 +66,7 @@ void main() {
         profile: const P20DeviceProfile.forKind(P20DeviceKind.single),
         onStage: stages.add);
     await flow.run(File('source.mp4'), P20MediaList.daily, 'clip');
-    expect(events, ['transcode', '0:clip.bin', 'refresh:0']);
+    expect(events, ['transcode', '0:clip.mp4', 'refresh:0']);
     expect(stages, isNot(contains(P20MediaStage.extractingAudio)));
     expect(stages, isNot(contains(P20MediaStage.uploadingAudio)));
   });

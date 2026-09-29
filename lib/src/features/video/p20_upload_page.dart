@@ -229,9 +229,6 @@ class _P20UploadPageState extends State<P20UploadPage> {
                       _attemptProfile?.kind == P20DeviceKind.single
                   ? context.l10n.p20SingleTransferComplete
                   : text.stage(_stage)),
-              if (widget.client.profile.kind == P20DeviceKind.single &&
-                  !widget.client.canUploadVideo)
-                Text(context.l10n.p20SingleValidationPending),
               if (_busy || _progress != null) ...[
                 const SizedBox(height: 12),
                 LinearProgressIndicator(value: _progress)

@@ -38,8 +38,7 @@ void main() {
     await client.dispose();
     await session.dispose();
   });
-  testWidgets('direct single upload entry cannot bypass validation gate',
-      (tester) async {
+  testWidgets('verified single device exposes upload action', (tester) async {
     final client = SingleClient();
     final session = P20CommandSession(client);
     await tester.pumpWidget(MaterialApp(
@@ -56,10 +55,10 @@ void main() {
     expect(
         find.text(
             'Video upload for this device is awaiting hardware validation.'),
-        findsOneWidget);
+        findsNothing);
     expect(
         tester.widget<FilledButton>(find.byType(FilledButton).first).onPressed,
-        isNull);
+        isNotNull);
     await tester.pumpWidget(const SizedBox());
     await client.dispose();
     await session.dispose();

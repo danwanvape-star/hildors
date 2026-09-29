@@ -10,7 +10,7 @@ void main() {
     }
     expect(p.supportsAudio, isFalse);
     expect(
-        [p.videoExtension, p.maxNameBytes, p.chunkSize], ['.bin', 32, 35700]);
+        [p.videoExtension, p.maxNameBytes, p.chunkSize], ['.mp4', 32, 32768]);
   });
   test('dual permits both lists and retains existing media rules', () {
     final p = P20DeviceProfile.forKind(P20DeviceKind.dual);

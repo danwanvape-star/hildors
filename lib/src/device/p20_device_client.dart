@@ -64,13 +64,10 @@ class P20DeviceClient {
   P20V2Connection? _modern;
   P20UploadSnapshot? lastUploadSnapshot;
   bool _uploading = false;
-  static const singleUploadValidationEnabled =
-      bool.fromEnvironment('HILDORS_SINGLE_UPLOAD_VALIDATION');
   bool get canUploadVideo =>
       isConnected &&
       (profile.kind == P20DeviceKind.dual ||
-          (profile.kind == P20DeviceKind.single &&
-              singleUploadValidationEnabled));
+          profile.kind == P20DeviceKind.single);
   Socket? _socket;
   Timer? _reconnectTimer;
   final _frames = StreamController<P20Frame>.broadcast();

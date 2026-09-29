@@ -12,8 +12,8 @@ class P20DeviceProfile {
         P20DeviceKind.dual => 2,
       };
   bool get supportsAudio => kind == P20DeviceKind.dual;
-  String get videoExtension => kind == P20DeviceKind.single ? '.bin' : '.mp4';
+  String get videoExtension => '.mp4';
   int get maxNameBytes => kind == P20DeviceKind.single ? 32 : 61;
-  int get chunkSize => kind == P20DeviceKind.single ? 35700 : 32768;
+  int get chunkSize => 32768;
   bool supportsList(int listId) => listId >= 0 && listId < listCount;
 }

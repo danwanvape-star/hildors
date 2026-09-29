@@ -48,7 +48,7 @@ void main() {
   });
   test('single upload exact header and stop-and-wait chunks', () async {
     final progress = <int>[];
-    final upload = transport.upload(await sample(71400), 'x.bin'.codeUnits,
+    final upload = transport.upload(await sample(65543), 'x.mp4'.codeUnits,
         onProgress: (n, _) => progress.add(n));
     expect(await peer.take(17), [
       0xaa,
@@ -59,40 +59,42 @@ void main() {
       0x31,
       0,
       1,
-      0x16,
-      0xe8,
+      0,
+      7,
       120,
       46,
-      98,
-      105,
-      110,
-      2,
+      109,
+      112,
+      52,
+      0xfa,
       0xa5
     ]);
     peer.reply([0]);
-    expect((await peer.take(35700)).every((b) => b == 0x19), isTrue);
+    expect((await peer.take(32768)).every((b) => b == 0x19), isTrue);
     await expectLater(transport.request(4, [0]), throwsA(isA<StateError>()));
-    peer.reply([1, 0, 0, 0, 1]);
-    expect((await peer.take(35700)).length, 35700);
-    peer.reply([2]);
+    peer.reply([1, 0, 0, 0, 2]);
+    expect((await peer.take(32768)).length, 32768);
+    peer.reply([1, 0, 0, 0, 2]);
+    expect(await peer.take(7), List.filled(7, 0x19));
+    peer.reply([2, 0xff, 0xff, 0xff, 0xff]);
     await upload;
-    expect(progress.last, 71400);
+    expect(progress.last, 65543);
   });
-  for (final size in [0, 35701]) {
+  for (final size in [0]) {
     test('rejects unverified file length $size', () async {
-      await expectLater(transport.upload(await sample(size), 'x.bin'.codeUnits),
+      await expectLater(transport.upload(await sample(size), 'x.mp4'.codeUnits),
           throwsArgumentError);
     });
   }
-  for (final name in ['x.mp4', '中.bin', '${'x' * 29}.bin', '../x.bin']) {
+  for (final name in ['x.bin', '中.bin', '${'x' * 29}.bin', '../x.bin']) {
     test('rejects unsafe or invalid name $name', () async {
-      await expectLater(transport.upload(await sample(35700), name.codeUnits),
+      await expectLater(transport.upload(await sample(32768), name.codeUnits),
           throwsArgumentError);
     });
   }
   for (final status in [2, 0x80, 0x81, 0x82, 0x83, 0x84, 0x85]) {
     test('header rejection $status cannot succeed', () async {
-      final upload = transport.upload(await sample(35700), 'x.bin'.codeUnits);
+      final upload = transport.upload(await sample(32768), 'x.mp4'.codeUnits);
       final check = expectLater(upload, throwsA(anything));
       await peer.take(17);
       peer.reply([status]);
@@ -100,32 +102,51 @@ void main() {
       await expectLater(transport.request(4, [0]), throwsA(anything));
     });
   }
-  for (final sequence in [1, 0, 3]) {
-    test('ambiguous second sequence $sequence stops upload', () async {
-      final upload = transport.upload(await sample(107100), 'x.bin'.codeUnits);
+  for (final data in [
+    [1],
+    [1, 0, 0, 0],
+    [3, 0, 0, 0, 2],
+    [2]
+  ]) {
+    test('malformed ACK or premature completion $data closes', () async {
+      final upload = transport.upload(await sample(98304), 'x.mp4'.codeUnits);
       final check = expectLater(upload, throwsA(isA<FormatException>()));
       await peer.take(17);
       peer.reply([0]);
-      await peer.take(35700);
-      peer.reply([1, 0, 0, 0, 1]);
-      await peer.take(35700);
-      peer.reply([1, 0, 0, 0, sequence]);
+      await peer.take(32768);
+      peer.reply(data);
       await check;
     });
   }
+  test('vendor 01NZ single upload request matches raw fixture', () async {
+    final file = await sample(0);
+    final handle = await file.open(mode: FileMode.write);
+    await handle.truncate(0x01324f9c);
+    await handle.close();
+    final upload = transport.upload(file, '01NZ.mp4'.codeUnits);
+    final check = expectLater(upload, throwsA(anything));
+    final expected = 'aa0000000d3101324f9c30314e5a2e6d7034a4a5';
+    expect(
+        (await peer.take(20))
+            .map((b) => b.toRadixString(16).padLeft(2, '0'))
+            .join(),
+        expected);
+    peer.reply([0x82]);
+    await check;
+  });
   test('cancel closes active upload', () async {
-    final upload = transport.upload(await sample(35700), 'x.bin'.codeUnits);
+    final upload = transport.upload(await sample(32768), 'x.mp4'.codeUnits);
     final check = expectLater(upload, throwsA(anything));
     await peer.take(17);
     await transport.close();
     await check;
   });
   test('coalesced final progress and completion are both consumed', () async {
-    final upload = transport.upload(await sample(35700), 'x.bin'.codeUnits,
+    final upload = transport.upload(await sample(32768), 'x.mp4'.codeUnits,
         timeout: const Duration(milliseconds: 100));
     await peer.take(17);
     peer.reply([0]);
-    await peer.take(35700);
+    await peer.take(32768);
     peer.socket.add([
       0x55,
       0,
@@ -153,12 +174,12 @@ void main() {
     await upload;
   });
   test('coalesced early duplicate ACK cannot advance another packet', () async {
-    final upload = transport.upload(await sample(71400), 'x.bin'.codeUnits,
+    final upload = transport.upload(await sample(65543), 'x.mp4'.codeUnits,
         timeout: const Duration(milliseconds: 100));
     final check = expectLater(upload, throwsA(isA<FormatException>()));
     await peer.take(17);
     peer.reply([0]);
-    await peer.take(35700);
+    await peer.take(32768);
     peer.socket.add([
       0x55,
       0,
@@ -190,20 +211,20 @@ void main() {
     await check;
   });
   test('missing completion times out and closes', () async {
-    final upload = transport.upload(await sample(35700), 'x.bin'.codeUnits,
+    final upload = transport.upload(await sample(32768), 'x.mp4'.codeUnits,
         timeout: const Duration(milliseconds: 50));
     final check = expectLater(upload, throwsA(isA<TimeoutException>()));
     await peer.take(17);
     peer.reply([0]);
-    await peer.take(35700);
+    await peer.take(32768);
     peer.reply([1, 0, 0, 0, 1]);
     await check;
   });
-  test('public client blocks unvalidated single upload', () async {
+  test('public client blocks disconnected single upload', () async {
     final client = P20DeviceClient(preference: P20DevicePreference.single);
     try {
       await expectLater(
-          client.uploadFile(await sample(35700), 0, 'x.bin'.codeUnits),
+          client.uploadFile(await sample(32768), 0, 'x.mp4'.codeUnits),
           throwsA(anything));
     } finally {
       await client.dispose();
