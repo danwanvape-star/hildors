@@ -84,7 +84,7 @@ class P20MediaUploadFlow {
     // Generated ASCII device identifiers are a valid subset of CP936. User
     // display titles stay separate; full GBK title encoding belongs to the UI adapter.
     if (!profile.supportsList(list.index) ||
-        baseName.length + 4 > profile.maxNameBytes) {
+        baseName.length + 4 > profile.maxUploadNameBytes) {
       throw ArgumentError('Unsupported device list or file name');
     }
     if (!RegExp(r'^[A-Za-z0-9][A-Za-z0-9_-]{0,56}$').hasMatch(baseName) ||

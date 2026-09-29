@@ -13,6 +13,7 @@ class P20DeviceProfile {
       };
   bool get supportsAudio => kind == P20DeviceKind.dual;
   String get videoExtension => '.mp4';
+  int get maxUploadNameBytes => 12;
   int get maxNameBytes => kind == P20DeviceKind.single ? 32 : 61;
   int get chunkSize => 32768;
   bool supportsList(int listId) => listId >= 0 && listId < listCount;

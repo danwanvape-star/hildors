@@ -90,7 +90,13 @@ void main() {
           throwsArgumentError);
     });
   }
-  for (final name in ['x.bin', '中.bin', '${'x' * 29}.bin', '../x.bin']) {
+  for (final name in [
+    'x.bin',
+    '123456789.mp4',
+    '中.bin',
+    '${'x' * 29}.bin',
+    '../x.bin'
+  ]) {
     test('rejects unsafe or invalid name $name', () async {
       await expectLater(transport.upload(await sample(32768), name.codeUnits),
           throwsArgumentError);

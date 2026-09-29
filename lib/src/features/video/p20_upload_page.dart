@@ -3,7 +3,7 @@ import '../../device/p20_device_profile.dart';
 import '../../localization/localization.dart';
 import '../../device/p20_v2_connection.dart';
 import 'dart:io';
-import 'dart:math';
+import '../../device/p20_upload_name.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
@@ -141,8 +141,7 @@ class _P20UploadPageState extends State<P20UploadPage> {
               scale: widget.framing.scale,
               x: widget.framing.x,
               y: widget.framing.y));
-      final name =
-          'h${DateTime.now().microsecondsSinceEpoch}_${Random.secure().nextInt(0x7fffffff).toRadixString(16)}';
+      final name = createP20UploadBaseName();
       final flow = P20MediaUploadFlow(preparation, destination,
           profile: _attemptProfile!, onStage: (stage) {
         if (mounted) {

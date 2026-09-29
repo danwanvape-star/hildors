@@ -100,11 +100,11 @@ class P20SingleConnection {
       Duration timeout = const Duration(seconds: 10)}) async {
     if (_closed || _uploading) throw StateError('Device unavailable');
     if (name.any((b) => b < 0 || b > 127) ||
-        name.length > 32 ||
+        name.length > 12 ||
         !RegExp(r'^[A-Za-z0-9][A-Za-z0-9_-]*\.mp4$')
             .hasMatch(String.fromCharCodes(name))) {
       throw ArgumentError(
-          'Single-list filename must be ASCII .mp4, at most 32 bytes');
+          'Single-list filename must be ASCII .mp4, at most 12 bytes');
     }
     // Reserve before awaiting disk or queued commands: no new commands may join.
     _uploading = true;

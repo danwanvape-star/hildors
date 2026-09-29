@@ -317,6 +317,10 @@ class P20DeviceClient {
     if (!canUploadVideo) {
       throw StateError('Device video upload is not available');
     }
+    if (gbkName.length > profile.maxUploadNameBytes) {
+      throw ArgumentError(
+          'Upload filename exceeds 12 bytes including extension');
+    }
     if (_uploading) throw StateError('Device upload in progress');
     _uploading = true;
     lastUploadSnapshot = null;
