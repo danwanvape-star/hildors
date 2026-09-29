@@ -3,12 +3,17 @@ import 'dart:collection';
 import 'dart:io';
 import '../protocol/p20_protocol.dart';
 import 'p20_upload_policy.dart';
+import 'p20_wire_log.dart';
 
 /// One command at a time. A timeout closes the socket so late replies cannot
 /// satisfy a subsequent command with the same opcode.
 class P20SingleConnection {
-  P20SingleConnection(this.socket, {required this.onClosed}) {
+  P20SingleConnection(this.socket,
+      {required this.onClosed,
+      this.wireLog,
+      this.traceConnectionProbe = false}) {
     _subscription = socket.listen((bytes) {
+      if (traceConnectionProbe) wireLog?.record('RX', bytes);
       for (final frame in _decoder.add(bytes)) {
         if (_uploading && frame.command == 0x31) {
           _uploadReplies.add(frame);
@@ -26,6 +31,8 @@ class P20SingleConnection {
         onError: (Object e) => unawaited(close()),
         onDone: () => unawaited(close()));
   }
+  final P20WireLog? wireLog;
+  bool traceConnectionProbe;
   final Socket socket;
   final void Function() onClosed;
   final _decoder = P20FrameDecoder(allowLegacyCrc: false);
@@ -55,7 +62,7 @@ class P20SingleConnection {
     final pending = Completer<P20Frame>();
     _reply = pending;
     final length = data.length + 1;
-    socket.add([
+    final bytes = <int>[
       0xaa,
       (length >> 24) & 255,
       (length >> 16) & 255,
@@ -65,7 +72,9 @@ class P20SingleConnection {
       ...data,
       2,
       0xa5
-    ]);
+    ];
+    if (traceConnectionProbe) wireLog?.record('TX', bytes);
+    socket.add(bytes);
     try {
       return await pending.future.timeout(timeout);
     } catch (_) {

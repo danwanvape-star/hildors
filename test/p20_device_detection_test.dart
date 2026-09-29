@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'package:hildors_cockpit/src/protocol/p20_protocol.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hildors_cockpit/src/device/p20_device_client.dart';
 import 'package:hildors_cockpit/src/device/p20_device_profile.dart';
@@ -25,6 +26,40 @@ void main() {
       await client.connect(host: '127.0.0.1', port: server.port);
       expect(client.profile.kind, P20DeviceKind.single);
       expect(connections, 2);
+      expect(client.wireLog.text, contains('stage=tcp_connected'));
+      expect(client.wireLog.text, contains('aa 00 00 00 02 04 00 02 a5'));
+      expect(client.wireLog.text, contains('55 00 00 00 02 04 32 02 5a'));
+      expect(client.wireLog.text, contains('stage=verified'));
+    } finally {
+      await client.dispose();
+      await server.close();
+    }
+  });
+  test('socket refusal is distinguished from protocol failure', () async {
+    final server = await ServerSocket.bind('127.0.0.1', 0);
+    final port = server.port;
+    await server.close();
+    final client = P20DeviceClient(preference: P20DevicePreference.single);
+    try {
+      await expectLater(
+          client.connect(host: '127.0.0.1', port: port), throwsA(anything));
+      expect(client.wireLog.text, contains('stage=tcp_failed'));
+      expect(client.wireLog.text, isNot(contains('stage=tcp_connected')));
+    } finally {
+      await client.dispose();
+    }
+  });
+  test('connection tracing stops before later commands', () async {
+    final server = await ServerSocket.bind('127.0.0.1', 0);
+    final client = P20DeviceClient(preference: P20DevicePreference.single);
+    server.listen((socket) {
+      socket.listen((_) => socket.add([0x55, 0, 0, 0, 2, 4, 50, 2, 0x5a]));
+    });
+    try {
+      await client.connect(host: '127.0.0.1', port: server.port);
+      final log = client.wireLog.text;
+      await client.requestFrame(P20Command.queryBrightness);
+      expect(client.wireLog.text, log);
     } finally {
       await client.dispose();
       await server.close();
@@ -52,6 +87,10 @@ void main() {
         expect(client.isConnected, isFalse);
         expect(client.profile.kind, P20DeviceKind.unknown);
         expect(count, 1);
+        expect(client.wireLog.text, contains('stage=probe_failed'));
+        if (reply.isNotEmpty) {
+          expect(client.wireLog.text, contains('RX bytes= 9'));
+        }
       } finally {
         await client.dispose();
         await server.close();

@@ -128,6 +128,9 @@ class P20DeviceClient {
     try {
       for (final kind in kinds) {
         if (!current()) return;
+        var stage = 'tcp';
+        wireLog
+            .event('mode=${kind.name} stage=tcp_start host=$_host port=$_port');
         try {
           final socket = await Socket.connect(_host, _port,
               timeout: const Duration(seconds: 5));
@@ -135,6 +138,8 @@ class P20DeviceClient {
             socket.destroy();
             return;
           }
+          wireLog.event('mode=${kind.name} stage=tcp_connected');
+          stage = 'probe';
           socket.setOption(SocketOption.tcpNoDelay, true);
           _socket = socket;
           void closed() {
@@ -145,14 +150,27 @@ class P20DeviceClient {
 
           P20Frame? reply;
           if (kind == P20DeviceKind.dual) {
-            final transport =
-                P20V2Connection(socket, wireLog: wireLog, onClosed: closed);
+            final transport = P20V2Connection(socket,
+                wireLog: wireLog,
+                onClosed: closed,
+                traceConnectionProbe: _verify);
             _modern = transport;
-            if (_verify) reply = await transport.request(4);
+            try {
+              if (_verify) reply = await transport.request(4);
+            } finally {
+              transport.traceConnectionProbe = false;
+            }
           } else {
-            final transport = P20SingleConnection(socket, onClosed: closed);
+            final transport = P20SingleConnection(socket,
+                onClosed: closed,
+                wireLog: wireLog,
+                traceConnectionProbe: _verify);
             _single = transport;
-            if (_verify) reply = await transport.request(4, [0]);
+            try {
+              if (_verify) reply = await transport.request(4, [0]);
+            } finally {
+              transport.traceConnectionProbe = false;
+            }
           }
           if (reply != null &&
               (reply.data.length != 1 ||
@@ -161,12 +179,18 @@ class P20DeviceClient {
             throw const FormatException('Invalid device brightness response');
           }
           if (!current()) return;
+          wireLog.event(
+              'mode=${kind.name} stage=${_verify ? "verified" : "unverified"}');
           _kind = kind;
           _backoff.reset();
           _emitConnection(DeviceConnectionState.connected);
           return;
         } catch (error) {
           if (!current()) return;
+          final osCode =
+              error is SocketException ? error.osError?.errorCode : null;
+          wireLog.event(
+              'mode=${kind.name} stage=${stage}_failed error=${error.runtimeType} osCode=${osCode ?? "none"}');
           failure = error;
           await _closeTransport(invalidate: false);
         }

@@ -2,6 +2,7 @@ import '../../device/p20_device_profile.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:hildors_cockpit/src/localization/localization.dart';
 
 import '../../device/p20_command_session.dart';
@@ -160,6 +161,17 @@ class _SettingsPageState extends State<SettingsPage> {
                 state: _connection,
                 busy: _busy,
                 onRead: _connected && !_busy ? _load : null,
+              ),
+              OutlinedButton.icon(
+                icon: const Icon(Icons.copy_rounded),
+                label: Text(context.l10n.copyDeviceLog),
+                onPressed: () async {
+                  await Clipboard.setData(
+                      ClipboardData(text: widget.client.wireLog.text));
+                  if (!context.mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text(context.l10n.deviceLogCopied)));
+                },
               ),
               if (_message != null) ...[
                 SizedBox(height: 10),
