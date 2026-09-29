@@ -2,6 +2,7 @@ import '../../device/p20_device_profile.dart';
 import '../../localization/localization.dart';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../device/device_error_message.dart';
 import '../../device/p20_command_session.dart';
@@ -419,7 +420,11 @@ class _PlaylistManagementPageState extends State<PlaylistManagementPage> {
                                         initialValue: _live.mode,
                                         isExpanded: true,
                                         decoration: InputDecoration(
-                                            labelText: context.l10n.p20Mode,
+                                            labelText:
+                                                widget.client.profile.kind ==
+                                                        P20DeviceKind.single
+                                                    ? context.l10n.coreLoopMode
+                                                    : context.l10n.p20Mode,
                                             border: OutlineInputBorder()),
                                         items: [
                                           for (final mode in P20PlayMode.values)
@@ -530,9 +535,20 @@ class _PlaylistManagementPageState extends State<PlaylistManagementPage> {
                         if (_live.error != null)
                           Text(_live.error == 'operation_unconfirmed'
                               ? context.l10n.p20Unconfirmed
-                              : context.l10n.errorNetwork),
+                              : context.l10n.p20ReadFailed),
                         if (_connectionError != null)
                           Text(context.l10n.errorNetwork),
+                        OutlinedButton.icon(
+                          icon: const Icon(Icons.copy_rounded),
+                          label: Text(context.l10n.copyDeviceLog),
+                          onPressed: () async {
+                            await Clipboard.setData(ClipboardData(
+                                text: widget.client.wireLog.text));
+                            if (!context.mounted) return;
+                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                                content: Text(context.l10n.deviceLogCopied)));
+                          },
+                        ),
                         SizedBox(height: 20),
                         Text(context.l10n.p20Pending),
                         Text(context.l10n.p20PendingNote),

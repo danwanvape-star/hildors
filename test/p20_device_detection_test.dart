@@ -7,6 +7,31 @@ import 'package:hildors_cockpit/src/device/p20_device_profile.dart';
 import 'package:hildors_cockpit/src/device/p20_single_connection.dart';
 
 void main() {
+  test('single playlist read logs raw query and invalid reply before parsing',
+      () async {
+    final server = await ServerSocket.bind('127.0.0.1', 0);
+    final client = P20DeviceClient(preference: P20DevicePreference.single);
+    server.listen((socket) {
+      socket.listen((bytes) {
+        if (bytes[5] == 4) {
+          socket.add([0x55, 0, 0, 0, 2, 4, 60, 0x42, 0x5a]);
+        } else {
+          socket.add([0x55, 0, 0, 0, 3, 0x36, 0, 0, 0xff, 0x5a]);
+          socket.close();
+        }
+      });
+    });
+    try {
+      await client.connect(host: '127.0.0.1', port: server.port);
+      await expectLater(client.requestFrame(P20Command.queryVideoList, [0]),
+          throwsA(anything));
+      expect(client.wireLog.text, contains('aa 00 00 00 02 36 00 02 a5'));
+      expect(client.wireLog.text, contains('55 00 00 00 03 36 00 00 ff 5a'));
+    } finally {
+      await client.dispose();
+      await server.close();
+    }
+  });
   test('single accepts captured additive brightness response and next query',
       () async {
     final server = await ServerSocket.bind('127.0.0.1', 0);

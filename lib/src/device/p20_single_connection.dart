@@ -13,7 +13,9 @@ class P20SingleConnection {
       this.wireLog,
       this.traceConnectionProbe = false}) {
     _subscription = socket.listen((bytes) {
-      if (traceConnectionProbe) wireLog?.record('RX', bytes);
+      if (traceConnectionProbe || _tracingListRead) {
+        wireLog?.record('RX', bytes);
+      }
       for (final frame in _decoder.add(bytes)) {
         if (_uploading && frame.command == 0x31) {
           _uploadReplies.add(frame);
@@ -43,6 +45,7 @@ class P20SingleConnection {
   int? _command;
   bool _closed = false;
   bool _uploading = false;
+  bool _tracingListRead = false;
   final _uploadReplies = Queue<P20Frame>();
   Completer<void>? _uploadAvailable;
 
@@ -60,6 +63,8 @@ class P20SingleConnection {
       int command, List<int> data, Duration timeout) async {
     if (_closed) throw StateError('Device connection closed');
     _command = command;
+    // Only non-sensitive list and playback-mode queries; never Wi-Fi settings.
+    _tracingListRead = command == 0x36 || command == 0x08;
     final pending = Completer<P20Frame>();
     _reply = pending;
     final length = data.length + 1;
@@ -74,7 +79,7 @@ class P20SingleConnection {
       2,
       0xa5
     ];
-    if (traceConnectionProbe) wireLog?.record('TX', bytes);
+    if (traceConnectionProbe || _tracingListRead) wireLog?.record('TX', bytes);
     socket.add(bytes);
     try {
       return await pending.future.timeout(timeout);
@@ -82,6 +87,7 @@ class P20SingleConnection {
       await close();
       rethrow;
     } finally {
+      _tracingListRead = false;
       _reply = null;
       _command = null;
     }
