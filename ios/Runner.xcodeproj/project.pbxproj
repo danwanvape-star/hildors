@@ -62,6 +62,9 @@
 		97C147021CF9000F007C117D /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
         A12000000000000000000003 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/InfoPlist.strings; sourceTree = "<group>"; };
         A12000000000000000000004 /* zh-Hans */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "zh-Hans"; path = "zh-Hans.lproj/InfoPlist.strings"; sourceTree = "<group>"; };
+        A12000000000000000000005 /* de */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = de; path = de.lproj/InfoPlist.strings; sourceTree = "<group>"; };
+        A12000000000000000000006 /* es */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = es; path = es.lproj/InfoPlist.strings; sourceTree = "<group>"; };
+        A12000000000000000000007 /* ja */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = ja; path = ja.lproj/InfoPlist.strings; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -202,6 +205,9 @@
 			knownRegions = (
 				en,
                 "zh-Hans",
+                de,
+                es,
+                ja,
 				Base,
 			);
 			mainGroup = 97C146E51CF9000F007C117D;
@@ -306,7 +312,7 @@
 /* Begin PBXVariantGroup section */
         A12000000000000000000002 /* InfoPlist.strings */ = {
             isa = PBXVariantGroup;
-            children = (A12000000000000000000003 /* en */, A12000000000000000000004 /* zh-Hans */,);
+            children = (A12000000000000000000003 /* en */, A12000000000000000000004 /* zh-Hans */, A12000000000000000000005 /* de */, A12000000000000000000006 /* es */, A12000000000000000000007 /* ja */,);
             name = InfoPlist.strings;
             sourceTree = "<group>";
         };

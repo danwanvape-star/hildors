@@ -1,7 +1,4 @@
 {
-  "copyDeviceLog": "复制设备通信日志",
-  "deviceLogCopied": "日志已复制，包含协议数据，不包含音视频正文。",
-  "deviceDeleteAudioNote": "配套音频也会一起删除。",
   "@@locale": "zh",
   "accountTitle": "账号管理",
   "accountGuest": "访客账号",
@@ -493,6 +490,9 @@
       }
     }
   },
+  "copyDeviceLog": "复制设备通信日志",
+  "deviceLogCopied": "日志已复制，包含协议数据，不包含音视频正文。",
+  "deviceDeleteAudioNote": "配套音频也会一起删除。",
   "devicePlayingDelete": "正在播放的视频不能删除，请先播放其他内容",
   "deviceDeleteTitle": "永久删除设备文件？",
   "deviceDeleteIntro": "以下视频将从全息设备中永久删除：",
@@ -711,6 +711,13 @@
   "submissionVideoPrice": "视频价格 · {name}",
   "submissionVideoName": "视频 {index} 标题",
   "submissionLegacyTag": "{name}（旧标签）",
+  "supportContact": "联系客服",
+  "supportInstructions": "如遇到问题，请发送邮件说明操作步骤、App 版本和设备型号，可自行附上相关截图。",
+  "supportWriteEmail": "写邮件",
+  "supportCopyEmail": "复制邮箱",
+  "supportEmailCopied": "客服邮箱已复制",
+  "supportCopyFailed": "复制失败，请长按邮箱地址手动复制。",
+  "supportNoMailApp": "无法打开邮件应用。请复制邮箱地址，在你使用的邮箱中联系我们。",
   "p20Refresh": "刷新设备列表",
   "p20Daily": "A 日常播放",
   "p20Bluetooth": "B 蓝牙播放",
@@ -811,12 +818,5 @@
   "p20DeviceType": "设备类型",
   "p20DeviceAuto": "自动识别",
   "p20DeviceSingle": "P20（单列表 · 无声）",
-  "p20DeviceDual": "P20 PORTAL（双列表 · 蓝牙）",
-  "supportContact": "联系客服",
-  "supportInstructions": "如遇到问题，请发送邮件说明操作步骤、App 版本和设备型号，可自行附上相关截图。",
-  "supportWriteEmail": "写邮件",
-  "supportCopyEmail": "复制邮箱",
-  "supportEmailCopied": "客服邮箱已复制",
-  "supportCopyFailed": "复制失败，请长按邮箱地址手动复制。",
-  "supportNoMailApp": "无法打开邮件应用。请复制邮箱地址，在你使用的邮箱中联系我们。"
+  "p20DeviceDual": "P20 PORTAL（双列表 · 蓝牙）"
 }

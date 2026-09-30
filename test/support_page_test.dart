@@ -5,7 +5,7 @@ import 'package:hildors_cockpit/src/localization/localization.dart';
 import 'package:hildors_cockpit/src/features/support/support_page.dart';
 
 void main() {
-  for (final locale in ['en', 'zh']) {
+  for (final locale in ['en', 'zh', 'de', 'es', 'ja']) {
     testWidgets('support mail fallback and clipboard $locale', (tester) async {
       Uri? opened;
       String? copied;
@@ -35,7 +35,7 @@ void main() {
       expect(opened!.queryParameters, {'subject': 'Hildors App support'});
       expect(
           find.textContaining(
-              locale == 'zh' ? '无法打开邮件应用' : 'Could not open a mail app'),
+              lookupAppLocalizations(Locale(locale)).supportNoMailApp),
           findsOneWidget);
       await tester.tap(find.byType(OutlinedButton));
       await tester.pumpAndSettle();

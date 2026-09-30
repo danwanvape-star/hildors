@@ -4,8 +4,6 @@ import 'package:hildors_cockpit/src/features/customization/character_entitlement
 import 'package:hildors_cockpit/src/features/customization/customization_order_repository.dart';
 import 'package:hildors_cockpit/src/features/video/character_package_picker.dart';
 import 'package:hildors_cockpit/src/features/video/character_video_package.dart';
-import 'package:hildors_cockpit/src/features/video/pending_playlist_store.dart';
-import 'package:hildors_cockpit/src/features/video/device_playlist_draft.dart';
 
 void main() {
   for (final scenario in [(390.0, 1.0, 3), (320.0, 2.0, 2)]) {
@@ -35,35 +33,26 @@ void main() {
       expect(tester.takeException(), isNull);
     });
   }
-  testWidgets('从我的角色选片后加入指定列表，保留原记录且不上传', (tester) async {
-    DevicePlaylistKind? target;
-    Map<String, PendingVideo>? saved;
+  testWidgets('我的角色直接上传入口在未连接时提示连接且不写入待处理区', (tester) async {
+    var saved = false;
     final package = officialVideoPackages.first;
     await tester.pumpWidget(MaterialApp(
         home: CharacterPackagePicker(
-            picking: false,
-            saveToPlaylist: (kind, entries) async {
-              target = kind;
-              saved = entries;
-            },
-            repository: MemoryCharacterEntitlementRepository([package.id]),
-            orderRepository: MemoryCustomizationOrderRepository())));
+      picking: false,
+      saveToPlaylist: (_, entries) async {
+        saved = true;
+      },
+      repository: MemoryCharacterEntitlementRepository([package.id]),
+      orderRepository: MemoryCustomizationOrderRepository(),
+    )));
     await tester.pumpAndSettle();
     await tester.tap(find.text(package.title));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('展示视频'));
-    await tester.pump();
-    await tester.tap(find.text('添加 1 个视频到待处理区'));
+    expect(find.text('添加 1 个视频到待处理区'), findsNothing);
+    await tester.tap(find.byIcon(Icons.upload).first);
     await tester.pumpAndSettle();
-    await tester.tap(find.text('音乐联动'));
-    await tester.pumpAndSettle();
-    expect(
-        saved!.keys,
-        containsAll(
-            [PackageVideoSelection(package, package.videos.first).key]));
-    expect(target, DevicePlaylistKind.bluetooth);
-    await tester.pump();
-    expect(find.textContaining('尚未上传设备'), findsOneWidget);
+    expect(find.text('设备未连接'), findsOneWidget);
+    expect(saved, isFalse);
   });
   testWidgets('未收藏时不展示公共 Demo，提供内容库入口', (tester) async {
     await tester.pumpWidget(MaterialApp(

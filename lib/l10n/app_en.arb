@@ -1,7 +1,4 @@
 {
-  "copyDeviceLog": "Copy device communication log",
-  "deviceLogCopied": "Log copied. It contains protocol metadata; media payloads are omitted.",
-  "deviceDeleteAudioNote": "The paired audio file will also be deleted.",
   "@@locale": "en",
   "accountTitle": "Account",
   "accountGuest": "Guest account",
@@ -728,6 +725,9 @@
       }
     }
   },
+  "copyDeviceLog": "Copy device communication log",
+  "deviceLogCopied": "Log copied. It contains protocol metadata; media payloads are omitted.",
+  "deviceDeleteAudioNote": "The paired audio file will also be deleted.",
   "governanceReport": "Report content",
   "governanceBlock": "Block creator",
   "governanceCopyright": "Copyright infringement",
@@ -974,6 +974,13 @@
       }
     }
   },
+  "supportContact": "Contact support",
+  "supportInstructions": "Email us with the steps to reproduce the issue, your app version and device model. You can attach relevant screenshots.",
+  "supportWriteEmail": "Write an email",
+  "supportCopyEmail": "Copy email address",
+  "supportEmailCopied": "Support email address copied",
+  "supportCopyFailed": "Could not copy. Select the email address to copy it manually.",
+  "supportNoMailApp": "Could not open a mail app. Copy the address and contact us using your email service.",
   "p20Refresh": "Refresh device playlist",
   "p20Daily": "A Daily",
   "p20Bluetooth": "B Bluetooth",
@@ -1081,12 +1088,5 @@
   "p20DeviceType": "Device type",
   "p20DeviceAuto": "Detect automatically",
   "p20DeviceSingle": "P20 (single list, silent)",
-  "p20DeviceDual": "P20 PORTAL (dual lists, Bluetooth)",
-  "supportContact": "Contact support",
-  "supportInstructions": "Email us with the steps to reproduce the issue, your app version and device model. You can attach relevant screenshots.",
-  "supportWriteEmail": "Write an email",
-  "supportCopyEmail": "Copy email address",
-  "supportEmailCopied": "Support email address copied",
-  "supportCopyFailed": "Could not copy. Select the email address to copy it manually.",
-  "supportNoMailApp": "Could not open a mail app. Copy the address and contact us using your email service."
+  "p20DeviceDual": "P20 PORTAL (dual lists, Bluetooth)"
 }

@@ -1,0 +1,1091 @@
+{
+  "copyDeviceLog": "デバイス通信ログをコピー",
+  "deviceLogCopied": "ログをコピーしました。プロトコルのメタデータが含まれますが、メディア本体は含まれません。",
+  "deviceDeleteAudioNote": "対応する音声ファイルも削除されます。",
+  "accountTitle": "アカウント",
+  "accountGuest": "ゲストアカウント",
+  "accountNone": "未ログイン",
+  "accountSignOut": "すべてのデバイスからログアウト",
+  "accountSignOutConfirm": "すべてのデバイスでこのアカウントからログアウトします。アカウントや端末内の動画は削除されません。クラウドのコンテンツを利用するには、再度ログインが必要になる場合があります。",
+  "accountGuestWarning": "このゲストアカウントには確認済みのメールアドレスがありません。ログアウトするとクラウドのコンテンツを復元できなくなる場合があります。先にメールアドレスを確認してください。",
+  "accountSignedOut": "すべてのデバイスからログアウトしました。",
+  "accountCancel": "キャンセル",
+  "applicationTitle": "クリエイター認証",
+  "applicationRefresh": "審査状況を更新",
+  "applicationRetry": "更新して再試行",
+  "applicationLoadFailed": "申請を読み込めませんでした。更新して続行してください。",
+  "applicationNoTags": "キャラクターのカテゴリはまだ利用できません。しばらくしてから再試行してください。",
+  "applicationApproved": "認証済みクリエイター",
+  "applicationOpenStudio": "クリエイタースタジオを開く",
+  "applicationPending": "申請を審査中",
+  "applicationSuspended": "クリエイター機能の利用停止中",
+  "applicationReviewNote": "担当チームが申請を個別に審査します。更新して状況をご確認ください。",
+  "applicationRejected": "審査のフィードバックに沿って申請を修正し、再提出してください。",
+  "applicationRoles": "得意なキャラクター分野",
+  "applicationDirections": "得意なコンテンツ分野",
+  "applicationName": "クリエイター表示名",
+  "applicationNameHint": "例：NovaStudio、Nova2026",
+  "applicationNameRule": "英字を1文字以上含む英数字で、80文字以内にしてください。",
+  "applicationEmail": "メールアドレス（クリエイター識別用）",
+  "applicationRegion": "クリエイターの所在地",
+  "applicationChina": "中国本土",
+  "applicationUs": "アメリカ合衆国",
+  "applicationEea": "欧州経済領域",
+  "applicationUk": "イギリス",
+  "applicationJapan": "日本",
+  "applicationHk": "香港",
+  "applicationMo": "マカオ",
+  "applicationTw": "台湾",
+  "applicationAsia": "その他のアジア地域",
+  "applicationOther": "その他の地域",
+  "applicationAdult": "私は18歳以上です",
+  "applicationAgreement": "クリエイター規約、守秘義務、およびプラットフォーム外での取引禁止規則に同意します",
+  "applicationWorks": "自作の動画",
+  "applicationWorkNote": "自作のMP4動画を1〜10本アップロードしてください。1本につき15 MBまでです。サンプルは非公開で、認証のためにのみ使用されます。担当チームが本数、品質、創造性を審査します。",
+  "applicationUpload": "作品をアップロード",
+  "applicationUploadFailed": "アップロードに失敗しました。動画は追加されていません。",
+  "applicationRetryUpload": "アップロードを再試行",
+  "applicationRemoveFailed": "失敗したアップロードを削除",
+  "applicationSample": "認証用サンプル",
+  "applicationPrivate": "アップロード済み・非公開サンプル",
+  "applicationPreview": "サンプルをプレビュー",
+  "applicationRemove": "サンプルを削除",
+  "applicationSave": "下書きを保存",
+  "applicationSubmit": "申請を提出",
+  "applicationPreviewTitle": "認証用サンプルのプレビュー",
+  "applicationInvalidName": "英字を1文字以上含む英数字で、80文字以内にしてください。",
+  "applicationInvalidEmail": "アップロードする前に有効なメールアドレスを入力してください。",
+  "applicationRoleRequired": "得意なキャラクター分野を1つ以上選択してください。",
+  "applicationDirectionRequired": "得意なコンテンツ分野を1つ以上選択してください。",
+  "applicationAdultRequired": "18歳以上であることを確認してください。",
+  "applicationAgreementRequired": "クリエイター規約を読み、同意してください。",
+  "applicationMp4": "MP4動画を選択してください。",
+  "applicationTooLarge": "動画は1本につき15 MB以下にしてください。圧縮してから再試行してください。",
+  "applicationLimit": "サンプルは10本までアップロードできます。",
+  "applicationEmailUsed": "このメールアドレスは別のクリエイターが使用しています。別のアドレスをお使いください。",
+  "applicationInvalidFields": "名前、専門分野、メールアドレス、同意項目をご確認ください。",
+  "applicationProcessorBusy": "動画の検証が混み合っています。しばらくしてから再試行してください。",
+  "applicationLocked": "この申請は編集できません。更新して審査状況をご確認ください。",
+  "applicationVideoLimit": "追加する前にサンプルを削除してください。上限は10本です。",
+  "applicationVideoInvalid": "動画が検証に合格しませんでした。再生可能なMP4を選んで再試行してください。",
+  "applicationVideoRequired": "検証に合格する動画を1本以上アップロードしてください。",
+  "applicationConflict": "申請が変更されています。更新して再試行してください。",
+  "applicationPreviewFailed": "プレビューに失敗しました。戻って再試行してください。",
+  "applicationGrade": "クリエイターランク：{grade}",
+  "applicationUploading": "アップロード・検証中：{name}",
+  "@applicationGrade": {
+    "placeholders": {
+      "grade": {
+        "type": "String"
+      }
+    }
+  },
+  "@applicationUploading": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "applicationDirectionAction": "シンプルな動作",
+  "applicationDirectionDance": "音楽とダンス",
+  "applicationDirectionEffects": "視覚効果",
+  "applicationDirectionGrowth": "キャラクターの成長",
+  "applicationGradeSilver": "シルバー",
+  "applicationGradeGold": "ゴールド",
+  "applicationGradeDiamond": "ダイヤモンド",
+  "applicationGradeMaster": "マスター",
+  "applicationGradeLegend": "レジェンド",
+  "authTitle": "メールアドレスでログイン",
+  "authExplanation": "メールアドレスでログインすると、別のデバイスからアカウントにアクセスしたり、サービスの通知を受け取ったりできます。ログインするとアカウントが切り替わります。データは統合されません。以前のアカウントに確認済みのメールアドレスがない場合は、復旧についてサポートにお問い合わせください。",
+  "authEmail": "メールアドレス",
+  "authSend": "コードを送信",
+  "authResend": "コードを再送信",
+  "authSent": "コードを送信しました。有効期限は10分です。",
+  "authCode": "6桁のコード",
+  "authChange": "メールアドレスを変更",
+  "authVerify": "確認してログイン",
+  "authInvalidEmail": "有効なメールアドレスを入力してください。",
+  "authInvalidCode": "6桁のコードを入力してください。",
+  "authResendSeconds": "{seconds}秒後に再送信",
+  "@authResendSeconds": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "appName": "Hildors",
+  "languageTitle": "言語",
+  "languageSystem": "システム設定に合わせる",
+  "languageEnglish": "英語",
+  "languageChinese": "簡体字中国語",
+  "languageFallback": "中国語の各種設定には簡体字中国語が適用されます。その他の未対応言語には英語が適用されます。",
+  "languageSaveFailed": "言語設定を保存できませんでした。再試行してください。",
+  "commonRetry": "再試行",
+  "commonCancel": "キャンセル",
+  "commonClose": "閉じる",
+  "commonSave": "保存",
+  "commonLoading": "読み込み中…",
+  "errorNetwork": "接続できません。通信状況を確認して再試行してください。",
+  "errorSession": "続行するには再度ログインしてください。",
+  "errorPermission": "このアカウントではこのコンテンツを利用できません。",
+  "errorConflict": "この項目は変更されています。更新して再試行してください。",
+  "errorTooLarge": "ファイルが大きすぎます。小さいファイルを選択してください。",
+  "errorRateLimit": "リクエストが多すぎます。しばらくしてから再試行してください。",
+  "errorGeneric": "エラーが発生しました。再試行してください。",
+  "errorEmailCode": "メールアドレスと確認コードをご確認ください。コードの有効期限が切れている可能性があります。",
+  "errorServiceUnavailable": "このサービスは一時的に利用できません。しばらくしてから再試行してください。",
+  "fileBytes": "{value} B",
+  "@fileBytes": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "fileKilobytes": "{value} KB",
+  "@fileKilobytes": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "fileMegabytes": "{value} MB",
+  "@fileMegabytes": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "catalogCollection": "コレクション",
+  "catalogLibrary": "ライブラリ",
+  "catalogMyCharacters": "マイキャラクター",
+  "catalogLoadFailed": "ライブラリを読み込めません",
+  "catalogCheckNetwork": "通信状況を確認して再試行してください。",
+  "catalogSearch": "キャラクター、動画、ジャンルを検索",
+  "catalogRefresh": "ライブラリを更新",
+  "catalogSource": "提供元",
+  "catalogFormat": "形式",
+  "catalogGenre": "ジャンル",
+  "catalogAll": "すべて",
+  "catalogOfficial": "Hildors公式",
+  "catalogCreatorWorks": "クリエイター作品",
+  "catalogAnonymous": "匿名クリエイター",
+  "catalogSingle": "単体動画",
+  "catalogPackage": "キャラクターパック",
+  "catalogEmpty": "一致するコンテンツがありません",
+  "catalogClear": "絞り込みを解除",
+  "catalogResults": "検索結果",
+  "catalogDescriptionMissing": "キャラクターの説明はまだありません",
+  "catalogPackVideos": "このパックの動画",
+  "catalogVideo": "動画",
+  "catalogNoPreview": "現在プレビューは利用できません",
+  "catalogDurationUnknown": "再生時間を取得できません",
+  "catalogStoryMissing": "背景ストーリーはまだありません",
+  "catalogStory": "背景ストーリー",
+  "catalogStoryCollapse": "ストーリーを折りたたむ",
+  "catalogStoryExpand": "ストーリーの全文を読む",
+  "catalogImageLoading": "画像を読み込み中",
+  "catalogImageRetry": "画像を読み込めませんでした。タップして再試行",
+  "playerNoSource": "利用できる動画がありません",
+  "playerBuffering": "動画をバッファリング中…",
+  "playerLoading": "動画を読み込み中…",
+  "playerSlow": "通常より時間がかかっています。通信状況を確認するか、再試行してください。",
+  "playerPause": "プレビューを一時停止",
+  "playerPlay": "プレビューを再生",
+  "playerZoom": "ピンチで拡大・縮小、ダブルタップでリセット",
+  "playerFailed": "再生に失敗しました。再試行してください。",
+  "playerTimeout": "動画の読み込みがタイムアウトしました。再試行してください。",
+  "playerLoadFailed": "動画を読み込めませんでした。再試行してください。",
+  "playerAuthFailed": "アクセス権を更新できませんでした。投稿一覧に戻って再試行してください。",
+  "downloadTitle": "マイキャラクターに保存",
+  "downloadUnavailable": "購入は利用できません",
+  "downloadFree": "無料ダウンロード",
+  "downloadInfo": "無料動画はダウンロードして、マイキャラクターでオフライン視聴できます。購入は利用できません。",
+  "downloadCancel": "ダウンロードをキャンセル",
+  "downloadAvailable": "利用可能な動画をダウンロード",
+  "downloadDone": "ダウンロード済み",
+  "downloadRefresh": "アクセス権を更新",
+  "downloadView": "マイキャラクターを見る",
+  "downloadDisabled": "ダウンロードは一時的に利用できません。しばらくしてから再試行してください。",
+  "downloadSignIn": "ダウンロードするには再度ログインしてください。",
+  "downloadDenied": "この動画はダウンロードできません。アクセス権を更新して再試行してください。",
+  "downloadAccessFailed": "ダウンロードの権限を確認できませんでした。通信状況とアカウントを確認して再試行してください。",
+  "downloadFinished": "ダウンロードが完了しました。マイキャラクターに保存しました。",
+  "downloadCancelled": "ダウンロードをキャンセルしました。完了済みの動画はマイキャラクターに残ります。",
+  "downloadFailed": "ダウンロードが完了しませんでした。通信状況、空き容量、アカウントの権限を確認して再試行してください。",
+  "catalogSummary": "{count}件・クリエイター作品{creators}件",
+  "@catalogSummary": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "creators": {
+        "type": "int"
+      }
+    }
+  },
+  "catalogRefreshed": "ライブラリを更新しました：{count}件、うちクリエイター作品{creators}件",
+  "@catalogRefreshed": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "creators": {
+        "type": "int"
+      }
+    }
+  },
+  "catalogCount": "{format}・動画{count}本",
+  "@catalogCount": {
+    "placeholders": {
+      "format": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "catalogSeconds": "{seconds}秒",
+  "@catalogSeconds": {
+    "placeholders": {
+      "seconds": {
+        "type": "String"
+      }
+    }
+  },
+  "catalogCreatorSpace": "{name}の作品",
+  "@catalogCreatorSpace": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "catalogPublished": "公開作品・{count}件",
+  "@catalogPublished": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "downloadProgress": "{count}/{total}件ダウンロード済み",
+  "@downloadProgress": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "downloadActive": "ダウンロード中：{name}",
+  "@downloadActive": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "downloadPrice": "US$ {price}・購入してダウンロード",
+  "@downloadPrice": {
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "controlsDeleteTitle": "ダウンロード済みファイルを削除しますか？",
+  "controlsDeleteNote": "このコレクションのダウンロード済みファイルをアプリから削除します。クラウドのアクセス権は保持されるため、再度ダウンロードできます。",
+  "controlsCancel": "キャンセル",
+  "controlsDelete": "削除",
+  "controlsDeleteFailed": "削除できませんでした。再試行してください。",
+  "controlsDeleteLocal": "ダウンロード済みファイルを削除",
+  "controlsNoVideos": "このキャラクターにはまだ利用できる動画がありません。",
+  "controlsPreviewLocal": "ダウンロード済み動画をプレビュー",
+  "controlsExamples": "公式サンプルコレクション・動画を選択",
+  "controlsChooseList": "プレイリストを選択",
+  "controlsPendingNote": "動画はまずアップロード待ちに追加されます。デバイスにはまだアップロードされません。",
+  "controlsStartup": "日常表示",
+  "controlsBluetooth": "音楽モード",
+  "controlsAddFailed": "動画を追加できませんでした。再試行してください。",
+  "controlsMyCharacters": "マイキャラクター",
+  "controlsLoadFailed": "キャラクターを読み込めませんでした。タップして再試行してください。",
+  "controlsEmpty": "キャラクターはまだありません",
+  "controlsEmptyNote": "コンテンツライブラリからキャラクターをダウンロードし、動画を選択してください。",
+  "controlsLibrary": "コンテンツライブラリ",
+  "controlsBrowse": "コンテンツライブラリを見る",
+  "controlsPickNote": "キャラクターを選んでから、このプレイリストに追加する動画を選択してください。",
+  "controlsListNote": "キャラクターの動画を日常表示または音楽モードに追加します。",
+  "controlsUnavailable": "利用できる動画がありません",
+  "controlsSelect": "動画を選択",
+  "controlsAdd": "プレイリストに追加",
+  "controlsControlTitle": "デバイス操作",
+  "controlsBrightness": "明るさ",
+  "controlsAngle": "角度（デバイスの単位と範囲は未確認）",
+  "controlsSpeakerTitle": "Bluetoothスピーカー名を設定",
+  "controlsSpeakerName": "スピーカー名",
+  "controlsSave": "保存",
+  "controlsSpeaker": "Bluetoothスピーカー",
+  "controlsConnectSpeaker": "デバイスを接続するとスピーカー名を取得できます。",
+  "controlsReading": "読み取り中…",
+  "controlsNameUnknown": "名前を未取得",
+  "controlsRefreshName": "名前を更新",
+  "controlsEditName": "名前を編集",
+  "controlsDisconnected": "未接続",
+  "controlsConnecting": "接続中…",
+  "controlsReconnecting": "再接続中…",
+  "controlsConnected": "接続済み",
+  "controlsIp": "デバイスのIPアドレス",
+  "controlsPort": "既定のポート：8900",
+  "controlsStopReconnect": "再接続を停止",
+  "controlsDisconnect": "切断",
+  "controlsConnect": "接続",
+  "controlsQuick": "クイック操作",
+  "controlsPowerOn": "電源を入れる",
+  "controlsPowerOff": "電源を切る",
+  "controlsPrevious": "前へ",
+  "controlsPause": "一時停止",
+  "controlsPlay": "再生",
+  "controlsNext": "次へ",
+  "controlsRefreshStatus": "状態を更新",
+  "controlsStatus": "デバイスの状態",
+  "controlsLan": "ローカルネットワーク操作",
+  "controlsMode": "動作モード",
+  "controlsAudioSource": "Bluetooth音声ソース",
+  "controlsProtocol": "プロトコル対応待ち",
+  "controlsLocalPlayback": "デバイス再生",
+  "controlsBluetoothWaiting": "Bluetooth接続待ち",
+  "controlsBluetoothAudio": "Bluetooth音声",
+  "controlsWaitingSource": "音声ソースを待機中",
+  "controlsAudioPlaying": "音声を再生中",
+  "controlsAudioPaused": "音声を一時停止中",
+  "controlsWasDisconnected": "切断済み",
+  "controlsBatteryFull": "充電完了",
+  "controlsBattery": "デバイスのバッテリー",
+  "controlsProtocolNote": "現在のプロトコルは動作モードやBluetoothの状態を通知しません。これらの表示には、デバイス側のプロトコル更新が必要です。",
+  "controlsPackageCount": "キャラクターコレクション・動画{count}本",
+  "@controlsPackageCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "controlsDownloaded": "動画{count}/{total}本をダウンロード済み",
+  "@controlsDownloaded": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "controlsSeconds": "{seconds}秒",
+  "@controlsSeconds": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "controlsAddCount": "動画{count}本をアップロード待ちに追加",
+  "@controlsAddCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "controlsVideoCount": "動画{count}本",
+  "@controlsVideoCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "controlsAdded": "{list}のアップロード待ちに追加しました。デバイスにはまだアップロードされていません。",
+  "@controlsAdded": {
+    "placeholders": {
+      "list": {
+        "type": "String"
+      }
+    }
+  },
+  "controlsNamedPlaying": "{name}・再生中",
+  "@controlsNamedPlaying": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "controlsNamedPaused": "{name}・一時停止中",
+  "@controlsNamedPaused": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "controlsCharging": "{percent}%・充電中",
+  "@controlsCharging": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "coreHome": "ホーム",
+  "coreCollection": "コレクション",
+  "coreExplore": "見つける",
+  "coreProfile": "プロフィール",
+  "coreDeviceControl": "デバイス操作",
+  "coreCustomCharacter": "ホログラムキャラクターをカスタマイズ",
+  "corePlaylists": "デバイスのプレイリスト",
+  "corePlaylistSubtitle": "表示モードと音楽モード",
+  "coreDisplay": "表示モード",
+  "coreStartupSubtitle": "起動時に再生するコンテンツを管理",
+  "coreMusic": "音楽モード",
+  "coreBluetoothSubtitle": "Bluetooth音声とともに再生するコンテンツを管理",
+  "coreOnline": "オンライン",
+  "coreDisconnected": "未接続",
+  "coreDeviceConnected": "デバイス接続済み",
+  "coreConnecting": "接続中…",
+  "coreReconnecting": "再接続中…",
+  "coreDeviceDisconnected": "デバイス未接続",
+  "coreLanControl": "ローカルネットワーク操作・P20 / P20 PORTAL",
+  "coreConnectP20": "デバイスを接続",
+  "coreConnectionSettings": "接続設定",
+  "coreDeviceManagement": "デバイス管理",
+  "coreDevices": "デバイス",
+  "corePlaylist": "プレイリスト",
+  "coreDeviceContent": "デバイスのコンテンツ",
+  "coreCharacterAssets": "キャラクター",
+  "coreCustomOrders": "カスタム制作の注文",
+  "coreOrdersSubtitle": "制作と納品の状況を確認できます。受け取り済みのキャラクターはコレクションにあります。",
+  "coreCreatorCenter": "クリエイターセンター",
+  "coreCreatorSubtitle": "申請、制作タスク、収益",
+  "coreSupport": "サポート",
+  "corePlaybackGuide": "再生モード",
+  "corePlaybackGuideSubtitle": "表示モードと音楽モードの切り替えについて",
+  "coreLanHelp": "ローカルネットワークのヘルプ",
+  "coreLanHelpSubtitle": "P20 / P20 PORTALのアクセスポイントへの接続とトラブル対処",
+  "coreAppSettings": "デバイスとアプリの設定",
+  "coreAppSettingsSubtitle": "デバイスのオプション、再生設定、バージョン",
+  "coreAbout": "HILDORSについて",
+  "coreAboutSubtitle": "キャラクターポータル・P20 / P20 PORTAL対応",
+  "corePlayerProfile": "プレイヤープロフィール",
+  "coreLocalAccount": "この端末に保存されたローカルプロフィール",
+  "coreDeviceSettings": "デバイス設定",
+  "coreReadFailed": "デバイスの状態を取得できませんでした。デバイスのWi-Fiに接続して再試行してください。",
+  "coreSettingFailed": "設定を適用できませんでした。デバイスの接続を確認して再試行してください。",
+  "corePlaybackBehavior": "再生",
+  "coreLoopMode": "リピートモード",
+  "coreLoopSubtitle": "デバイスの現在のプレイリストの繰り返し方法を選択",
+  "coreConnectToChange": "接続すると設定を取得・変更できます",
+  "coreDeviceInfo": "デバイス情報",
+  "coreLanCockpit": "ローカルネットワーク上のデバイス",
+  "coreNotRead": "未取得",
+  "coreReadInfo": "デバイス情報を取得",
+  "coreHelp": "ヘルプ",
+  "coreModesHelpSubtitle": "表示モードと音楽モードの自動切り替え",
+  "coreHotspotHelp": "デバイスのアクセスポイントへの接続とトラブル対処",
+  "coreDeviceConnecting": "デバイスに接続中",
+  "coreDeviceReconnecting": "接続を復旧中",
+  "coreCockpitOnline": "デバイスがオンライン",
+  "coreGoHomeConnect": "ホームからP20 / P20 PORTALを接続してください",
+  "coreOpeningLan": "ローカルネットワーク操作の接続を確立中",
+  "coreRetryingLan": "接続が中断されました。自動的に再試行しています",
+  "coreLanReady": "ローカルネットワーク操作の接続が完了",
+  "coreSync": "デバイスの状態を同期",
+  "coreSingleLoop": "1本リピート",
+  "coreSequenceLoop": "全件リピート",
+  "coreRandomLoop": "シャッフル",
+  "coreSingleOnce": "1回再生",
+  "coreCheckWifi": "スマートフォンのWi-Fiを確認",
+  "coreCheckWifiBody": "スマートフォンをP20のアクセスポイント、またはP20と同じルーターに接続してください。",
+  "coreCheckAddress": "操作用アドレスを確認",
+  "coreCheckAddressBody": "アクセスポイントモードの既定のアドレスは192.168.4.1、TCPポートは8900です。",
+  "coreLanPermission": "ローカルネットワークへのアクセスを許可",
+  "coreLanPermissionBody": "iOSではローカルネットワークへのアクセスを許可してください。Androidでは、要求された付近のデバイスおよびネットワークの権限を許可してください。",
+  "coreReconnect": "再接続",
+  "coreReconnectBody": "デバイス操作に戻り、接続をタップしてください。予期しない切断が発生すると、アプリは1、2、4、8、15、30秒後に再試行します。",
+  "coreOfflineWifiHelp": "「インターネット接続なし」と表示されても、デバイス操作に失敗したとは限りません。スマートフォンがP20のローカルネットワークに接続していれば、操作を続けられます。",
+  "coreLocalPlayback": "デバイス再生",
+  "coreLocalPlaybackBody": "P20はデバイスに保存された動画を音声とともに再生します。起動時の再生、繰り返し表示、固定コンテンツの表示に利用できます。",
+  "coreBluetoothSpeaker": "Bluetoothスピーカー",
+  "coreBluetoothSpeakerBody": "スマートフォンやパソコンからBluetoothでP20に音声を送信すると、P20はBluetoothモードに設定された動画を再生します。",
+  "coreSeparateConnections": "HildorsはローカルWi-Fi経由でP20を操作します。ローカルネットワーク操作とBluetooth音声は別々の接続です。",
+  "coreCharacterPortal": "キャラクターポータル",
+  "coreExploreSubtitle": "キャラクターをカスタマイズし、リクエストを共有して、制作を楽しみましょう。",
+  "coreWishSubtitle": "リクエストを共有し、ライセンスの最新情報を確認",
+  "coreCreatorExploreSubtitle": "申請、タスク、収益",
+  "coreWish": "キャラクターのリクエスト",
+  "coreCustomize": "キャラクターをカスタマイズ",
+  "coreEnter": "開く",
+  "coreCreatorFreeSubtitle": "クリエイター認証を申請して無料コンテンツを公開",
+  "coreExploreFreeSubtitle": "無料コンテンツの制作・共有の機会を見つけましょう。",
+  "coreConnectionFailed": "接続できませんでした。デバイスのWi-Fiと接続設定を確認して再試行してください。",
+  "coreSystemLabel": "デバイスシステム",
+  "coreProfileLabel": "プレイヤープロフィール",
+  "coreLocalLabel": "ローカル",
+  "corePilotLabel": "HILDORSパイロット",
+  "coreServiceLabel": "基本サービス",
+  "coreCreatorLabel": "クリエイター",
+  "coreOnlineLabel": "オンライン",
+  "coreConnectingLabel": "接続中",
+  "coreReconnectingLabel": "再接続中",
+  "coreOfflineLabel": "オフライン",
+  "creatorWorkbench": "クリエイタースタジオ",
+  "creatorOriginal": "オリジナルコンテンツ",
+  "creatorFreeNote": "動画やキャラクターコレクションをアップロードして審査に提出します。このバージョンでは無料の投稿のみ対応しています。承認後にコンテンツが公開されます。",
+  "creatorPublishingNote": "動画やキャラクターコレクションをアップロードして審査に提出します。一般クリエイターと認証済みクリエイターは無料コンテンツを公開でき、パートナーは価格を設定できます。",
+  "creatorSubmissions": "アップロード・自分の投稿",
+  "creatorTasks": "カスタム制作案件",
+  "creatorTasksNote": "募集中の案件と進行中のカスタム制作の注文を確認",
+  "customPlansTitle": "カスタム動画",
+  "customOrdersTitle": "自分のカスタム制作注文",
+  "customUnavailable": "ストア決済はまだ接続されていません。お支払いは発生しません。",
+  "customBase": "基本参考価格（米ドル）：{price}。決済時にはストアの価格が適用されます。",
+  "customSeconds": "{seconds}秒の動画",
+  "customRequest": "制作要件を審査に提出",
+  "customName": "キャラクター名・プロジェクト名",
+  "customRequirements": "制作要件",
+  "customMaterials": "参考画像を追加",
+  "customMaterialCount": "参考画像{count}枚",
+  "customPrivacy": "参考資料は、この非公開注文の評価と制作に使用されます。公開には別途同意が必要です。",
+  "customConsent": "この注文のためにこれらの資料を使用することに同意します。",
+  "customValidation": "プロジェクト名と制作要件を入力し、資料の使用に関する説明に同意してください。",
+  "customImageError": "JPGまたはPNG画像を8枚まで選択してください。1枚につき8 MB以下にしてください。",
+  "customSubmitted": "依頼を審査に提出しました。お支払いは発生していません。",
+  "customTerms": "お支払いの前に確定した制作範囲をご確認ください",
+  "customContent": "納品物",
+  "customPeriod": "納期",
+  "customRevisions": "修正の範囲",
+  "customRights": "利用権",
+  "customAcceptTerms": "確定した制作範囲とその条件に同意します。",
+  "customPay": "{price}を支払う",
+  "customRestore": "未完了の購入を確認",
+  "customTestMode": "テスト決済・実際の請求は発生しません",
+  "customAccept": "納品を承認",
+  "customRevise": "修正を依頼",
+  "customRevisionNote": "修正してほしい内容を記入",
+  "customStatusReview": "制作要件を審査中",
+  "customStatusInfo": "追加情報が必要",
+  "customStatusQuote": "制作範囲が確定・お支払い待ち",
+  "customStatusMaking": "制作中",
+  "customStatusQc": "品質確認中",
+  "customStatusAccept": "お客様の確認待ち",
+  "customStatusDelivered": "納品済み",
+  "customStatusRejected": "依頼は承認されませんでした",
+  "customStatusWithdrawn": "取り下げ済み・返金済み",
+  "customPending": "お支払いは保留中です。サーバーでの確認が完了してから制作を開始します。",
+  "customEmpty": "まだ項目がありません。",
+  "@customBase": {
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "@customPay": {
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "@customSeconds": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "@customMaterialCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "customAudioNone": "音声なし・基本プラン",
+  "customAudioMatched": "プラットフォームによる音声選定",
+  "customAudioHelp": "動画に合うBGMや簡単な効果音を選定します。特定の曲、ナレーション、アップロードされた音声には対応していません。",
+  "customAudioTotal": "参考合計金額（米ドル）：{price}",
+  "customAudioRate": "音声選定の追加料金：{percent}%",
+  "@customAudioTotal": {
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "@customAudioRate": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "customSupplement": "制作要件を更新して再提出",
+  "customSupplementSaved": "更新した制作要件を審査に提出しました。",
+  "customSaveDelivery": "納品物をマイキャラクターに保存",
+  "customSavedDelivery": "マイキャラクターに保存しました。オフラインで利用できます。",
+  "customSavingDelivery": "非公開の納品物をダウンロード中…",
+  "customConfirmDelivery": "このバージョンを最終納品として承認しますか？",
+  "customRevisionLimit": "修正依頼：{limit}回中{used}回",
+  "@customRevisionLimit": {
+    "placeholders": {
+      "used": {
+        "type": "int"
+      },
+      "limit": {
+        "type": "int"
+      }
+    }
+  },
+  "customProgress": "制作の進捗",
+  "deletionTitle": "アカウントを削除",
+  "deletionExplanation": "Hildorsアカウントと関連データの削除を申請します。この操作は審査のための申請であり、すぐにデータが削除されたり、ログアウトされたりすることはありません。ここで状況を確認でき、保留中は申請を取り消せます。",
+  "deletionSubmit": "アカウント削除を申請",
+  "deletionConfirm": "削除申請を提出しますか？審査中もアカウントは引き続き利用できます。",
+  "deletionNone": "保留中の削除申請はありません。",
+  "deletionReceived": "申請受付済み",
+  "deletionReview": "審査中",
+  "deletionInformation": "追加情報が必要",
+  "deletionCancelled": "申請を取り消しました",
+  "deletionCancel": "削除申請を取り消す",
+  "deletionRefresh": "状態を更新",
+  "deletionReference": "申請ID：{id}",
+  "@deletionReference": {
+    "placeholders": {
+      "id": {
+        "type": "String"
+      }
+    }
+  },
+  "devicePlayingDelete": "この動画を削除する前に、別の動画を再生してください。",
+  "deviceDeleteTitle": "このデバイスのファイルを完全に削除しますか？",
+  "deviceDeleteIntro": "次の動画をホログラムデバイスから完全に削除します：",
+  "deviceDeleteNote": "この操作は取り消せません。スマートフォンにダウンロードしたコピーと購入履歴は残ります。",
+  "deviceCancel": "キャンセル",
+  "deviceDelete": "完全に削除",
+  "deviceVideoLibrary": "デバイスの動画",
+  "deviceRefresh": "更新",
+  "deviceConnectFirst": "先にデバイス操作からデバイスを接続してください。",
+  "deviceReadVideos": "デバイスの動画を読み込む",
+  "devicePlaying": "再生中",
+  "devicePlay": "再生",
+  "deviceMore": "その他の操作",
+  "deviceDeleteFrom": "デバイスから削除",
+  "frameSaved": "表示範囲を保存しました。元の動画は変更されておらず、変換やアップロードも行われていません。",
+  "frameSaveFailed": "保存できませんでした。再試行してください。",
+  "frameTitle": "円形の表示範囲を調整",
+  "frameCircle": "円はデバイスの表示領域を示しています。",
+  "frameInstructions": "ピンチで拡大・縮小し、ドラッグで位置を調整してください。動画を最後まで再生し、キャラクターと動きが円の中に収まることをご確認ください。",
+  "framePause": "プレビューを一時停止",
+  "framePlay": "プレビューを再生",
+  "framePlaybackFailed": "再生に失敗しました。戻って再試行してください。",
+  "frameZoom": "拡大・縮小",
+  "frameFit": "画面全体を収める",
+  "frameFill": "円いっぱいに表示",
+  "frameReset": "リセット",
+  "frameFitNote": "「画面全体を収める」は動画全体を表示します。「円いっぱいに表示」は端を切り取ります。",
+  "frameRestoreFailed": "保存済みの表示範囲を読み込めませんでした。再度調整して保存してください。",
+  "frameSaving": "保存中…",
+  "frameSave": "表示範囲を保存",
+  "frameUnavailable": "変換してアップロード・利用不可",
+  "framePending": "現在は表示範囲のみ保存されます。デバイス用の動画変換はまだ利用できません。",
+  "framePreviewFailed": "プレビューを読み込めませんでした。戻って再試行してください。",
+  "deviceDeleted": "{name}をデバイスから削除しました。",
+  "frameTime": "{position} / {duration}秒",
+  "@deviceDeleted": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@frameTime": {
+    "placeholders": {
+      "position": {
+        "type": "int"
+      },
+      "duration": {
+        "type": "int"
+      }
+    }
+  },
+  "governanceReport": "コンテンツを報告",
+  "governanceBlock": "クリエイターをブロック",
+  "governanceCopyright": "著作権侵害",
+  "governanceAbuse": "嫌がらせ・暴言",
+  "governanceSexual": "性的なコンテンツ",
+  "governanceViolence": "暴力",
+  "governanceSpam": "スパム",
+  "governanceOther": "その他",
+  "governanceDetails": "詳細（任意）",
+  "governanceReportNote": "報告は審査チームに送信されます。著作権に関する問題の場合は、元の作品とその掲載場所を記載してください。機密性の高い個人情報は含めないでください。",
+  "governanceCancel": "キャンセル",
+  "governanceSubmit": "報告を送信",
+  "governanceReceived": "報告を受け付けました。受付番号：{reference}",
+  "@governanceReceived": {
+    "placeholders": {
+      "reference": {
+        "type": "String"
+      }
+    }
+  },
+  "governanceBlockNote": "このアカウントのカタログで、このクリエイターのコンテンツを非表示にします。「報告とブロックしたクリエイター」から解除できます。",
+  "governanceBlocked": "クリエイターをブロックしました。",
+  "governanceAuthError": "セッションの有効期限が切れました。再度ログインしてください。",
+  "governanceUnavailableError": "このコンテンツは利用できなくなりました。",
+  "governanceInvalidError": "報告内容を確認して再試行してください。",
+  "governanceConflictError": "この操作は利用できません。更新して再試行してください。",
+  "governanceNetworkError": "接続できませんでした。再試行してください。",
+  "governanceTitle": "報告とブロックしたクリエイター",
+  "governanceRefresh": "更新",
+  "governanceReports": "自分の報告",
+  "governanceBlocks": "ブロックしたクリエイター",
+  "governanceEmpty": "まだ項目がありません。",
+  "governanceUnblock": "ブロックを解除",
+  "governanceStatusReceived": "受付済み",
+  "governanceStatusReview": "審査中",
+  "governanceStatusAction": "対応済み",
+  "governanceStatusNoViolation": "違反は確認されませんでした",
+  "playlistFromCharacters": "マイキャラクターから選択",
+  "playlistChooseCharacter": "キャラクターの動画を選択",
+  "playlistFromPhone": "スマートフォンから読み込む",
+  "playlistFromDevice": "デバイスにある動画を追加",
+  "playlistPickFailed": "動画を選択できませんでした。再試行してください。",
+  "playlistPendingSaveFailed": "アップロード待ちの項目を保存できませんでした。この画面を離れると失われる可能性があります。再試行してください。",
+  "playlistRetry": "再試行",
+  "playlistReselectTitle": "元の動画を選び直す",
+  "playlistReselectNote": "ファイルが移動されたか、一時キャッシュが削除されました。プレイリストの項目は残っています。元の動画を選び直し、表示範囲を確認してください。",
+  "playlistCancel": "キャンセル",
+  "playlistReselect": "選び直す",
+  "playlistReadFailed": "動画を読み込めませんでした。再試行してください。",
+  "playlistOriginalTitle": "元の動画が必要です",
+  "playlistOriginalNote": "デバイスから取得できるのはファイル名のみです。表示範囲を調整するには、スマートフォンから元の動画を選択してください。保存されるのは表示範囲のみです。変換してアップロードすると、元のファイルを残したまま、新しいファイルがデバイスに追加されます。",
+  "playlistChooseOriginal": "元の動画を選択",
+  "playlistOriginalFailed": "元の動画を読み込めませんでした。再試行してください。",
+  "playlistRemovePending": "アップロード待ちの動画を削除しますか？",
+  "playlistRemovePendingNote": "このプレイリストの項目のみ削除します。スマートフォンとデバイスの動画は残ります。",
+  "playlistRemove": "削除",
+  "playlistReadLocalFailed": "端末内のプレイリストを読み込めませんでした。再試行してください。",
+  "playlistSaveLocalFailed": "端末内のプレイリストを保存できませんでした。再試行してください。",
+  "playlistAddDevice": "デバイスのライブラリから追加",
+  "playlistAllAdded": "デバイスの動画はすべてこの下書きに追加済みです。",
+  "playlistConnectFirst": "再生する前にデバイスを接続してください。",
+  "playlistNotUploaded": "この動画はデバイスにありません。再生するには変換とアップロードが必要です。",
+  "playlistRemoveTitle": "プレイリストから削除しますか？",
+  "playlistRemoveList": "プレイリストから削除",
+  "playlistUndo": "元に戻す",
+  "playlistTitle": "デバイスのプレイリスト",
+  "playlistReadDevice": "デバイスの動画を取得",
+  "playlistStartup": "起動時",
+  "playlistBluetooth": "Bluetooth",
+  "playlistStartupNote": "デバイスは起動時にこのプレイリストを再生します。",
+  "playlistBluetoothNote": "Bluetoothが接続されると、このプレイリストに切り替わります。",
+  "playlistLoop": "リピートモード",
+  "playlistListLoop": "プレイリストをリピート",
+  "playlistSingleLoop": "1本リピート",
+  "playlistOnce": "1回再生",
+  "playlistOrder": "再生順序",
+  "playlistAddVideo": "動画を追加",
+  "playlistPendingLoadFailed": "アップロード待ちの項目を読み込めませんでした。タップして再試行してください。",
+  "playlistPending": "アップロード待ちの動画・デバイスに未送信",
+  "playlistPendingNote": "アップロード待ちの項目は元のファイルを参照しています。変換はまだ利用できません。表示範囲を調整した後も、元のファイルを移動しないでください。",
+  "playlistConvertPending": "変換待ち・未アップロード",
+  "playlistFrame": "表示範囲を調整",
+  "playlistRemovePendingAction": "アップロード待ちの動画を削除",
+  "playlistEmpty": "このプレイリストは空です",
+  "playlistFirst": "既定で最初に再生する動画",
+  "playlistUp": "上へ移動",
+  "playlistDown": "下へ移動",
+  "playlistRemoveDraft": "下書きから削除",
+  "playlistSaveDevice": "デバイスに保存・プロトコル対応待ち",
+  "playlistRecovery": "Bluetooth切断後",
+  "playlistRecoveryNote": "対応している場合は、直前のデバイス動画の再生を再開します。プロトコルの確認待ちです。",
+  "playlistDisconnected": "デバイス未接続",
+  "playlistReadDeviceFailed": "ネットワーク接続済み・デバイスから取得できません",
+  "playlistReadDeviceReady": "ネットワーク接続済み・タップして取得",
+  "playlistReadNote": "デバイスのコンテンツを取得して、操作用の接続を確認してください。",
+  "playlistConnectNote": "デバイスのWi-Fiに接続してから、プレイリストを取得してください。",
+  "playlistRead": "取得",
+  "playlistSourceTitle": "{name}・元の表示範囲",
+  "@playlistSourceTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "playlistSent": "デバイスに送信しました：{name}",
+  "@playlistSent": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "playlistRemoveNote": "「{name}」をこのプレイリストからのみ削除します。スマートフォンとデバイスのファイルは残ります。",
+  "@playlistRemoveNote": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "playlistRemoved": "{name}をプレイリストから削除しました",
+  "@playlistRemoved": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "playlistCount": "動画{count}本",
+  "@playlistCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "playlistDeviceCount": "デバイス応答あり・動画{count}本",
+  "@playlistDeviceCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "submissionDraftSaved": "下書きを保存しました。動画をアップロードしてから審査に提出してください。",
+  "submissionTitle": "自分の投稿",
+  "submissionRefresh": "投稿を更新",
+  "submissionCreate": "投稿を作成",
+  "submissionEmpty": "投稿はまだありません。下書きを作成し、動画をアップロードして検証後に提出してください。",
+  "submissionUpdated": "投稿を更新しました。",
+  "submissionFree": "無料",
+  "submissionPaid": "有料",
+  "submissionPrice": "価格（米ドル）",
+  "submissionDecimals": "小数点以下2桁まで",
+  "submissionInvalidPrice": "0より大きい米ドル価格を、小数点以下2桁以内で入力してください。",
+  "submissionReviewNote": "すべての動画は公開前に審査が必要です。",
+  "submissionCancel": "キャンセル",
+  "submissionSavePrice": "価格を保存",
+  "submissionSubmitted": "審査に提出しました。審査中は編集できません。",
+  "submissionPartnerNote": "パートナーは無料または有料の動画を公開できます。すべてのコンテンツに審査が必要です。",
+  "submissionFreeNote": "無料動画やキャラクターコレクションを審査に提出してください。",
+  "submissionCharacterPackage": "キャラクターコレクション",
+  "submissionSingleVideo": "単体動画",
+  "submissionRejectedReason": "修正依頼あり",
+  "submissionReviewFeedback": "審査のフィードバック",
+  "submissionName": "タイトル",
+  "submissionNameRequired": "タイトルを入力してください。",
+  "submissionFormat": "コンテンツの形式",
+  "submissionSingle": "単体動画",
+  "submissionPackage": "動画コレクション",
+  "submissionTags": "コンテンツタグ",
+  "submissionNoTags": "コンテンツタグはまだ利用できません。",
+  "submissionStory": "背景ストーリー",
+  "submissionStoryRequired": "背景ストーリーを入力してください。",
+  "submissionVideos": "動画",
+  "submissionAddVideo": "動画を追加",
+  "submissionRemoveVideo": "動画を削除",
+  "submissionVideoNameRequired": "動画のタイトルを入力してください。",
+  "submissionSaveDraft": "下書きを保存",
+  "submissionSaveInfo": "詳細を保存",
+  "submissionCoverUploaded": "カバー画像をアップロード済み",
+  "submissionCover": "コレクションのカバー画像",
+  "submissionCoverTypes": "JPGまたはPNG",
+  "submissionReplace": "差し替え",
+  "submissionUpload": "アップロード",
+  "submissionSetPrice": "価格を設定",
+  "submissionMakeFree": "無料にする",
+  "submissionReplaceMp4": "MP4を差し替え",
+  "submissionUploadMp4": "MP4をアップロード",
+  "submissionCheckVideo": "動画を検証",
+  "submissionResubmit": "審査に再提出",
+  "submissionSubmit": "審査に提出",
+  "submissionRequirements": "提出前にすべての動画を検証してください。コレクションにはカバー画像も必要です。",
+  "submissionInfo": "コンテンツの詳細",
+  "submissionNoStory": "背景ストーリーはまだありません。",
+  "submissionRetry": "再試行",
+  "submissionPending": "審査中",
+  "submissionPublished": "公開済み",
+  "submissionApproved": "承認済み・公開待ち",
+  "submissionRejected": "修正依頼あり",
+  "submissionDraft": "下書き",
+  "submissionNoMedia": "動画は未アップロード",
+  "submissionChecked": "検証合格",
+  "submissionProcessing": "動画を検証中",
+  "submissionFailed": "検証に失敗しました。動画を差し替えて再試行してください。",
+  "submissionWaiting": "アップロード済み・検証待ち",
+  "submissionApprovalError": "クリエイターの利用権限が未承認か、停止されています。認証ページをご確認ください。",
+  "submissionDataError": "投稿データを読み取れませんでした。更新して再試行してください。",
+  "submissionLoadError": "投稿を読み込めませんでした。しばらくしてから再試行してください。",
+  "submissionSessionError": "セッションの有効期限が切れました。再度ログインしてください。",
+  "submissionAccessError": "有効な認証済みクリエイターアカウントが必要です。",
+  "submissionPaidError": "このアカウントでは有料に設定できません。提出前に動画を無料にしてください。",
+  "submissionPriceError": "有効な米ドル価格を、小数点以下2桁以内で入力してください。",
+  "submissionConflictError": "投稿が変更されています。更新して再試行してください。",
+  "submissionMediaError": "先にすべての動画をアップロードし、検証してください。",
+  "submissionCoverError": "先にコレクションのカバー画像をアップロードしてください。",
+  "submissionTagError": "利用できなくなったタグがあります。更新して選び直してください。",
+  "submissionServerError": "サービスを利用できません。しばらくしてから再試行してください。",
+  "submissionRequestError": "操作を完了できませんでした。コンテンツを確認して再試行してください。",
+  "submissionAccountChanged": "アカウントが変更されました。投稿を更新してください。",
+  "submissionPreviewError": "動画が未アップロードか、プレビューを利用できません。",
+  "submissionVideoPrice": "動画の価格・{name}",
+  "@submissionVideoPrice": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "submissionVideoName": "動画{index}のタイトル",
+  "@submissionVideoName": {
+    "placeholders": {
+      "index": {
+        "type": "int"
+      }
+    }
+  },
+  "submissionLegacyTag": "{name}（旧形式）",
+  "@submissionLegacyTag": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "p20Refresh": "デバイスのプレイリストを更新",
+  "p20Daily": "A 日常表示",
+  "p20Bluetooth": "B Bluetooth",
+  "p20ConnectNote": "接続すると、デバイスに保存されたプレイリストを表示できます",
+  "p20ConnectWifi": "スマートフォンをデバイスのWi-Fiに接続し、「デバイスを接続」をタップしてください。",
+  "p20Connecting": "接続中…",
+  "p20Connect": "デバイスを接続",
+  "p20Reading": "デバイスのプレイリストを取得中…",
+  "p20ReadFailed": "デバイスのプレイリストを取得できませんでした",
+  "p20Mode": "再生モード（A/B共通）",
+  "p20OrderNote": "順序はデバイスから取得します。動画を移動するとデバイスが更新され、確定した順序を再取得します。",
+  "p20Empty": "このデバイスのプレイリストは空です",
+  "p20Pending": "アップロード待ちの動画",
+  "p20PendingNote": "これらの動画はスマートフォン上で待機しており、デバイスにはまだアップロードされていません。",
+  "p20Unconfirmed": "デバイスから変更の確認応答がありませんでした。現在の状態を再取得しました。確認して再試行してください。",
+  "p20UploadEntry": "アップロードするにはデバイスのプレイリストから開いてください",
+  "p20UploadAction": "変換してアップロード",
+  "p20FramingNote": "現在の表示範囲でアップロードします。別途保存する必要はありません。",
+  "p20ConnectedCount": "デバイス接続済み・動画{count}本",
+  "@p20ConnectedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "p20UploadTitle": "デバイスにアップロード",
+  "p20UploadStart": "準備してアップロード",
+  "p20UploadCancel": "アップロードをキャンセル",
+  "p20UploadClose": "プレイリストに戻る",
+  "p20UploadDisconnected": "アップロードする前に、ホームからデバイスを接続してください。",
+  "p20UploadDaily": "A 日常表示プレイリストは音声の有無にかかわらず動画を追加できます。音声ありの場合はMP3を抽出して変換し、音声、動画の順にアップロードします。音声なしの場合は動画のみ変換してアップロードします。",
+  "p20UploadBluetooth": "B Bluetoothプレイリストは音声の有無にかかわらず動画を追加できます。動画のみ変換してアップロードし、元の音声は使用しません。",
+  "p20UploadSettings": "298 × 298・20 fps・現在の表示範囲",
+  "p20UploadDownloadFirst": "デバイスにアップロードする前に、この動画をマイキャラクターにダウンロードしてください。",
+  "p20UploadFailed": "準備またはアップロードに失敗しました。動画、デバイスの接続、空き容量を確認して再試行してください。",
+  "p20UploadConfirmedProgress": "デバイスによる確認済み",
+  "p20UploadFailureStageLabel": "失敗した段階",
+  "p20UploadConfirmedLabel": "確認済み",
+  "p20UploadBytesLabel": "バイト",
+  "p20UploadBusy": "デバイスが処理中です。少し待ってから再試行してください。",
+  "p20UploadWriteFailed": "デバイスにファイルを書き込めませんでした。ストレージカードをご確認ください。",
+  "p20UploadAlreadyExists": "このファイルはすでにデバイスにあります。",
+  "p20UploadStorageFull": "デバイスのストレージまたはプレイリストがいっぱいです。",
+  "p20UploadBatteryLow": "デバイスのバッテリー残量が不足しています。充電して再試行してください。",
+  "p20UploadRejected": "デバイスがファイルを拒否しました。",
+  "p20UploadConfirmationTimeout": "デバイスの確認応答がタイムアウトしました。以下の段階と進捗を控えてから、再接続してください。",
+  "p20UploadProcessingTimeout": "メディア処理がタイムアウトしました。短い動画でお試しください。",
+  "p20UploadConnectionLost": "デバイスとの接続が切れました。再接続して再試行してください。",
+  "p20UploadLocalFileError": "端末内のファイルを読み書きできません。元のファイルとスマートフォンの空き容量をご確認ください。",
+  "p20UploadInvalidReply": "デバイスの応答または進捗の順序が一致しませんでした。ファームウェアのプロトコルをご確認ください。",
+  "p20UploadPartial": "音声はアップロードされましたが、動画は完了していません。デバイスのファイルの削除や自動再試行は行っていません。",
+  "p20UploadRefreshFailed": "デバイスがアップロードの完了を確認しましたが、プレイリストを更新できませんでした。再接続して更新してください。再アップロードは不要です。",
+  "p20UploadCleanupPending": "一時ファイルはまだ使用中のため、保持されています。",
+  "p20UploadWaitingAcceptance": "アップロードの受付確認を待機中",
+  "p20UploadTransferring": "ファイルを転送中",
+  "p20UploadWaitingCompletion": "完了の確認応答を待機中",
+  "p20UploadConfirmedCompletion": "デバイスが完了を確認しました",
+  "p20UploadReady": "準備完了",
+  "p20UploadExtractingAudio": "音声を確認し、含まれていれば抽出中",
+  "p20UploadConvertingVideo": "動画を変換中",
+  "p20UploadUploadingAudio": "音声をアップロード中",
+  "p20UploadUploadingVideo": "動画をアップロード中",
+  "p20UploadRefreshing": "プレイリストを更新中",
+  "p20UploadComplete": "アップロード完了",
+  "p20UploadIncomplete": "アップロード未完了",
+  "p20UploadCancelled": "キャンセル済み",
+  "p20SingleOnce": "1回再生",
+  "p20UploadFailureStage": "失敗した段階：{stage}",
+  "@p20UploadFailureStage": {
+    "placeholders": {
+      "stage": {
+        "type": "String"
+      }
+    }
+  },
+  "p20UploadTransferDetails": "{phase}・{total}バイト中{acknowledged}バイト確認済み",
+  "@p20UploadTransferDetails": {
+    "placeholders": {
+      "phase": {
+        "type": "String"
+      },
+      "acknowledged": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "creatorMediaOpenFailed": "この動画を開けません。投稿を更新して再試行してください。",
+  "creatorMediaPreviewLabel": "動画をプレビュー：{title}",
+  "@creatorMediaPreviewLabel": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "creatorMediaThumbnailPending": "サムネイルは準備中です。タップするとプレビューできます。",
+  "creatorMediaPreview": "動画をプレビュー",
+  "p20SingleList": "デバイスの動画",
+  "p20SingleValidationPending": "このデバイスへの動画アップロードは、実機での検証待ちです。",
+  "p20SingleTransferComplete": "転送が確認されました。再生は実機での検証待ちです。",
+  "p20DeviceType": "デバイスの種類",
+  "p20DeviceAuto": "自動検出",
+  "p20DeviceSingle": "P20（単一リスト・音声なし）",
+  "p20DeviceDual": "P20 PORTAL（2つのリスト・Bluetooth）",
+  "supportContact": "サポートに問い合わせる",
+  "supportInstructions": "問題を再現する手順、アプリのバージョン、デバイスの機種をメールでお知らせください。関連するスクリーンショットも添付できます。",
+  "supportWriteEmail": "メールを作成",
+  "supportCopyEmail": "メールアドレスをコピー",
+  "supportEmailCopied": "サポートのメールアドレスをコピーしました",
+  "supportCopyFailed": "コピーできませんでした。メールアドレスを選択して手動でコピーしてください。",
+  "supportNoMailApp": "メールアプリを開けませんでした。アドレスをコピーし、ご利用のメールサービスからお問い合わせください。"
+}

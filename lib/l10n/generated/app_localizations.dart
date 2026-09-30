@@ -5,7 +5,10 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:intl/intl.dart' as intl;
 
+import 'app_localizations_de.dart';
 import 'app_localizations_en.dart';
+import 'app_localizations_es.dart';
+import 'app_localizations_ja.dart';
 import 'app_localizations_zh.dart';
 
 // ignore_for_file: type=lint
@@ -94,27 +97,12 @@ abstract class AppLocalizations {
 
   /// A list of this localizations delegate's supported locales.
   static const List<Locale> supportedLocales = <Locale>[
+    Locale('de'),
     Locale('en'),
+    Locale('es'),
+    Locale('ja'),
     Locale('zh')
   ];
-
-  /// No description provided for @copyDeviceLog.
-  ///
-  /// In en, this message translates to:
-  /// **'Copy device communication log'**
-  String get copyDeviceLog;
-
-  /// No description provided for @deviceLogCopied.
-  ///
-  /// In en, this message translates to:
-  /// **'Log copied. It contains protocol metadata; media payloads are omitted.'**
-  String get deviceLogCopied;
-
-  /// No description provided for @deviceDeleteAudioNote.
-  ///
-  /// In en, this message translates to:
-  /// **'The paired audio file will also be deleted.'**
-  String get deviceDeleteAudioNote;
 
   /// No description provided for @accountTitle.
   ///
@@ -2912,6 +2900,24 @@ abstract class AppLocalizations {
   /// **'{position} / {duration} seconds'**
   String frameTime(int position, int duration);
 
+  /// No description provided for @copyDeviceLog.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy device communication log'**
+  String get copyDeviceLog;
+
+  /// No description provided for @deviceLogCopied.
+  ///
+  /// In en, this message translates to:
+  /// **'Log copied. It contains protocol metadata; media payloads are omitted.'**
+  String get deviceLogCopied;
+
+  /// No description provided for @deviceDeleteAudioNote.
+  ///
+  /// In en, this message translates to:
+  /// **'The paired audio file will also be deleted.'**
+  String get deviceDeleteAudioNote;
+
   /// No description provided for @governanceReport.
   ///
   /// In en, this message translates to:
@@ -3968,6 +3974,48 @@ abstract class AppLocalizations {
   /// **'{name} (legacy)'**
   String submissionLegacyTag(String name);
 
+  /// No description provided for @supportContact.
+  ///
+  /// In en, this message translates to:
+  /// **'Contact support'**
+  String get supportContact;
+
+  /// No description provided for @supportInstructions.
+  ///
+  /// In en, this message translates to:
+  /// **'Email us with the steps to reproduce the issue, your app version and device model. You can attach relevant screenshots.'**
+  String get supportInstructions;
+
+  /// No description provided for @supportWriteEmail.
+  ///
+  /// In en, this message translates to:
+  /// **'Write an email'**
+  String get supportWriteEmail;
+
+  /// No description provided for @supportCopyEmail.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy email address'**
+  String get supportCopyEmail;
+
+  /// No description provided for @supportEmailCopied.
+  ///
+  /// In en, this message translates to:
+  /// **'Support email address copied'**
+  String get supportEmailCopied;
+
+  /// No description provided for @supportCopyFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not copy. Select the email address to copy it manually.'**
+  String get supportCopyFailed;
+
+  /// No description provided for @supportNoMailApp.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not open a mail app. Copy the address and contact us using your email service.'**
+  String get supportNoMailApp;
+
   /// No description provided for @p20Refresh.
   ///
   /// In en, this message translates to:
@@ -4411,48 +4459,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'P20 PORTAL (dual lists, Bluetooth)'**
   String get p20DeviceDual;
-
-  /// No description provided for @supportContact.
-  ///
-  /// In en, this message translates to:
-  /// **'Contact support'**
-  String get supportContact;
-
-  /// No description provided for @supportInstructions.
-  ///
-  /// In en, this message translates to:
-  /// **'Email us with the steps to reproduce the issue, your app version and device model. You can attach relevant screenshots.'**
-  String get supportInstructions;
-
-  /// No description provided for @supportWriteEmail.
-  ///
-  /// In en, this message translates to:
-  /// **'Write an email'**
-  String get supportWriteEmail;
-
-  /// No description provided for @supportCopyEmail.
-  ///
-  /// In en, this message translates to:
-  /// **'Copy email address'**
-  String get supportCopyEmail;
-
-  /// No description provided for @supportEmailCopied.
-  ///
-  /// In en, this message translates to:
-  /// **'Support email address copied'**
-  String get supportEmailCopied;
-
-  /// No description provided for @supportCopyFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Could not copy. Select the email address to copy it manually.'**
-  String get supportCopyFailed;
-
-  /// No description provided for @supportNoMailApp.
-  ///
-  /// In en, this message translates to:
-  /// **'Could not open a mail app. Copy the address and contact us using your email service.'**
-  String get supportNoMailApp;
 }
 
 class _AppLocalizationsDelegate
@@ -4466,7 +4472,7 @@ class _AppLocalizationsDelegate
 
   @override
   bool isSupported(Locale locale) =>
-      <String>['en', 'zh'].contains(locale.languageCode);
+      <String>['de', 'en', 'es', 'ja', 'zh'].contains(locale.languageCode);
 
   @override
   bool shouldReload(_AppLocalizationsDelegate old) => false;
@@ -4475,8 +4481,14 @@ class _AppLocalizationsDelegate
 AppLocalizations lookupAppLocalizations(Locale locale) {
   // Lookup logic when only language code is specified.
   switch (locale.languageCode) {
+    case 'de':
+      return AppLocalizationsDe();
     case 'en':
       return AppLocalizationsEn();
+    case 'es':
+      return AppLocalizationsEs();
+    case 'ja':
+      return AppLocalizationsJa();
     case 'zh':
       return AppLocalizationsZh();
   }

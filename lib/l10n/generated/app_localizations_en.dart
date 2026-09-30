@@ -9,17 +9,6 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
-  String get copyDeviceLog => 'Copy device communication log';
-
-  @override
-  String get deviceLogCopied =>
-      'Log copied. It contains protocol metadata; media payloads are omitted.';
-
-  @override
-  String get deviceDeleteAudioNote =>
-      'The paired audio file will also be deleted.';
-
-  @override
   String get accountTitle => 'Account';
 
   @override
@@ -1583,6 +1572,17 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get copyDeviceLog => 'Copy device communication log';
+
+  @override
+  String get deviceLogCopied =>
+      'Log copied. It contains protocol metadata; media payloads are omitted.';
+
+  @override
+  String get deviceDeleteAudioNote =>
+      'The paired audio file will also be deleted.';
+
+  @override
   String get governanceReport => 'Report content';
 
   @override
@@ -2174,6 +2174,30 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get supportContact => 'Contact support';
+
+  @override
+  String get supportInstructions =>
+      'Email us with the steps to reproduce the issue, your app version and device model. You can attach relevant screenshots.';
+
+  @override
+  String get supportWriteEmail => 'Write an email';
+
+  @override
+  String get supportCopyEmail => 'Copy email address';
+
+  @override
+  String get supportEmailCopied => 'Support email address copied';
+
+  @override
+  String get supportCopyFailed =>
+      'Could not copy. Select the email address to copy it manually.';
+
+  @override
+  String get supportNoMailApp =>
+      'Could not open a mail app. Copy the address and contact us using your email service.';
+
+  @override
   String get p20Refresh => 'Refresh device playlist';
 
   @override
@@ -2429,28 +2453,4 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get p20DeviceDual => 'P20 PORTAL (dual lists, Bluetooth)';
-
-  @override
-  String get supportContact => 'Contact support';
-
-  @override
-  String get supportInstructions =>
-      'Email us with the steps to reproduce the issue, your app version and device model. You can attach relevant screenshots.';
-
-  @override
-  String get supportWriteEmail => 'Write an email';
-
-  @override
-  String get supportCopyEmail => 'Copy email address';
-
-  @override
-  String get supportEmailCopied => 'Support email address copied';
-
-  @override
-  String get supportCopyFailed =>
-      'Could not copy. Select the email address to copy it manually.';
-
-  @override
-  String get supportNoMailApp =>
-      'Could not open a mail app. Copy the address and contact us using your email service.';
 }

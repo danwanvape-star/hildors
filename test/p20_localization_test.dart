@@ -24,7 +24,7 @@ Widget localized(Widget child, {String language = 'en', double scale = 1}) =>
     );
 
 void main() {
-  for (final language in ['en', 'zh']) {
+  for (final language in ['en', 'zh', 'de', 'es', 'ja']) {
     testWidgets(
         '$language upload stages and errors use resources without raw errors',
         (tester) async {
@@ -64,10 +64,14 @@ void main() {
       }
       expect(text.settings, contains('298 × 298'));
       expect(text.settings, contains('20'));
-      expect(text.bluetooth,
-          contains(language == 'en' ? 'source audio is ignored' : '不读取原视频音频'));
-      expect(text.daily,
-          contains(language == 'en' ? 'with or without sound' : '有声和无声'));
+      if (language == 'en' || language == 'zh') {
+        expect(
+            text.bluetooth,
+            contains(
+                language == 'en' ? 'source audio is ignored' : '不读取原视频音频'));
+        expect(text.daily,
+            contains(language == 'en' ? 'with or without sound' : '有声和无声'));
+      }
     });
   }
   testWidgets(

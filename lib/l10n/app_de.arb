@@ -1,0 +1,1092 @@
+{
+  "@@locale": "de",
+  "copyDeviceLog": "Gerätekommunikationsprotokoll kopieren",
+  "deviceLogCopied": "Protokoll kopiert. Es enthält Protokollmetadaten; Mediendaten sind nicht enthalten.",
+  "deviceDeleteAudioNote": "Die zugehörige Audiodatei wird ebenfalls gelöscht.",
+  "accountTitle": "Konto",
+  "accountGuest": "Gastkonto",
+  "accountNone": "Nicht angemeldet",
+  "accountSignOut": "Auf allen Geräten abmelden",
+  "accountSignOutConfirm": "Du wirst auf allen Geräten von deinem Konto abgemeldet. Dein Konto und lokale Videos werden nicht gelöscht. Für Cloud-Inhalte musst du dich möglicherweise erneut anmelden.",
+  "accountGuestWarning": "Dieses Gastkonto hat keine bestätigte E-Mail-Adresse. Wenn du dich abmeldest, kannst du seine Cloud-Inhalte möglicherweise nicht wiederherstellen. Bestätige vor dem Abmelden eine E-Mail-Adresse.",
+  "accountSignedOut": "Auf allen Geräten abgemeldet.",
+  "accountCancel": "Abbrechen",
+  "applicationTitle": "Verifizierung für Kreative",
+  "applicationRefresh": "Prüfstatus aktualisieren",
+  "applicationRetry": "Aktualisieren und erneut versuchen",
+  "applicationLoadFailed": "Dein Antrag konnte nicht geladen werden. Aktualisiere, um fortzufahren.",
+  "applicationNoTags": "Charakterkategorien sind noch nicht verfügbar. Versuche es später erneut.",
+  "applicationApproved": "Verifizierter Kreativer",
+  "applicationOpenStudio": "Kreativstudio öffnen",
+  "applicationPending": "Antrag wird geprüft",
+  "applicationSuspended": "Zugang für Kreative gesperrt",
+  "applicationReviewNote": "Das Team prüft Anträge manuell. Aktualisiere, um deinen Status abzurufen.",
+  "applicationRejected": "Überarbeite deinen Antrag anhand der Rückmeldung und reiche ihn erneut ein.",
+  "applicationRoles": "Charakterschwerpunkte",
+  "applicationDirections": "Inhaltliche Schwerpunkte",
+  "applicationName": "Anzeigename als Kreativer",
+  "applicationNameHint": "Zum Beispiel NovaStudio oder Nova2026",
+  "applicationNameRule": "Verwende Buchstaben und Zahlen, darunter mindestens einen Buchstaben. Höchstens 80 Zeichen.",
+  "applicationEmail": "E-Mail-Adresse (Kennung als Kreativer)",
+  "applicationRegion": "Standort des Kreativen",
+  "applicationChina": "Chinesisches Festland",
+  "applicationUs": "Vereinigte Staaten",
+  "applicationEea": "Europäischer Wirtschaftsraum",
+  "applicationUk": "Vereinigtes Königreich",
+  "applicationJapan": "Japan",
+  "applicationHk": "Hongkong",
+  "applicationMo": "Macau",
+  "applicationTw": "Taiwan",
+  "applicationAsia": "Andere Region in Asien",
+  "applicationOther": "Andere Region",
+  "applicationAdult": "Ich bin mindestens 18 Jahre alt",
+  "applicationAgreement": "Ich stimme den Regeln für Kreative, den Vertraulichkeitsanforderungen und dem Verbot von Transaktionen außerhalb der Plattform zu",
+  "applicationWorks": "Von mir erstellte Videos",
+  "applicationWorkNote": "Lade 1–10 selbst erstellte MP4-Videos mit jeweils höchstens 15 MB hoch. Diese Arbeitsproben sind privat und dienen ausschließlich der Verifizierung. Das Team bewertet Anzahl, Qualität und Kreativität.",
+  "applicationUpload": "Meine Arbeiten hochladen",
+  "applicationUploadFailed": "Hochladen fehlgeschlagen. Das Video wurde nicht hinzugefügt.",
+  "applicationRetryUpload": "Erneut hochladen",
+  "applicationRemoveFailed": "Fehlgeschlagenen Upload entfernen",
+  "applicationSample": "Arbeitsprobe zur Verifizierung",
+  "applicationPrivate": "Hochgeladen · Private Arbeitsprobe",
+  "applicationPreview": "Arbeitsprobe ansehen",
+  "applicationRemove": "Arbeitsprobe entfernen",
+  "applicationSave": "Entwurf speichern",
+  "applicationSubmit": "Antrag einreichen",
+  "applicationPreviewTitle": "Vorschau der Arbeitsprobe",
+  "applicationInvalidName": "Verwende höchstens 80 Buchstaben und Zahlen, darunter mindestens einen Buchstaben.",
+  "applicationInvalidEmail": "Gib vor dem Hochladen eine gültige E-Mail-Adresse ein.",
+  "applicationRoleRequired": "Wähle mindestens einen Charakterschwerpunkt.",
+  "applicationDirectionRequired": "Wähle mindestens einen inhaltlichen Schwerpunkt.",
+  "applicationAdultRequired": "Bestätige, dass du mindestens 18 Jahre alt bist.",
+  "applicationAgreementRequired": "Lies die Regeln für Kreative und stimme ihnen zu.",
+  "applicationMp4": "Wähle ein MP4-Video.",
+  "applicationTooLarge": "Jedes Video darf höchstens 15 MB groß sein. Komprimiere es und versuche es erneut.",
+  "applicationLimit": "Lade höchstens 10 Arbeitsproben hoch.",
+  "applicationEmailUsed": "Diese E-Mail-Adresse wird bereits von einem anderen Kreativen verwendet. Verwende eine andere Adresse.",
+  "applicationInvalidFields": "Prüfe deinen Namen, deine Schwerpunkte, die E-Mail-Adresse und deine Zustimmungen.",
+  "applicationProcessorBusy": "Die Videoprüfung ist ausgelastet. Versuche es später erneut.",
+  "applicationLocked": "Dieser Antrag ist gesperrt. Aktualisiere, um seinen Prüfstatus abzurufen.",
+  "applicationVideoLimit": "Entferne eine Arbeitsprobe, bevor du eine weitere hinzufügst. Die Obergrenze ist 10.",
+  "applicationVideoInvalid": "Das Video hat die Prüfung nicht bestanden. Wähle eine abspielbare MP4-Datei und versuche es erneut.",
+  "applicationVideoRequired": "Lade mindestens ein Video hoch, das die Prüfung besteht.",
+  "applicationConflict": "Der Antrag hat sich geändert. Aktualisiere und versuche es erneut.",
+  "applicationPreviewFailed": "Vorschau fehlgeschlagen. Gehe zurück und versuche es erneut.",
+  "applicationGrade": "Kreativrang: {grade}",
+  "applicationUploading": "Hochladen und prüfen: {name}",
+  "@applicationGrade": {
+    "placeholders": {
+      "grade": {
+        "type": "String"
+      }
+    }
+  },
+  "@applicationUploading": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "applicationDirectionAction": "Einfache Bewegungen",
+  "applicationDirectionDance": "Musik und Tanz",
+  "applicationDirectionEffects": "Visuelle Effekte",
+  "applicationDirectionGrowth": "Charakterentwicklung",
+  "applicationGradeSilver": "Silber",
+  "applicationGradeGold": "Gold",
+  "applicationGradeDiamond": "Diamant",
+  "applicationGradeMaster": "Meister",
+  "applicationGradeLegend": "Legende",
+  "authTitle": "Mit E-Mail anmelden",
+  "authExplanation": "Melde dich mit deiner E-Mail-Adresse an, um dein Konto auf einem anderen Gerät zu nutzen und Servicemitteilungen zu erhalten. Beim Anmelden wechselst du das Konto; die Daten werden nicht zusammengeführt. Hat ein älteres Konto keine bestätigte E-Mail-Adresse, wende dich zur Wiederherstellung an den Support.",
+  "authEmail": "E-Mail-Adresse",
+  "authSend": "Code senden",
+  "authResend": "Code erneut senden",
+  "authSent": "Code gesendet. Er ist 10 Minuten gültig.",
+  "authCode": "6-stelliger Code",
+  "authChange": "E-Mail-Adresse ändern",
+  "authVerify": "Bestätigen und anmelden",
+  "authInvalidEmail": "Gib eine gültige E-Mail-Adresse ein.",
+  "authInvalidCode": "Gib den 6-stelligen Code ein.",
+  "authResendSeconds": "Erneut senden in {seconds} s",
+  "@authResendSeconds": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "appName": "Hildors",
+  "languageTitle": "Sprache",
+  "languageSystem": "Systemsprache verwenden",
+  "languageEnglish": "Englisch",
+  "languageChinese": "Chinesisch (vereinfacht)",
+  "languageFallback": "Chinesische Sprachvarianten verwenden vereinfachtes Chinesisch. Andere nicht unterstützte Sprachen verwenden Englisch.",
+  "languageSaveFailed": "Deine Sprache konnte nicht gespeichert werden. Versuche es erneut.",
+  "commonRetry": "Erneut versuchen",
+  "commonCancel": "Abbrechen",
+  "commonClose": "Schließen",
+  "commonSave": "Speichern",
+  "commonLoading": "Wird geladen…",
+  "errorNetwork": "Verbindung nicht möglich. Prüfe deine Verbindung und versuche es erneut.",
+  "errorSession": "Melde dich erneut an, um fortzufahren.",
+  "errorPermission": "Dieser Inhalt ist für dein Konto nicht verfügbar.",
+  "errorConflict": "Dieser Eintrag hat sich geändert. Aktualisiere ihn und versuche es erneut.",
+  "errorTooLarge": "Diese Datei ist zu groß. Wähle eine kleinere Datei.",
+  "errorRateLimit": "Zu viele Anfragen. Versuche es später erneut.",
+  "errorGeneric": "Etwas ist schiefgelaufen. Versuche es erneut.",
+  "errorEmailCode": "Prüfe deine E-Mail-Adresse und deinen Bestätigungscode. Der Code ist möglicherweise abgelaufen.",
+  "errorServiceUnavailable": "Dieser Dienst ist vorübergehend nicht verfügbar. Versuche es später erneut.",
+  "fileBytes": "{value} B",
+  "@fileBytes": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "fileKilobytes": "{value} KB",
+  "@fileKilobytes": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "fileMegabytes": "{value} MB",
+  "@fileMegabytes": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "catalogCollection": "Sammlung",
+  "catalogLibrary": "Bibliothek",
+  "catalogMyCharacters": "Meine Charaktere",
+  "catalogLoadFailed": "Bibliothek konnte nicht geladen werden",
+  "catalogCheckNetwork": "Prüfe deine Verbindung und versuche es erneut.",
+  "catalogSearch": "Charaktere, Videos oder Genres suchen",
+  "catalogRefresh": "Bibliothek aktualisieren",
+  "catalogSource": "Quelle",
+  "catalogFormat": "Format",
+  "catalogGenre": "Genre",
+  "catalogAll": "Alle",
+  "catalogOfficial": "Von Hildors",
+  "catalogCreatorWorks": "Inhalte von Kreativen",
+  "catalogAnonymous": "Anonymer Kreativer",
+  "catalogSingle": "Einzelvideo",
+  "catalogPackage": "Charakterpaket",
+  "catalogEmpty": "Keine passenden Inhalte",
+  "catalogClear": "Filter zurücksetzen",
+  "catalogResults": "Ergebnisse",
+  "catalogDescriptionMissing": "Charakterbeschreibung noch nicht verfügbar",
+  "catalogPackVideos": "Videos in diesem Paket",
+  "catalogVideo": "Video",
+  "catalogNoPreview": "Vorschau derzeit nicht verfügbar",
+  "catalogDurationUnknown": "Dauer nicht verfügbar",
+  "catalogStoryMissing": "Noch keine Hintergrundgeschichte",
+  "catalogStory": "Hintergrundgeschichte",
+  "catalogStoryCollapse": "Geschichte einklappen",
+  "catalogStoryExpand": "Ganze Geschichte lesen",
+  "catalogImageLoading": "Bild wird geladen",
+  "catalogImageRetry": "Bild konnte nicht geladen werden. Zum Wiederholen tippen",
+  "playerNoSource": "Kein Video verfügbar",
+  "playerBuffering": "Video wird zwischengespeichert…",
+  "playerLoading": "Video wird geladen…",
+  "playerSlow": "Es dauert länger als erwartet. Prüfe deine Verbindung oder versuche es erneut.",
+  "playerPause": "Vorschau pausieren",
+  "playerPlay": "Vorschau abspielen",
+  "playerZoom": "Mit zwei Fingern zoomen · Zum Zurücksetzen doppelt tippen",
+  "playerFailed": "Wiedergabe fehlgeschlagen. Versuche es erneut.",
+  "playerTimeout": "Zeitüberschreitung beim Laden des Videos. Versuche es erneut.",
+  "playerLoadFailed": "Video konnte nicht geladen werden. Versuche es erneut.",
+  "playerAuthFailed": "Zugriff konnte nicht aktualisiert werden. Gehe zu deinen Einreichungen zurück und versuche es erneut.",
+  "downloadTitle": "Unter „Meine Charaktere“ speichern",
+  "downloadUnavailable": "Käufe sind nicht verfügbar",
+  "downloadFree": "Kostenlos herunterladen",
+  "downloadInfo": "Kostenlose Videos kannst du herunterladen und unter „Meine Charaktere“ offline ansehen. Käufe sind nicht verfügbar.",
+  "downloadCancel": "Download abbrechen",
+  "downloadAvailable": "Verfügbare Videos herunterladen",
+  "downloadDone": "Heruntergeladen",
+  "downloadRefresh": "Zugriff aktualisieren",
+  "downloadView": "Meine Charaktere ansehen",
+  "downloadDisabled": "Downloads sind vorübergehend nicht verfügbar. Versuche es später erneut.",
+  "downloadSignIn": "Melde dich zum Herunterladen erneut an.",
+  "downloadDenied": "Dieses Video kann nicht heruntergeladen werden. Aktualisiere den Zugriff und versuche es erneut.",
+  "downloadAccessFailed": "Die Downloadberechtigung konnte nicht geprüft werden. Prüfe deine Verbindung und dein Konto und versuche es erneut.",
+  "downloadFinished": "Download abgeschlossen. Unter „Meine Charaktere“ gespeichert.",
+  "downloadCancelled": "Download abgebrochen. Vollständig heruntergeladene Videos bleiben unter „Meine Charaktere“.",
+  "downloadFailed": "Download unvollständig. Prüfe Verbindung, Speicherplatz und Kontozugriff und versuche es erneut.",
+  "catalogSummary": "{count} Inhalte · {creators} von Kreativen",
+  "@catalogSummary": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "creators": {
+        "type": "int"
+      }
+    }
+  },
+  "catalogRefreshed": "Bibliothek aktualisiert: {count} Inhalte, davon {creators} von Kreativen",
+  "@catalogRefreshed": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "creators": {
+        "type": "int"
+      }
+    }
+  },
+  "catalogCount": "{format} · {count} Videos",
+  "@catalogCount": {
+    "placeholders": {
+      "format": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "catalogSeconds": "{seconds} s",
+  "@catalogSeconds": {
+    "placeholders": {
+      "seconds": {
+        "type": "String"
+      }
+    }
+  },
+  "catalogCreatorSpace": "Werke von {name}",
+  "@catalogCreatorSpace": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "catalogPublished": "Veröffentlichte Werke · {count}",
+  "@catalogPublished": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "downloadProgress": "{count}/{total} heruntergeladen",
+  "@downloadProgress": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "downloadActive": "Wird heruntergeladen: {name}",
+  "@downloadActive": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "downloadPrice": "{price} US$ · Zum Herunterladen kaufen",
+  "@downloadPrice": {
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "controlsDeleteTitle": "Lokale Downloads löschen?",
+  "controlsDeleteNote": "Die heruntergeladenen Dateien dieser Sammlung werden aus der App entfernt. Dein Cloud-Zugriff bleibt erhalten, sodass du sie erneut herunterladen kannst.",
+  "controlsCancel": "Abbrechen",
+  "controlsDelete": "Löschen",
+  "controlsDeleteFailed": "Löschen fehlgeschlagen. Versuche es erneut.",
+  "controlsDeleteLocal": "Lokale Downloads löschen",
+  "controlsNoVideos": "Für diesen Charakter sind noch keine Videos verfügbar.",
+  "controlsPreviewLocal": "Heruntergeladenes Video ansehen",
+  "controlsExamples": "Offizielle Beispielsammlungen · Videos auswählen",
+  "controlsChooseList": "Wiedergabeliste auswählen",
+  "controlsPendingNote": "Videos werden zunächst als ausstehende Einträge hinzugefügt. Sie sind noch nicht auf das Gerät hochgeladen.",
+  "controlsStartup": "Alltagsanzeige",
+  "controlsBluetooth": "Musikmodus",
+  "controlsAddFailed": "Videos konnten nicht hinzugefügt werden. Versuche es erneut.",
+  "controlsMyCharacters": "Meine Charaktere",
+  "controlsLoadFailed": "Deine Charaktere konnten nicht geladen werden. Zum Wiederholen tippen.",
+  "controlsEmpty": "Noch keine Charaktere verfügbar",
+  "controlsEmptyNote": "Lade einen Charakter aus der Inhaltsbibliothek herunter und wähle dann seine Videos aus.",
+  "controlsLibrary": "Inhaltsbibliothek",
+  "controlsBrowse": "Inhaltsbibliothek durchsuchen",
+  "controlsPickNote": "Wähle einen Charakter und anschließend Videos für diese Wiedergabeliste.",
+  "controlsListNote": "Füge Charaktervideos zur Alltagsanzeige oder zum Musikmodus hinzu.",
+  "controlsUnavailable": "Keine Videos verfügbar",
+  "controlsSelect": "Videos auswählen",
+  "controlsAdd": "Zur Wiedergabeliste hinzufügen",
+  "controlsControlTitle": "Gerätesteuerung",
+  "controlsBrightness": "Helligkeit",
+  "controlsAngle": "Winkel (Geräteeinheit und Bereich unbestätigt)",
+  "controlsSpeakerTitle": "Namen des Bluetooth-Lautsprechers festlegen",
+  "controlsSpeakerName": "Lautsprechername",
+  "controlsSave": "Speichern",
+  "controlsSpeaker": "Bluetooth-Lautsprecher",
+  "controlsConnectSpeaker": "Verbinde das Gerät, um seinen Lautsprechernamen abzurufen.",
+  "controlsReading": "Wird gelesen…",
+  "controlsNameUnknown": "Name nicht geladen",
+  "controlsRefreshName": "Namen aktualisieren",
+  "controlsEditName": "Namen bearbeiten",
+  "controlsDisconnected": "Nicht verbunden",
+  "controlsConnecting": "Verbindung wird hergestellt…",
+  "controlsReconnecting": "Verbindung wird wiederhergestellt…",
+  "controlsConnected": "Verbunden",
+  "controlsIp": "Geräte-IP",
+  "controlsPort": "Standardport: 8900",
+  "controlsStopReconnect": "Erneuten Verbindungsaufbau stoppen",
+  "controlsDisconnect": "Verbindung trennen",
+  "controlsConnect": "Verbinden",
+  "controlsQuick": "Schnellsteuerung",
+  "controlsPowerOn": "Einschalten",
+  "controlsPowerOff": "Ausschalten",
+  "controlsPrevious": "Zurück",
+  "controlsPause": "Pausieren",
+  "controlsPlay": "Abspielen",
+  "controlsNext": "Weiter",
+  "controlsRefreshStatus": "Status aktualisieren",
+  "controlsStatus": "Gerätestatus",
+  "controlsLan": "Steuerung im lokalen Netzwerk",
+  "controlsMode": "Betriebsmodus",
+  "controlsAudioSource": "Bluetooth-Audioquelle",
+  "controlsProtocol": "Protokollunterstützung ausstehend",
+  "controlsLocalPlayback": "Gerätewiedergabe",
+  "controlsBluetoothWaiting": "Warten auf Bluetooth",
+  "controlsBluetoothAudio": "Bluetooth-Audio",
+  "controlsWaitingSource": "Warten auf eine Audioquelle",
+  "controlsAudioPlaying": "Audio wird abgespielt",
+  "controlsAudioPaused": "Audio pausiert",
+  "controlsWasDisconnected": "Verbindung getrennt",
+  "controlsBatteryFull": "Vollständig geladen",
+  "controlsBattery": "Geräteakku",
+  "controlsProtocolNote": "Das aktuelle Protokoll meldet weder den Betriebsmodus noch den Bluetooth-Status. Diese Anzeigen erfordern ein aktualisiertes Geräteprotokoll.",
+  "controlsPackageCount": "Charaktersammlung · {count} Videos",
+  "@controlsPackageCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "controlsDownloaded": "{count}/{total} Videos heruntergeladen",
+  "@controlsDownloaded": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "controlsSeconds": "{seconds} Sekunden",
+  "@controlsSeconds": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "controlsAddCount": "{count} Videos als ausstehend hinzufügen",
+  "@controlsAddCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "controlsVideoCount": "{count} Videos",
+  "@controlsVideoCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "controlsAdded": "Als ausstehende Einträge zu „{list}“ hinzugefügt. Noch nicht auf das Gerät hochgeladen.",
+  "@controlsAdded": {
+    "placeholders": {
+      "list": {
+        "type": "String"
+      }
+    }
+  },
+  "controlsNamedPlaying": "{name} · Wird abgespielt",
+  "@controlsNamedPlaying": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "controlsNamedPaused": "{name} · Pausiert",
+  "@controlsNamedPaused": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "controlsCharging": "{percent}% · Wird geladen",
+  "@controlsCharging": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "coreHome": "Start",
+  "coreCollection": "Sammlung",
+  "coreExplore": "Entdecken",
+  "coreProfile": "Profil",
+  "coreDeviceControl": "Gerätesteuerung",
+  "coreCustomCharacter": "Gestalte deinen holografischen Charakter",
+  "corePlaylists": "Geräte-Wiedergabelisten",
+  "corePlaylistSubtitle": "Anzeige- und Musikmodus",
+  "coreDisplay": "Anzeigemodus",
+  "coreStartupSubtitle": "Inhalte für die Wiedergabe beim Start verwalten",
+  "coreMusic": "Musikmodus",
+  "coreBluetoothSubtitle": "Inhalte zur Wiedergabe mit Bluetooth-Audio verwalten",
+  "coreOnline": "Online",
+  "coreDisconnected": "Nicht verbunden",
+  "coreDeviceConnected": "Gerät verbunden",
+  "coreConnecting": "Verbindung wird hergestellt…",
+  "coreReconnecting": "Verbindung wird wiederhergestellt…",
+  "coreDeviceDisconnected": "Gerät nicht verbunden",
+  "coreLanControl": "Steuerung im lokalen Netzwerk · P20 / P20 PORTAL",
+  "coreConnectP20": "Gerät verbinden",
+  "coreConnectionSettings": "Verbindungseinstellungen",
+  "coreDeviceManagement": "Geräteverwaltung",
+  "coreDevices": "Geräte",
+  "corePlaylist": "Wiedergabelisten",
+  "coreDeviceContent": "Geräteinhalte",
+  "coreCharacterAssets": "Charaktere",
+  "coreCustomOrders": "Individuelle Aufträge",
+  "coreOrdersSubtitle": "Verfolge Produktion und Lieferung. Erhaltene Charaktere findest du in der Sammlung.",
+  "coreCreatorCenter": "Kreativbereich",
+  "coreCreatorSubtitle": "Anträge, Produktionsaufgaben und Einnahmen",
+  "coreSupport": "Hilfe und Support",
+  "corePlaybackGuide": "Wiedergabemodi",
+  "corePlaybackGuideSubtitle": "Erfahre, wie Anzeige- und Musikmodus wechseln",
+  "coreLanHelp": "Hilfe zum lokalen Netzwerk",
+  "coreLanHelpSubtitle": "Mit einem P20 / P20 PORTAL-Hotspot verbinden und Probleme beheben",
+  "coreAppSettings": "Geräte- und App-Einstellungen",
+  "coreAppSettingsSubtitle": "Geräteoptionen, Wiedergabeeinstellungen und Version",
+  "coreAbout": "Über HILDORS",
+  "coreAboutSubtitle": "Charakterportal · Unterstützung für P20 / P20 PORTAL",
+  "corePlayerProfile": "Nutzerprofil",
+  "coreLocalAccount": "Lokales Geräteprofil · Auf diesem Gerät gespeichert",
+  "coreDeviceSettings": "Geräteeinstellungen",
+  "coreReadFailed": "Gerätestatus konnte nicht gelesen werden. Verbinde dich mit dem Geräte-WLAN und versuche es erneut.",
+  "coreSettingFailed": "Einstellung konnte nicht übernommen werden. Prüfe die Geräteverbindung und versuche es erneut.",
+  "corePlaybackBehavior": "Wiedergabe",
+  "coreLoopMode": "Wiederholungsmodus",
+  "coreLoopSubtitle": "Lege fest, wie das Gerät seine aktuelle Wiedergabeliste wiederholt",
+  "coreConnectToChange": "Verbinden, um Einstellungen zu lesen und zu ändern",
+  "coreDeviceInfo": "Geräteinformationen",
+  "coreLanCockpit": "Gerät im lokalen Netzwerk",
+  "coreNotRead": "Noch nicht gelesen",
+  "coreReadInfo": "Geräteinformationen lesen",
+  "coreHelp": "Hilfe",
+  "coreModesHelpSubtitle": "Automatischer Wechsel zwischen Anzeige- und Musikmodus",
+  "coreHotspotHelp": "Geräte-Hotspot verbinden und Probleme beheben",
+  "coreDeviceConnecting": "Verbindung zum Gerät wird hergestellt",
+  "coreDeviceReconnecting": "Verbindung wird wiederhergestellt",
+  "coreCockpitOnline": "Gerät online",
+  "coreGoHomeConnect": "Gehe zu „Start“, um dein P20 / P20 PORTAL zu verbinden",
+  "coreOpeningLan": "Steuerungsverbindung im lokalen Netzwerk wird hergestellt",
+  "coreRetryingLan": "Verbindung unterbrochen. Automatischer Neuversuch",
+  "coreLanReady": "Steuerung im lokalen Netzwerk verbunden",
+  "coreSync": "Gerätestatus synchronisieren",
+  "coreSingleLoop": "Einen Titel wiederholen",
+  "coreSequenceLoop": "Alle wiederholen",
+  "coreRandomLoop": "Zufallswiedergabe",
+  "coreSingleOnce": "Einmal abspielen",
+  "coreCheckWifi": "WLAN deines Smartphones prüfen",
+  "coreCheckWifiBody": "Verbinde dein Smartphone mit dem P20-Hotspot oder demselben Router wie dein P20.",
+  "coreCheckAddress": "Steuerungsadresse prüfen",
+  "coreCheckAddressBody": "Im Hotspot-Modus lautet die Standardadresse 192.168.4.1 und der TCP-Port 8900.",
+  "coreLanPermission": "Zugriff auf das lokale Netzwerk erlauben",
+  "coreLanPermissionBody": "Erlaube unter iOS den Zugriff auf das lokale Netzwerk. Erteile unter Android die angeforderten Berechtigungen für Geräte in der Nähe und das Netzwerk.",
+  "coreReconnect": "Erneut verbinden",
+  "coreReconnectBody": "Kehre zur Gerätesteuerung zurück und tippe auf „Verbinden“. Nach einem unerwarteten Verbindungsabbruch versucht die App es nach 1, 2, 4, 8, 15 und 30 Sekunden erneut.",
+  "coreOfflineWifiHelp": "Die Meldung „Kein Internet“ bedeutet nicht unbedingt, dass die Gerätesteuerung ausgefallen ist. Die Steuerung kann weiterlaufen, solange dein Smartphone mit dem lokalen P20-Netzwerk verbunden bleibt.",
+  "coreLocalPlayback": "Gerätewiedergabe",
+  "coreLocalPlaybackBody": "P20 spielt auf dem Gerät gespeicherte Videos einschließlich Ton ab. Verwende diesen Modus für die Wiedergabe beim Start, wiederholte Anzeigen und feste Inhalte.",
+  "coreBluetoothSpeaker": "Bluetooth-Lautsprecher",
+  "coreBluetoothSpeakerBody": "Ein Smartphone oder Computer überträgt Audio per Bluetooth an P20. Gleichzeitig spielt P20 das für den Bluetooth-Modus festgelegte Video ab.",
+  "coreSeparateConnections": "Hildors steuert P20 über das lokale WLAN. Die Netzwerksteuerung und Bluetooth-Audio verwenden getrennte Verbindungen.",
+  "coreCharacterPortal": "Charakterportal",
+  "coreExploreSubtitle": "Gestalte Charaktere, teile Wünsche und werde kreativ.",
+  "coreWishSubtitle": "Teile Wünsche und verfolge Neuigkeiten zu Lizenzen",
+  "coreCreatorExploreSubtitle": "Anträge, Aufgaben und Einnahmen",
+  "coreWish": "Charakterwünsche",
+  "coreCustomize": "Gestalte deinen Charakter",
+  "coreEnter": "Öffnen",
+  "coreCreatorFreeSubtitle": "Beantrage die Verifizierung als Kreativer und veröffentliche kostenlose Inhalte",
+  "coreExploreFreeSubtitle": "Entdecke Möglichkeiten, kostenlose Inhalte zu erstellen und zu teilen.",
+  "coreConnectionFailed": "Verbindung fehlgeschlagen. Prüfe das Geräte-WLAN und die Verbindungseinstellungen und versuche es erneut.",
+  "coreSystemLabel": "GERÄTESYSTEM",
+  "coreProfileLabel": "NUTZERPROFIL",
+  "coreLocalLabel": "LOKAL",
+  "corePilotLabel": "HILDORS PILOT",
+  "coreServiceLabel": "KERNDIENST",
+  "coreCreatorLabel": "KREATIVER",
+  "coreOnlineLabel": "ONLINE",
+  "coreConnectingLabel": "VERBINDUNGSAUFBAU",
+  "coreReconnectingLabel": "ERNEUTER VERBINDUNGSAUFBAU",
+  "coreOfflineLabel": "OFFLINE",
+  "creatorWorkbench": "Kreativstudio",
+  "creatorOriginal": "Originalinhalte",
+  "creatorFreeNote": "Lade ein Video oder eine Charaktersammlung zur Prüfung hoch. Diese Version unterstützt nur kostenlose Einreichungen. Inhalte werden nach Freigabe veröffentlicht.",
+  "creatorPublishingNote": "Lade Videos oder Charaktersammlungen zur Prüfung hoch. Reguläre und verifizierte Kreative veröffentlichen kostenlose Inhalte; Partner können Preise festlegen.",
+  "creatorSubmissions": "Hochladen / Meine Einreichungen",
+  "creatorTasks": "Individuelle Projekte",
+  "creatorTasksNote": "Verfügbare Projekte und laufende individuelle Aufträge ansehen",
+  "customPlansTitle": "Individuelle Videos",
+  "customOrdersTitle": "Meine individuellen Aufträge",
+  "customUnavailable": "Store-Zahlungen sind noch nicht angebunden. Es können keine Zahlungen eingezogen werden.",
+  "customBase": "Basisrichtpreis in USD: {price}. Beim Bezahlen gilt der Store-Preis.",
+  "customSeconds": "{seconds}-Sekunden-Video",
+  "customRequest": "Anforderungen zur Prüfung senden",
+  "customName": "Charakter- / Projektname",
+  "customRequirements": "Deine Anforderungen",
+  "customMaterials": "Referenzbilder hinzufügen",
+  "customMaterialCount": "{count} Referenzbilder",
+  "customPrivacy": "Referenzmaterialien dienen zur Bewertung und Umsetzung dieses privaten Auftrags. Eine öffentliche Präsentation erfordert eine gesonderte Zustimmung.",
+  "customConsent": "Ich stimme der Verwendung dieser Materialien für diesen Auftrag zu.",
+  "customValidation": "Gib einen Projektnamen und Anforderungen ein und bestätige den Hinweis zur Materialnutzung.",
+  "customImageError": "Wähle bis zu 8 JPG-/PNG-Bilder mit jeweils höchstens 8 MB.",
+  "customSubmitted": "Anfrage zur Prüfung eingereicht. Es wurde keine Zahlung eingezogen.",
+  "customTerms": "Prüfe vor der Zahlung den bestätigten Leistungsumfang",
+  "customContent": "Lieferumfang",
+  "customPeriod": "Lieferzeitraum",
+  "customRevisions": "Umfang der Überarbeitungen",
+  "customRights": "Nutzungsrechte",
+  "customAcceptTerms": "Ich akzeptiere diesen bestätigten Leistungsumfang und die zugehörigen Bedingungen.",
+  "customPay": "{price} bezahlen",
+  "customRestore": "Offene Käufe prüfen",
+  "customTestMode": "TESTZAHLUNG — keine echte Abbuchung",
+  "customAccept": "Lieferung abnehmen",
+  "customRevise": "Überarbeitung anfordern",
+  "customRevisionNote": "Beschreibe die gewünschte Überarbeitung",
+  "customStatusReview": "Anforderungen werden geprüft",
+  "customStatusInfo": "Weitere Informationen benötigt",
+  "customStatusQuote": "Umfang bestätigt; Zahlung ausstehend",
+  "customStatusMaking": "In Produktion",
+  "customStatusQc": "Qualitätsprüfung",
+  "customStatusAccept": "Bereit zur Abnahme",
+  "customStatusDelivered": "Geliefert",
+  "customStatusRejected": "Anfrage abgelehnt",
+  "customStatusWithdrawn": "Zurückgezogen / erstattet",
+  "customPending": "Zahlung ausstehend. Die Produktion beginnt erst nach der serverseitigen Bestätigung.",
+  "customEmpty": "Noch keine Einträge verfügbar.",
+  "@customBase": {
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "@customPay": {
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "@customSeconds": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "@customMaterialCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "customAudioNone": "Ohne Audio — Basispaket",
+  "customAudioMatched": "Audioauswahl durch die Plattform",
+  "customAudioHelp": "Wir wählen passende Hintergrundmusik oder einfache Soundeffekte für dein Video aus. Bestimmte Songs, Sprachaufnahmen und hochgeladene Audiodateien sind nicht enthalten.",
+  "customAudioTotal": "Gesamtrichtpreis in USD: {price}",
+  "customAudioRate": "Aufpreis für Audioauswahl: {percent}%",
+  "@customAudioTotal": {
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "@customAudioRate": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "customSupplement": "Anforderungen aktualisieren und erneut einreichen",
+  "customSupplementSaved": "Aktualisierte Anforderungen zur Prüfung eingereicht.",
+  "customSaveDelivery": "Lieferung unter „Meine Charaktere“ speichern",
+  "customSavedDelivery": "Zur Offline-Nutzung unter „Meine Charaktere“ gespeichert.",
+  "customSavingDelivery": "Private Lieferung wird heruntergeladen…",
+  "customConfirmDelivery": "Diese Version als endgültige Lieferung abnehmen?",
+  "customRevisionLimit": "Überarbeitungsanfragen: {used} von {limit}",
+  "@customRevisionLimit": {
+    "placeholders": {
+      "used": {
+        "type": "int"
+      },
+      "limit": {
+        "type": "int"
+      }
+    }
+  },
+  "customProgress": "Produktionsfortschritt",
+  "deletionTitle": "Konto löschen",
+  "deletionExplanation": "Beantrage die Löschung deines Hildors-Kontos und der zugehörigen Daten. Dein Antrag wird geprüft; Daten werden nicht sofort gelöscht und du wirst nicht abgemeldet. Du kannst den Status hier prüfen oder den Antrag zurückziehen, solange er noch offen ist.",
+  "deletionSubmit": "Kontolöschung beantragen",
+  "deletionConfirm": "Diesen Löschantrag einreichen? Dein Konto bleibt während der Prüfung aktiv.",
+  "deletionNone": "Kein offener Löschantrag.",
+  "deletionReceived": "Antrag eingegangen",
+  "deletionReview": "Wird geprüft",
+  "deletionInformation": "Weitere Informationen benötigt",
+  "deletionCancelled": "Antrag zurückgezogen",
+  "deletionCancel": "Löschantrag zurückziehen",
+  "deletionRefresh": "Status aktualisieren",
+  "deletionReference": "Antrags-ID: {id}",
+  "@deletionReference": {
+    "placeholders": {
+      "id": {
+        "type": "String"
+      }
+    }
+  },
+  "devicePlayingDelete": "Spiele ein anderes Video ab, bevor du dieses löschst.",
+  "deviceDeleteTitle": "Diese Gerätedatei endgültig löschen?",
+  "deviceDeleteIntro": "Dieses Video wird endgültig vom holografischen Gerät gelöscht:",
+  "deviceDeleteNote": "Dies kann nicht rückgängig gemacht werden. Heruntergeladene Kopien auf deinem Smartphone und Kaufbelege bleiben erhalten.",
+  "deviceCancel": "Abbrechen",
+  "deviceDelete": "Endgültig löschen",
+  "deviceVideoLibrary": "Gerätevideos",
+  "deviceRefresh": "Aktualisieren",
+  "deviceConnectFirst": "Verbinde dein Gerät zuerst unter „Gerätesteuerung“.",
+  "deviceReadVideos": "Gerätevideos laden",
+  "devicePlaying": "Wird abgespielt",
+  "devicePlay": "Abspielen",
+  "deviceMore": "Weitere Aktionen",
+  "deviceDeleteFrom": "Vom Gerät löschen",
+  "frameSaved": "Bildausschnitt gespeichert. Das Originalvideo ist unverändert; es wurde weder konvertiert noch hochgeladen.",
+  "frameSaveFailed": "Speichern fehlgeschlagen. Versuche es erneut.",
+  "frameTitle": "Kreisförmigen Bildausschnitt anpassen",
+  "frameCircle": "Der Kreis markiert den Anzeigebereich des Geräts.",
+  "frameInstructions": "Zoome mit zwei Fingern und verschiebe das Bild durch Ziehen. Spiele das gesamte Video ab, um zu prüfen, ob der Charakter und seine Bewegungen im Kreis bleiben.",
+  "framePause": "Vorschau pausieren",
+  "framePlay": "Vorschau abspielen",
+  "framePlaybackFailed": "Wiedergabe fehlgeschlagen. Gehe zurück und versuche es erneut.",
+  "frameZoom": "Zoom",
+  "frameFit": "Gesamtes Bild einpassen",
+  "frameFill": "Kreis ausfüllen",
+  "frameReset": "Zurücksetzen",
+  "frameFitNote": "Einpassen erhält das gesamte Bild. Ausfüllen schneidet die Ränder ab.",
+  "frameRestoreFailed": "Der gespeicherte Bildausschnitt konnte nicht geladen werden. Passe ihn an und speichere ihn erneut.",
+  "frameSaving": "Wird gespeichert…",
+  "frameSave": "Bildausschnitt speichern",
+  "frameUnavailable": "Konvertieren und hochladen · Nicht verfügbar",
+  "framePending": "Derzeit wird nur der Bildausschnitt gespeichert. Die Videokonvertierung für das Gerät ist noch nicht verfügbar.",
+  "framePreviewFailed": "Vorschau konnte nicht geladen werden. Gehe zurück und versuche es erneut.",
+  "deviceDeleted": "{name} wurde vom Gerät gelöscht.",
+  "frameTime": "{position} / {duration} Sekunden",
+  "@deviceDeleted": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@frameTime": {
+    "placeholders": {
+      "position": {
+        "type": "int"
+      },
+      "duration": {
+        "type": "int"
+      }
+    }
+  },
+  "governanceReport": "Inhalt melden",
+  "governanceBlock": "Kreativen blockieren",
+  "governanceCopyright": "Urheberrechtsverletzung",
+  "governanceAbuse": "Belästigung oder Missbrauch",
+  "governanceSexual": "Sexuelle Inhalte",
+  "governanceViolence": "Gewalt",
+  "governanceSpam": "Spam",
+  "governanceOther": "Sonstiges",
+  "governanceDetails": "Details (optional)",
+  "governanceReportNote": "Deine Meldung wird an unser Prüfteam gesendet. Beschreibe bei Urheberrechtsfragen das Originalwerk und wo es zu finden ist. Gib keine sensiblen personenbezogenen Daten an.",
+  "governanceCancel": "Abbrechen",
+  "governanceSubmit": "Meldung senden",
+  "governanceReceived": "Meldung eingegangen. Referenz: {reference}",
+  "@governanceReceived": {
+    "placeholders": {
+      "reference": {
+        "type": "String"
+      }
+    }
+  },
+  "governanceBlockNote": "Blende die Inhalte dieses Kreativen im Katalog dieses Kontos aus. Unter „Meldungen und blockierte Kreative“ kannst du die Blockierung aufheben.",
+  "governanceBlocked": "Kreativer blockiert.",
+  "governanceAuthError": "Deine Sitzung ist abgelaufen. Melde dich erneut an.",
+  "governanceUnavailableError": "Dieser Inhalt ist nicht mehr verfügbar.",
+  "governanceInvalidError": "Prüfe deine Meldung und versuche es erneut.",
+  "governanceConflictError": "Diese Aktion ist nicht verfügbar. Aktualisiere und versuche es erneut.",
+  "governanceNetworkError": "Verbindung fehlgeschlagen. Versuche es erneut.",
+  "governanceTitle": "Meldungen und blockierte Kreative",
+  "governanceRefresh": "Aktualisieren",
+  "governanceReports": "Meine Meldungen",
+  "governanceBlocks": "Blockierte Kreative",
+  "governanceEmpty": "Noch keine Einträge.",
+  "governanceUnblock": "Blockierung aufheben",
+  "governanceStatusReceived": "Eingegangen",
+  "governanceStatusReview": "Wird geprüft",
+  "governanceStatusAction": "Maßnahmen ergriffen",
+  "governanceStatusNoViolation": "Kein Verstoß festgestellt",
+  "playlistFromCharacters": "Aus „Meine Charaktere“ auswählen",
+  "playlistChooseCharacter": "Videos deiner Charaktere auswählen",
+  "playlistFromPhone": "Vom Smartphone importieren",
+  "playlistFromDevice": "Vorhandene Gerätevideos hinzufügen",
+  "playlistPickFailed": "Video konnte nicht ausgewählt werden. Versuche es erneut.",
+  "playlistPendingSaveFailed": "Ausstehende Einträge konnten nicht gespeichert werden und gehen beim Verlassen möglicherweise verloren. Versuche es erneut.",
+  "playlistRetry": "Erneut versuchen",
+  "playlistReselectTitle": "Originalvideo erneut auswählen",
+  "playlistReselectNote": "Die Datei wurde verschoben oder ihr temporärer Cache wurde geleert. Der Eintrag in der Wiedergabeliste bleibt erhalten. Wähle die Quelldatei erneut aus und bestätige den Bildausschnitt.",
+  "playlistCancel": "Abbrechen",
+  "playlistReselect": "Erneut auswählen",
+  "playlistReadFailed": "Video konnte nicht gelesen werden. Versuche es erneut.",
+  "playlistOriginalTitle": "Originalvideo erforderlich",
+  "playlistOriginalNote": "Auf dem Gerät ist nur der Dateiname verfügbar. Wähle das Originalvideo auf deinem Smartphone, um den Bildausschnitt anzupassen. Beim Speichern wird nur der Bildausschnitt festgehalten; durch Konvertieren und Hochladen wird eine neue Gerätedatei hinzugefügt. Das Original bleibt erhalten.",
+  "playlistChooseOriginal": "Originalvideo auswählen",
+  "playlistOriginalFailed": "Originalvideo konnte nicht gelesen werden. Versuche es erneut.",
+  "playlistRemovePending": "Ausstehendes Video entfernen?",
+  "playlistRemovePendingNote": "Nur dieser Eintrag wird aus der Wiedergabeliste entfernt. Videos auf Smartphone und Gerät bleiben erhalten.",
+  "playlistRemove": "Entfernen",
+  "playlistReadLocalFailed": "Lokale Wiedergabeliste konnte nicht geladen werden. Versuche es erneut.",
+  "playlistSaveLocalFailed": "Lokale Wiedergabeliste konnte nicht gespeichert werden. Versuche es erneut.",
+  "playlistAddDevice": "Aus Gerätebibliothek hinzufügen",
+  "playlistAllAdded": "Alle Gerätevideos sind bereits in diesem Entwurf enthalten.",
+  "playlistConnectFirst": "Verbinde das Gerät vor der Wiedergabe.",
+  "playlistNotUploaded": "Dieses Video befindet sich nicht auf dem Gerät. Es muss vor der Wiedergabe konvertiert und hochgeladen werden.",
+  "playlistRemoveTitle": "Aus Wiedergabeliste entfernen?",
+  "playlistRemoveList": "Aus Wiedergabeliste entfernen",
+  "playlistUndo": "Rückgängig",
+  "playlistTitle": "Geräte-Wiedergabelisten",
+  "playlistReadDevice": "Gerätevideos lesen",
+  "playlistStartup": "Beim Start",
+  "playlistBluetooth": "Bluetooth",
+  "playlistStartupNote": "Das Gerät spielt diese Wiedergabeliste beim Start ab.",
+  "playlistBluetoothNote": "Das Gerät wechselt zu dieser Wiedergabeliste, wenn Bluetooth verbunden wird.",
+  "playlistLoop": "Wiederholungsmodus",
+  "playlistListLoop": "Wiedergabeliste wiederholen",
+  "playlistSingleLoop": "Einen Titel wiederholen",
+  "playlistOnce": "Einmal abspielen",
+  "playlistOrder": "Wiedergabereihenfolge",
+  "playlistAddVideo": "Video hinzufügen",
+  "playlistPendingLoadFailed": "Ausstehende Einträge konnten nicht geladen werden. Zum Wiederholen tippen.",
+  "playlistPending": "Ausstehende Videos · Noch nicht auf dem Gerät",
+  "playlistPendingNote": "Ausstehende Einträge verweisen auf die Originaldateien. Konvertierung ist noch nicht verfügbar. Lass die Quelldateien nach dem Anpassen des Bildausschnitts an ihrem Speicherort.",
+  "playlistConvertPending": "Konvertierung ausstehend · Nicht hochgeladen",
+  "playlistFrame": "Bildausschnitt anpassen",
+  "playlistRemovePendingAction": "Ausstehendes Video entfernen",
+  "playlistEmpty": "Diese Wiedergabeliste ist leer",
+  "playlistFirst": "Erstes Standardvideo",
+  "playlistUp": "Nach oben",
+  "playlistDown": "Nach unten",
+  "playlistRemoveDraft": "Aus Entwurf entfernen",
+  "playlistSaveDevice": "Auf Gerät speichern · Protokollunterstützung ausstehend",
+  "playlistRecovery": "Nach Trennen der Bluetooth-Verbindung",
+  "playlistRecoveryNote": "Das vorherige Gerätevideo fortsetzen, sofern unterstützt. Protokollbestätigung ausstehend.",
+  "playlistDisconnected": "Gerät nicht verbunden",
+  "playlistReadDeviceFailed": "Netzwerk verbunden · Gerät konnte nicht gelesen werden",
+  "playlistReadDeviceReady": "Netzwerk verbunden · Zum Lesen tippen",
+  "playlistReadNote": "Lies die Geräteinhalte, um die Steuerungsverbindung zu prüfen.",
+  "playlistConnectNote": "Verbinde dich mit dem Geräte-WLAN und lies dann seine Wiedergabeliste.",
+  "playlistRead": "Lesen",
+  "playlistSourceTitle": "{name} · Originalbildausschnitt",
+  "@playlistSourceTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "playlistSent": "An Gerät gesendet: {name}",
+  "@playlistSent": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "playlistRemoveNote": "„{name}“ nur aus dieser Wiedergabeliste entfernen. Dateien auf Smartphone und Gerät bleiben erhalten.",
+  "@playlistRemoveNote": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "playlistRemoved": "{name} aus der Wiedergabeliste entfernt",
+  "@playlistRemoved": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "playlistCount": "{count} Videos",
+  "@playlistCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "playlistDeviceCount": "Gerät antwortet · {count} Videos",
+  "@playlistDeviceCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "submissionDraftSaved": "Entwurf gespeichert. Lade deine Videos hoch und reiche sie anschließend zur Prüfung ein.",
+  "submissionTitle": "Meine Einreichungen",
+  "submissionRefresh": "Einreichungen aktualisieren",
+  "submissionCreate": "Einreichung erstellen",
+  "submissionEmpty": "Noch keine Einreichungen. Erstelle einen Entwurf, lade deine Videos hoch und reiche sie nach erfolgreicher Validierung ein.",
+  "submissionUpdated": "Einreichung aktualisiert.",
+  "submissionFree": "Kostenlos",
+  "submissionPaid": "Kostenpflichtig",
+  "submissionPrice": "Preis (USD)",
+  "submissionDecimals": "Bis zu zwei Nachkommastellen",
+  "submissionInvalidPrice": "Gib einen positiven USD-Preis mit bis zu zwei Nachkommastellen ein.",
+  "submissionReviewNote": "Alle Videos müssen vor der Veröffentlichung geprüft werden.",
+  "submissionCancel": "Abbrechen",
+  "submissionSavePrice": "Preis speichern",
+  "submissionSubmitted": "Zur Prüfung eingereicht. Während der Prüfung ist die Bearbeitung gesperrt.",
+  "submissionPartnerNote": "Partner können kostenlose oder kostenpflichtige Videos veröffentlichen. Alle Inhalte müssen geprüft werden.",
+  "submissionFreeNote": "Reiche kostenlose Videos oder Charaktersammlungen zur Prüfung ein.",
+  "submissionCharacterPackage": "Charaktersammlung",
+  "submissionSingleVideo": "Einzelvideo",
+  "submissionRejectedReason": "Änderungen angefordert",
+  "submissionReviewFeedback": "Rückmeldung zur Prüfung",
+  "submissionName": "Titel",
+  "submissionNameRequired": "Gib einen Titel ein.",
+  "submissionFormat": "Inhaltsformat",
+  "submissionSingle": "Einzelvideo",
+  "submissionPackage": "Videosammlung",
+  "submissionTags": "Inhaltsschlagwörter",
+  "submissionNoTags": "Inhaltsschlagwörter sind noch nicht verfügbar.",
+  "submissionStory": "Hintergrundgeschichte",
+  "submissionStoryRequired": "Gib eine Hintergrundgeschichte ein.",
+  "submissionVideos": "Videos",
+  "submissionAddVideo": "Video hinzufügen",
+  "submissionRemoveVideo": "Video entfernen",
+  "submissionVideoNameRequired": "Gib einen Videotitel ein.",
+  "submissionSaveDraft": "Entwurf speichern",
+  "submissionSaveInfo": "Angaben speichern",
+  "submissionCoverUploaded": "Titelbild hochgeladen",
+  "submissionCover": "Titelbild der Sammlung",
+  "submissionCoverTypes": "JPG oder PNG",
+  "submissionReplace": "Ersetzen",
+  "submissionUpload": "Hochladen",
+  "submissionSetPrice": "Preis festlegen",
+  "submissionMakeFree": "Kostenlos anbieten",
+  "submissionReplaceMp4": "MP4 ersetzen",
+  "submissionUploadMp4": "MP4 hochladen",
+  "submissionCheckVideo": "Video validieren",
+  "submissionResubmit": "Erneut zur Prüfung einreichen",
+  "submissionSubmit": "Zur Prüfung einreichen",
+  "submissionRequirements": "Validiere jedes Video vor dem Einreichen. Sammlungen benötigen außerdem ein Titelbild.",
+  "submissionInfo": "Inhaltsdetails",
+  "submissionNoStory": "Noch keine Hintergrundgeschichte.",
+  "submissionRetry": "Erneut versuchen",
+  "submissionPending": "Wird geprüft",
+  "submissionPublished": "Veröffentlicht",
+  "submissionApproved": "Freigegeben, Veröffentlichung ausstehend",
+  "submissionRejected": "Änderungen angefordert",
+  "submissionDraft": "Entwurf",
+  "submissionNoMedia": "Kein Video hochgeladen",
+  "submissionChecked": "Validierung bestanden",
+  "submissionProcessing": "Video wird validiert",
+  "submissionFailed": "Validierung fehlgeschlagen. Ersetze das Video und versuche es erneut.",
+  "submissionWaiting": "Hochgeladen, Validierung ausstehend",
+  "submissionApprovalError": "Dein Zugang als Kreativer ist nicht freigegeben oder gesperrt. Prüfe die Verifizierungsseite.",
+  "submissionDataError": "Die Einreichungsdaten konnten nicht gelesen werden. Aktualisiere und versuche es erneut.",
+  "submissionLoadError": "Einreichungen konnten nicht geladen werden. Versuche es später erneut.",
+  "submissionSessionError": "Deine Sitzung ist abgelaufen. Melde dich erneut an.",
+  "submissionAccessError": "Ein aktives, verifiziertes Konto für Kreative ist erforderlich.",
+  "submissionPaidError": "Kostenpflichtige Angebote sind für dieses Konto nicht verfügbar. Stelle das Video vor dem Einreichen auf kostenlos um.",
+  "submissionPriceError": "Gib einen gültigen USD-Preis mit bis zu zwei Nachkommastellen ein.",
+  "submissionConflictError": "Die Einreichung hat sich geändert. Aktualisiere und versuche es erneut.",
+  "submissionMediaError": "Lade zuerst jedes Video hoch und validiere es.",
+  "submissionCoverError": "Lade zuerst ein Titelbild für die Sammlung hoch.",
+  "submissionTagError": "Einige Schlagwörter sind nicht mehr verfügbar. Aktualisiere und wähle erneut aus.",
+  "submissionServerError": "Der Dienst ist nicht verfügbar. Versuche es später erneut.",
+  "submissionRequestError": "Die Aktion konnte nicht abgeschlossen werden. Prüfe deine Inhalte und versuche es erneut.",
+  "submissionAccountChanged": "Dein Konto hat sich geändert. Aktualisiere die Einreichungen.",
+  "submissionPreviewError": "Das Video wurde nicht hochgeladen oder die Vorschau ist nicht verfügbar.",
+  "submissionVideoPrice": "Videopreis · {name}",
+  "@submissionVideoPrice": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "submissionVideoName": "Titel von Video {index}",
+  "@submissionVideoName": {
+    "placeholders": {
+      "index": {
+        "type": "int"
+      }
+    }
+  },
+  "submissionLegacyTag": "{name} (veraltet)",
+  "@submissionLegacyTag": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "p20Refresh": "Geräte-Wiedergabeliste aktualisieren",
+  "p20Daily": "A Alltag",
+  "p20Bluetooth": "B Bluetooth",
+  "p20ConnectNote": "Verbinde das Gerät, um seine gespeicherte Wiedergabeliste zu sehen",
+  "p20ConnectWifi": "Verbinde dein Smartphone mit dem Geräte-WLAN und tippe dann auf „Gerät verbinden“.",
+  "p20Connecting": "Verbindung wird hergestellt…",
+  "p20Connect": "Gerät verbinden",
+  "p20Reading": "Geräte-Wiedergabeliste wird gelesen…",
+  "p20ReadFailed": "Geräte-Wiedergabeliste konnte nicht gelesen werden",
+  "p20Mode": "Wiedergabemodus (für A und B gemeinsam)",
+  "p20OrderNote": "Die Reihenfolge wird vom Gerät übernommen. Beim Verschieben eines Videos wird das Gerät aktualisiert und die bestätigte Reihenfolge erneut gelesen.",
+  "p20Empty": "Diese Geräte-Wiedergabeliste ist leer",
+  "p20Pending": "Videos zum Hochladen bereit",
+  "p20PendingNote": "Diese Videos warten auf deinem Smartphone und wurden noch nicht auf das Gerät hochgeladen.",
+  "p20Unconfirmed": "Das Gerät hat die Änderung nicht bestätigt. Sein aktueller Status wurde aktualisiert. Prüfe ihn und versuche es erneut.",
+  "p20UploadEntry": "Zum Hochladen aus einer Geräte-Wiedergabeliste öffnen",
+  "p20UploadAction": "Konvertieren und hochladen",
+  "p20FramingNote": "Beim Hochladen wird der aktuelle Bildausschnitt verwendet. Separates Speichern ist nicht erforderlich.",
+  "p20ConnectedCount": "Gerät verbunden · {count} Videos",
+  "@p20ConnectedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "p20UploadTitle": "Auf Gerät hochladen",
+  "p20UploadStart": "Vorbereiten und hochladen",
+  "p20UploadCancel": "Hochladen abbrechen",
+  "p20UploadClose": "Zurück zur Wiedergabeliste",
+  "p20UploadDisconnected": "Verbinde dich vor dem Hochladen über „Start“ mit dem Gerät.",
+  "p20UploadDaily": "Die Wiedergabeliste A Alltag unterstützt Videos mit und ohne Ton. Mit Ton: MP3 extrahieren, konvertieren und zuerst Audio, dann Video hochladen. Ohne Ton: nur Video konvertieren und hochladen.",
+  "p20UploadBluetooth": "Die Wiedergabeliste B Bluetooth unterstützt Videos mit und ohne Ton. Nur das Video wird konvertiert und hochgeladen; der Originalton wird ignoriert.",
+  "p20UploadSettings": "298 × 298 · 20 Bilder/s · Aktueller Bildausschnitt",
+  "p20UploadDownloadFirst": "Lade dieses Video zuerst unter „Meine Charaktere“ herunter, bevor du es auf das Gerät hochlädst.",
+  "p20UploadFailed": "Vorbereitung oder Hochladen fehlgeschlagen. Prüfe Video, Geräteverbindung und Speicherplatz und versuche es erneut.",
+  "p20UploadConfirmedProgress": "Vom Gerät bestätigt",
+  "p20UploadFailureStageLabel": "Fehlgeschlagen bei",
+  "p20UploadConfirmedLabel": "Bestätigt",
+  "p20UploadBytesLabel": "Byte",
+  "p20UploadBusy": "Das Gerät ist beschäftigt. Versuche es gleich erneut.",
+  "p20UploadWriteFailed": "Das Gerät konnte die Datei nicht schreiben. Prüfe seine Speicherkarte.",
+  "p20UploadAlreadyExists": "Die Datei ist bereits auf dem Gerät vorhanden.",
+  "p20UploadStorageFull": "Der Gerätespeicher oder die Wiedergabeliste ist voll.",
+  "p20UploadBatteryLow": "Der Geräteakku ist zu schwach. Lade ihn auf und versuche es erneut.",
+  "p20UploadRejected": "Das Gerät hat die Datei abgelehnt.",
+  "p20UploadConfirmationTimeout": "Zeitüberschreitung bei der Gerätebestätigung. Notiere den unten angezeigten Schritt und Fortschritt und verbinde dich erneut.",
+  "p20UploadProcessingTimeout": "Zeitüberschreitung bei der Medienverarbeitung. Versuche ein kürzeres Video.",
+  "p20UploadConnectionLost": "Die Geräteverbindung wurde unterbrochen. Verbinde dich erneut und versuche es noch einmal.",
+  "p20UploadLocalFileError": "Lokale Dateien können nicht gelesen oder geschrieben werden. Prüfe die Quelle und den freien Speicher auf deinem Smartphone.",
+  "p20UploadInvalidReply": "Die Geräteantwort oder Fortschrittsfolge entsprach nicht der Erwartung. Prüfe das Firmware-Protokoll.",
+  "p20UploadPartial": "Audio wurde hochgeladen, das Video jedoch nicht vollständig. Es wurden keine Gerätedateien gelöscht und keine automatischen Neuversuche gestartet.",
+  "p20UploadRefreshFailed": "Das Gerät hat den Upload bestätigt, aber die Wiedergabeliste konnte nicht aktualisiert werden. Verbinde dich erneut und aktualisiere sie; lade nicht erneut hoch.",
+  "p20UploadCleanupPending": "Temporäre Dateien werden noch verwendet und wurden beibehalten.",
+  "p20UploadWaitingAcceptance": "Warten auf Annahme des Uploads",
+  "p20UploadTransferring": "Datei wird übertragen",
+  "p20UploadWaitingCompletion": "Warten auf Abschlussbestätigung",
+  "p20UploadConfirmedCompletion": "Gerät hat den Abschluss bestätigt",
+  "p20UploadReady": "Bereit",
+  "p20UploadExtractingAudio": "Audio wird geprüft und, falls vorhanden, extrahiert",
+  "p20UploadConvertingVideo": "Video wird konvertiert",
+  "p20UploadUploadingAudio": "Audio wird hochgeladen",
+  "p20UploadUploadingVideo": "Video wird hochgeladen",
+  "p20UploadRefreshing": "Wiedergabeliste wird aktualisiert",
+  "p20UploadComplete": "Hochladen abgeschlossen",
+  "p20UploadIncomplete": "Hochladen unvollständig",
+  "p20UploadCancelled": "Abgebrochen",
+  "p20SingleOnce": "Einmal abspielen",
+  "p20UploadFailureStage": "Fehlgeschlagen bei: {stage}",
+  "@p20UploadFailureStage": {
+    "placeholders": {
+      "stage": {
+        "type": "String"
+      }
+    }
+  },
+  "p20UploadTransferDetails": "{phase} · {acknowledged} / {total} Byte bestätigt",
+  "@p20UploadTransferDetails": {
+    "placeholders": {
+      "phase": {
+        "type": "String"
+      },
+      "acknowledged": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "creatorMediaOpenFailed": "Dieses Video konnte nicht geöffnet werden. Aktualisiere deine Einreichungen und versuche es erneut.",
+  "creatorMediaPreviewLabel": "Videovorschau: {title}",
+  "@creatorMediaPreviewLabel": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "creatorMediaThumbnailPending": "Vorschaubild noch nicht bereit. Für eine Vorschau tippen.",
+  "creatorMediaPreview": "Videovorschau",
+  "p20SingleList": "Gerätevideos",
+  "p20SingleValidationPending": "Der Video-Upload für dieses Gerät wartet auf die Hardwarevalidierung.",
+  "p20SingleTransferComplete": "Übertragung bestätigt. Die Wiedergabe wartet auf die Hardwarevalidierung.",
+  "p20DeviceType": "Gerätetyp",
+  "p20DeviceAuto": "Automatisch erkennen",
+  "p20DeviceSingle": "P20 (eine Liste, ohne Ton)",
+  "p20DeviceDual": "P20 PORTAL (zwei Listen, Bluetooth)",
+  "supportContact": "Support kontaktieren",
+  "supportInstructions": "Schreibe uns eine E-Mail mit den Schritten zum Reproduzieren des Problems, deiner App-Version und deinem Gerätemodell. Du kannst passende Screenshots anhängen.",
+  "supportWriteEmail": "E-Mail schreiben",
+  "supportCopyEmail": "E-Mail-Adresse kopieren",
+  "supportEmailCopied": "Support-E-Mail-Adresse kopiert",
+  "supportCopyFailed": "Kopieren fehlgeschlagen. Wähle die E-Mail-Adresse aus, um sie manuell zu kopieren.",
+  "supportNoMailApp": "Keine E-Mail-App konnte geöffnet werden. Kopiere die Adresse und kontaktiere uns über deinen E-Mail-Dienst."
+}

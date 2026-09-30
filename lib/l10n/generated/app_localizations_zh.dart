@@ -9,15 +9,6 @@ class AppLocalizationsZh extends AppLocalizations {
   AppLocalizationsZh([String locale = 'zh']) : super(locale);
 
   @override
-  String get copyDeviceLog => '复制设备通信日志';
-
-  @override
-  String get deviceLogCopied => '日志已复制，包含协议数据，不包含音视频正文。';
-
-  @override
-  String get deviceDeleteAudioNote => '配套音频也会一起删除。';
-
-  @override
   String get accountTitle => '账号管理';
 
   @override
@@ -1494,6 +1485,15 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String get copyDeviceLog => '复制设备通信日志';
+
+  @override
+  String get deviceLogCopied => '日志已复制，包含协议数据，不包含音视频正文。';
+
+  @override
+  String get deviceDeleteAudioNote => '配套音频也会一起删除。';
+
+  @override
   String get governanceReport => '举报内容';
 
   @override
@@ -2043,6 +2043,27 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String get supportContact => '联系客服';
+
+  @override
+  String get supportInstructions => '如遇到问题，请发送邮件说明操作步骤、App 版本和设备型号，可自行附上相关截图。';
+
+  @override
+  String get supportWriteEmail => '写邮件';
+
+  @override
+  String get supportCopyEmail => '复制邮箱';
+
+  @override
+  String get supportEmailCopied => '客服邮箱已复制';
+
+  @override
+  String get supportCopyFailed => '复制失败，请长按邮箱地址手动复制。';
+
+  @override
+  String get supportNoMailApp => '无法打开邮件应用。请复制邮箱地址，在你使用的邮箱中联系我们。';
+
+  @override
   String get p20Refresh => '刷新设备列表';
 
   @override
@@ -2272,25 +2293,4 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get p20DeviceDual => 'P20 PORTAL（双列表 · 蓝牙）';
-
-  @override
-  String get supportContact => '联系客服';
-
-  @override
-  String get supportInstructions => '如遇到问题，请发送邮件说明操作步骤、App 版本和设备型号，可自行附上相关截图。';
-
-  @override
-  String get supportWriteEmail => '写邮件';
-
-  @override
-  String get supportCopyEmail => '复制邮箱';
-
-  @override
-  String get supportEmailCopied => '客服邮箱已复制';
-
-  @override
-  String get supportCopyFailed => '复制失败，请长按邮箱地址手动复制。';
-
-  @override
-  String get supportNoMailApp => '无法打开邮件应用。请复制邮箱地址，在你使用的邮箱中联系我们。';
 }
