@@ -15,6 +15,7 @@ void main() {
   var owned = false, corrupt = false;
   var transfers = 0;
   final deniedClips = <String>{};
+  final failedClips = <String>{};
   final token = List.filled(43, 'a').join();
   final bytes = utf8.encode('verified local video');
   const package = RemoteCatalogPackage(
@@ -33,6 +34,7 @@ void main() {
     corrupt = false;
     transfers = 0;
     deniedClips.clear();
+    failedClips.clear();
     directory = await Directory.systemTemp.createTemp('owned-download-test-');
     server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
     origin = Uri.parse('http://127.0.0.1:${server.port}');
@@ -40,6 +42,9 @@ void main() {
     server.listen((req) async {
       if (req.headers.value('authorization') != 'Bearer $token') {
         req.response.statusCode = 401;
+      } else if (req.uri.path.endsWith('/access') &&
+          failedClips.contains(req.uri.pathSegments[5])) {
+        req.response.statusCode = 503;
       } else if (req.uri.path.endsWith('/access')) {
         final permitted =
             owned && !deniedClips.contains(req.uri.pathSegments[5]);
@@ -77,6 +82,38 @@ void main() {
       identity: () async => (accountId: 'account', token: token),
       storeForAccount: (_, __) async => store);
 
+  test('failed access request does not block later clips and refresh recovers',
+      () async {
+    owned = true;
+    failedClips.add('one');
+    final task = controller();
+    addTearDown(task.dispose);
+    await task.prepare();
+    expect(task.allowed, {'two'});
+    expect(task.message, '暂时无法确认下载权限，请检查网络和账号后重试');
+    failedClips.clear();
+    await task.prepare();
+    expect(task.allowed, {'one', 'two'});
+    expect(task.message, isEmpty);
+  });
+  test('failed identity refresh clears previously allowed clips', () async {
+    owned = true;
+    var failIdentity = false;
+    final task = OwnedPackageDownloadController(
+        package: package,
+        baseUri: origin,
+        identity: () async {
+          if (failIdentity) throw const SocketException('offline');
+          return (accountId: 'account', token: token);
+        },
+        storeForAccount: (_, __) async => store);
+    addTearDown(task.dispose);
+    await task.prepare();
+    expect(task.allowed, {'one', 'two'});
+    failIdentity = true;
+    await task.prepare();
+    expect(task.allowed, isEmpty);
+  });
   test('unowned content never downloads or enters My Characters', () async {
     final task = controller();
     addTearDown(task.dispose);

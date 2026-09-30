@@ -91,9 +91,46 @@ void main() {
             (c) => c.$1 == P20Command.setAngle && c.$2.join(',') == '0,90'),
         isTrue);
   });
+  testWidgets('angle fine tuning and reset send device commands',
+      (tester) async {
+    tester.view.physicalSize = const Size(1000, 1800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final client = ConnectedClient();
+    addTearDown(client.dispose);
+    await tester.pumpWidget(app(ControlPage(client: client)));
+    await tester.pumpAndSettle();
+    expect(
+        tester
+            .widget<OutlinedButton>(find.widgetWithText(OutlinedButton, '−1°'))
+            .onPressed,
+        isNull);
+    await tester.tap(find.text('+1°'));
+    await tester.pumpAndSettle();
+    expect(
+        client.calls
+            .any((c) => c.$1 == P20Command.setAngle && c.$2.join(',') == '0,1'),
+        isTrue);
+    await tester.tap(find.text('Reset to 0°'));
+    await tester.pumpAndSettle();
+    expect(
+        client.calls.where((c) => c.$1 == P20Command.setAngle).last.$2, [0, 0]);
+    expect(tester.takeException(), isNull);
+  });
   testWidgets('offline console disables both adjustments', (tester) async {
     await tester.pumpWidget(app(const ControlPage()));
     await tester.pumpAndSettle();
+    expect(
+        tester
+            .widget<TextButton>(find.widgetWithText(TextButton, 'Reset to 0°'))
+            .onPressed,
+        isNull);
+    expect(
+        tester
+            .widget<OutlinedButton>(find.widgetWithText(OutlinedButton, '+1°'))
+            .onPressed,
+        isNull);
     for (final slider in tester.widgetList<Slider>(find.byType(Slider))) {
       expect(slider.onChanged, isNull);
     }

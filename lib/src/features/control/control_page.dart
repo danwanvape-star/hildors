@@ -208,18 +208,46 @@ class _ControlPageState extends State<ControlPage> with WidgetsBindingObserver {
               max: 360,
               suffix: '°',
               onChanged: (value) => setState(() => _angle = value),
-              onChangeEnd: (value) => unawaited(_runCommand(() async {
-                if (_client.modernProtocol) {
-                  await _session.setAngle(value.round());
-                } else {
-                  _client.setAngle(value.round());
-                }
-              })),
+              onChangeEnd: (value) => _setAngle(value.round()),
+              footer: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Wrap(spacing: 8, runSpacing: 8, children: [
+                      OutlinedButton(
+                          onPressed: _connected && !_commandBusy && _angle > 0
+                              ? () => _setAngle(_angle.round() - 1)
+                              : null,
+                          child: const Text('−1°')),
+                      OutlinedButton(
+                          onPressed: _connected && !_commandBusy && _angle < 360
+                              ? () => _setAngle(_angle.round() + 1)
+                              : null,
+                          child: const Text('+1°')),
+                      TextButton(
+                          onPressed: _connected && !_commandBusy
+                              ? () => _setAngle(0)
+                              : null,
+                          child: Text(context.l10n.angleResetZero)),
+                    ]),
+                    Text(context.l10n.angleZeroHint,
+                        style: Theme.of(context).textTheme.bodySmall),
+                  ]),
             ),
           ],
         ),
       ),
     );
+  }
+
+  void _setAngle(int value) {
+    if (!_connected || _commandBusy) return;
+    unawaited(_runCommand(() async {
+      if (_client.modernProtocol) {
+        await _session.setAngle(value);
+      } else {
+        _client.setAngle(value);
+      }
+    }));
   }
 
   String get _connectionLabel => switch (_connection) {
@@ -237,6 +265,7 @@ class _ControlPageState extends State<ControlPage> with WidgetsBindingObserver {
     required String suffix,
     required ValueChanged<double> onChanged,
     required ValueChanged<double> onChangeEnd,
+    Widget? footer,
   }) =>
       Card(
         child: Padding(
@@ -258,6 +287,7 @@ class _ControlPageState extends State<ControlPage> with WidgetsBindingObserver {
                 onChanged: _connected && !_commandBusy ? onChanged : null,
                 onChangeEnd: onChangeEnd,
               ),
+              if (footer != null) footer,
             ],
           ),
         ),

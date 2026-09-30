@@ -34,6 +34,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get accountCancel => '取消';
 
   @override
+  String get angleResetZero => '复位到 0°';
+
+  @override
+  String get angleZeroHint => '0° 为设备基准角度，实际正面位置请根据画面微调。';
+
+  @override
   String get appVersionLabel => '版本号';
 
   @override
@@ -1497,6 +1503,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get deviceDeleteAudioNote => '配套音频也会一起删除。';
 
   @override
+  String get deviceWifiKeepConnected =>
+      '上传期间请保持连接设备 Wi-Fi。如果系统提示切换至更好的网络，请选择“不允许”或“保持连接”。';
+
+  @override
+  String get deviceEncodingProgress => '设备视频编码进度';
+
+  @override
   String get governanceReport => '举报内容';
 
   @override
@@ -2299,4 +2312,10 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get p20DeviceDual => 'P20 PORTAL（双列表 · 蓝牙）';
+
+  @override
+  String get uploadDisplayName => '视频名称';
+
+  @override
+  String get uploadDisplayNameNote => '支持中文，最多 60 个字符。名称仅保存在本手机，设备使用短文件名。';
 }

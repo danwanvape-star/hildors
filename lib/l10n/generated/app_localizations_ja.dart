@@ -35,6 +35,12 @@ class AppLocalizationsJa extends AppLocalizations {
   String get accountCancel => 'キャンセル';
 
   @override
+  String get angleResetZero => '0°に戻す';
+
+  @override
+  String get angleZeroHint => '0°はデバイスの基準角度です。映像が正面を向くように微調整してください。';
+
+  @override
   String get appVersionLabel => 'アプリのバージョン';
 
   @override
@@ -1512,6 +1518,13 @@ class AppLocalizationsJa extends AppLocalizations {
   String get deviceDeleteAudioNote => '対応する音声ファイルも削除されます。';
 
   @override
+  String get deviceWifiKeepConnected =>
+      'アップロード中はデバイスの Wi-Fi 接続を維持してください。別のネットワークへの切り替えを求められたら、「許可しない」または「接続を維持」を選択してください。';
+
+  @override
+  String get deviceEncodingProgress => 'デバイス用動画のエンコード進捗';
+
+  @override
   String get governanceReport => 'コンテンツを報告';
 
   @override
@@ -2336,4 +2349,11 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get p20DeviceDual => 'P20 PORTAL（2つのリスト・Bluetooth）';
+
+  @override
+  String get uploadDisplayName => '動画名';
+
+  @override
+  String get uploadDisplayNameNote =>
+      '60文字まで入力できます。名前はこのスマートフォンにのみ保存され、デバイスでは短いファイル名を使用します。';
 }

@@ -8,6 +8,8 @@
   "accountGuestWarning": "This guest account has no verified email. Signing out may prevent you from recovering its cloud content. Verify an email before signing out.",
   "accountSignedOut": "Signed out on all devices.",
   "accountCancel": "Cancel",
+  "angleResetZero": "Reset to 0°",
+  "angleZeroHint": "0° is the device reference angle. Adjust it to align the image with the front.",
   "appVersionLabel": "App version",
   "applicationTitle": "Creator verification",
   "applicationRefresh": "Refresh review status",
@@ -729,6 +731,8 @@
   "copyDeviceLog": "Copy device communication log",
   "deviceLogCopied": "Log copied. It contains protocol metadata; media payloads are omitted.",
   "deviceDeleteAudioNote": "The paired audio file will also be deleted.",
+  "deviceWifiKeepConnected": "Stay connected to the device Wi-Fi during upload. If your phone asks to switch to a better network, choose “Do not allow” or “Stay connected”.",
+  "deviceEncodingProgress": "Device video encoding progress",
   "governanceReport": "Report content",
   "governanceBlock": "Block creator",
   "governanceCopyright": "Copyright infringement",
@@ -1090,5 +1094,7 @@
   "p20DeviceType": "Device type",
   "p20DeviceAuto": "Detect automatically",
   "p20DeviceSingle": "P20 (single list, silent)",
-  "p20DeviceDual": "P20 PORTAL (dual lists, Bluetooth)"
+  "p20DeviceDual": "P20 PORTAL (dual lists, Bluetooth)",
+  "uploadDisplayName": "Video name",
+  "uploadDisplayNameNote": "Up to 60 characters. This name is saved only on this phone; the device uses a short filename."
 }

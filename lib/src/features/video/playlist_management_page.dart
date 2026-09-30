@@ -1,3 +1,5 @@
+import 'upload_name_dialog.dart';
+import 'upload_display_names.dart';
 import '../../device/p20_device_profile.dart';
 import '../../localization/localization.dart';
 import 'dart:io';
@@ -41,6 +43,15 @@ class PlaylistManagementPage extends StatefulWidget {
 class _PlaylistManagementPageState extends State<PlaylistManagementPage> {
   late final P20LivePlaylist _live;
   DevicePlaylistKind get _kind => DevicePlaylistKind.values[_live.listId];
+  Map<String, String> _displayNames = {};
+  Future<void> _loadDisplayNames() async {
+    try {
+      final names = await UploadDisplayNames.load();
+      if (mounted) setState(() => _displayNames = names);
+    } catch (_) {/* Original device filenames remain usable. */}
+  }
+
+  String _label(String name) => _displayNames[name] ?? name;
   bool _connecting = false;
   String? _connectionError;
   bool _pendingReady = false;
@@ -63,7 +74,8 @@ class _PlaylistManagementPageState extends State<PlaylistManagementPage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                     Text(context.l10n.deviceDeleteIntro),
-                    Text(name),
+                    Text(_label(name)),
+                    if (_label(name) != name) Text(name),
                     if (widget.client.profile.supportsAudio)
                       Text(context.l10n.deviceDeleteAudioNote),
                     Text(context.l10n.deviceDeleteNote),
@@ -213,11 +225,20 @@ class _PlaylistManagementPageState extends State<PlaylistManagementPage> {
               source: video.source,
               asset: video.asset,
               onUpload: (framingContext, framing) async {
+                final uploadGeneration = widget.client.generation;
+                final displayName =
+                    await chooseUploadDisplayName(framingContext, video.title);
+                if (displayName == null ||
+                    !framingContext.mounted ||
+                    uploadGeneration != widget.client.generation) {
+                  return;
+                }
                 var returnedToList = false;
                 final name = await Navigator.of(framingContext).push<String>(
                     MaterialPageRoute(
                         builder: (_) => P20UploadPage(
                             autoStart: true,
+                            displayName: displayName,
                             onReturnToList: (name) {
                               returnedToList = true;
                               final navigator = Navigator.of(framingContext);
@@ -234,6 +255,8 @@ class _PlaylistManagementPageState extends State<PlaylistManagementPage> {
                                 ? P20MediaList.daily
                                 : P20MediaList.bluetooth)));
                 if (name == null || !mounted) return;
+                await _loadDisplayNames();
+                if (!mounted) return;
                 setState(() {
                   _pending[kind]!.remove(key);
                 });
@@ -278,6 +301,7 @@ class _PlaylistManagementPageState extends State<PlaylistManagementPage> {
         listId: widget.initialKind.index);
     _live.addListener(_changed);
     _restorePending();
+    _loadDisplayNames();
   }
 
   void _changed() {
@@ -445,7 +469,8 @@ class _PlaylistManagementPageState extends State<PlaylistManagementPage> {
                                       child: Tooltip(
                                           message: _live.videos[index].fileName,
                                           child: Text(
-                                              _live.videos[index].fileName,
+                                              _label(
+                                                  _live.videos[index].fileName),
                                               maxLines: 1,
                                               overflow:
                                                   TextOverflow.ellipsis))),

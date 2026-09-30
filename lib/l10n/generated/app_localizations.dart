@@ -152,6 +152,18 @@ abstract class AppLocalizations {
   /// **'Cancel'**
   String get accountCancel;
 
+  /// No description provided for @angleResetZero.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset to 0°'**
+  String get angleResetZero;
+
+  /// No description provided for @angleZeroHint.
+  ///
+  /// In en, this message translates to:
+  /// **'0° is the device reference angle. Adjust it to align the image with the front.'**
+  String get angleZeroHint;
+
   /// No description provided for @appVersionLabel.
   ///
   /// In en, this message translates to:
@@ -2924,6 +2936,18 @@ abstract class AppLocalizations {
   /// **'The paired audio file will also be deleted.'**
   String get deviceDeleteAudioNote;
 
+  /// No description provided for @deviceWifiKeepConnected.
+  ///
+  /// In en, this message translates to:
+  /// **'Stay connected to the device Wi-Fi during upload. If your phone asks to switch to a better network, choose “Do not allow” or “Stay connected”.'**
+  String get deviceWifiKeepConnected;
+
+  /// No description provided for @deviceEncodingProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'Device video encoding progress'**
+  String get deviceEncodingProgress;
+
   /// No description provided for @governanceReport.
   ///
   /// In en, this message translates to:
@@ -4471,6 +4495,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'P20 PORTAL (dual lists, Bluetooth)'**
   String get p20DeviceDual;
+
+  /// No description provided for @uploadDisplayName.
+  ///
+  /// In en, this message translates to:
+  /// **'Video name'**
+  String get uploadDisplayName;
+
+  /// No description provided for @uploadDisplayNameNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Up to 60 characters. This name is saved only on this phone; the device uses a short filename.'**
+  String get uploadDisplayNameNote;
 }
 
 class _AppLocalizationsDelegate

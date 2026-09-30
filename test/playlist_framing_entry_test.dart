@@ -176,7 +176,14 @@ void main() {
     await tester.scrollUntilVisible(upload, 200);
     await tester.tap(upload);
     await pumpUi(tester);
+    expect(find.byType(AlertDialog), findsOneWidget);
+    await tester.enterText(find.byType(TextField), '测试名称');
+    await tester.tap(find.descendant(
+        of: find.byType(AlertDialog), matching: find.byType(FilledButton)));
+    await pumpUi(tester);
     expect(find.byType(P20UploadPage), findsOneWidget);
+    expect(tester.widget<P20UploadPage>(find.byType(P20UploadPage)).displayName,
+        '测试名称');
     final close = find.text('返回列表');
     await tester.ensureVisible(close);
     await tester.tap(close);
@@ -299,8 +306,7 @@ void main() {
         pending!.keys, contains('${package.id}/${package.videos.single.id}'));
   });
 
-  testWidgets('device-only video no longer exposes framing',
-      (tester) async {
+  testWidgets('device-only video no longer exposes framing', (tester) async {
     tester.view.physicalSize = const Size(320, 1200);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);

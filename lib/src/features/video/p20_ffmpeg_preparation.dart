@@ -34,11 +34,12 @@ class P20TranscodeSettings {
 /// Owns only a unique temporary directory. Caller must dispose after uploading.
 class P20FfmpegPreparation implements P20MediaPreparation {
   P20FfmpegPreparation(this.engine, this.tempRoot,
-      {P20TranscodeSettings? settings})
+      {P20TranscodeSettings? settings, this.onEncodingProgress})
       : settings = settings ?? P20TranscodeSettings();
   final P20MediaEngine engine;
   final Directory tempRoot;
   final P20TranscodeSettings settings;
+  final void Function(int frames, int total)? onEncodingProgress;
   static const maximumRawBytes = 512 * 1024 * 1024;
   Directory? _work;
   Completer<void>? _busy;
@@ -147,7 +148,7 @@ class P20FfmpegPreparation implements P20MediaPreparation {
                 'Video exceeds local preparation limit');
           }
           final paths = [raw.path, output.path, '${work.path}/cancel'];
-          await _runIsolated(paths);
+          await _runIsolated(paths, onEncodingProgress);
           return output;
         } finally {
           if (engine.isIdle && await raw.exists()) await raw.delete();
@@ -155,11 +156,29 @@ class P20FfmpegPreparation implements P20MediaPreparation {
       });
 
   // A static boundary avoids capturing this object's pending Completer.
-  static Future<void> _runIsolated(List<String> paths) =>
-      Isolate.run(() => _encodeDeviceFile(paths));
+  static Future<void> _runIsolated(
+      List<String> paths, void Function(int, int)? onProgress) async {
+    final progress = ReceivePort();
+    final subscription = progress.listen((message) {
+      final counts = message as List<int>;
+      onProgress?.call(counts[0], counts[1]);
+    });
+    final port = progress.sendPort;
+    try {
+      await _spawnEncoder(paths, port);
+    } finally {
+      await subscription.cancel();
+      progress.close();
+    }
+  }
 
-  static Future<void> _encodeDeviceFile(List<String> paths) =>
+  // Keep UI callbacks outside the closure context sent to the worker.
+  static Future<void> _spawnEncoder(List<String> paths, SendPort port) =>
+      Isolate.run(() => _encodeDeviceFile(paths, port));
+
+  static Future<void> _encodeDeviceFile(List<String> paths, SendPort port) =>
       P20BinEncoder().encode(File(paths[0]), File(paths[1]),
+          onProgress: (frames, total) => port.send(<int>[frames, total]),
           isCancelled: () => File(paths[2]).existsSync());
 
   @override

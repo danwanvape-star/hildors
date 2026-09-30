@@ -1,5 +1,7 @@
 {
   "@@locale": "es",
+  "angleResetZero": "Restablecer a 0°",
+  "angleZeroHint": "0° es el ángulo de referencia del dispositivo. Ajústelo para orientar la imagen hacia el frente.",
   "appVersionLabel": "Versión de la aplicación",
   "copyDeviceLog": "Copiar registro de comunicación del dispositivo",
   "deviceLogCopied": "Registro copiado. Contiene metadatos del protocolo; se omiten los datos multimedia.",
@@ -1090,5 +1092,9 @@
   "supportEmailCopied": "Dirección de correo de soporte copiada",
   "supportCopyFailed": "No se pudo copiar. Selecciona la dirección de correo para copiarla manualmente.",
   "supportNoMailApp": "No se pudo abrir una aplicación de correo. Copia la dirección y contáctanos desde tu servicio de correo.",
-  "playlistMoveToTop": "Mover al principio"
+  "deviceWifiKeepConnected": "Mantén la conexión al Wi-Fi del dispositivo durante la carga. Si el teléfono propone cambiar de red, elige «No permitir» o «Mantener conexión».",
+  "deviceEncodingProgress": "Progreso de codificación del vídeo para el dispositivo",
+  "playlistMoveToTop": "Mover al principio",
+  "uploadDisplayName": "Nombre del vídeo",
+  "uploadDisplayNameNote": "Hasta 60 caracteres. El nombre solo se guarda en este teléfono; el dispositivo usa un nombre de archivo corto."
 }

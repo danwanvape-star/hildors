@@ -1,3 +1,4 @@
+import 'upload_name_dialog.dart';
 import 'playlist_management_page.dart';
 import 'device_playlist_draft.dart';
 import '../../device/device_access.dart';
@@ -25,7 +26,7 @@ class CharacterPackagePage extends StatefulWidget {
 class _CharacterPackagePageState extends State<CharacterPackagePage> {
   final Set<String> selected = {};
   bool _removing = false;
-  Future<void> _upload(String source, bool asset) async {
+  Future<void> _upload(String source, bool asset, String title) async {
     final device = DeviceAccess.maybeOf(context);
     if (device == null || !device.client.isConnected) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -64,10 +65,18 @@ class _CharacterPackagePageState extends State<CharacterPackagePage> {
                     content: Text(frameContext.l10n.coreDeviceDisconnected)));
                 return;
               }
+              final displayName =
+                  await chooseUploadDisplayName(frameContext, title);
+              if (displayName == null ||
+                  !frameContext.mounted ||
+                  generation != device.client.generation) {
+                return;
+              }
               final name = await Navigator.of(frameContext)
                   .push<String>(MaterialPageRoute(
                       builder: (_) => P20UploadPage(
                           autoStart: true,
+                          displayName: displayName,
                           onReturnToList: (_) {
                             Navigator.of(frameContext).pushAndRemoveUntil(
                                 MaterialPageRoute<void>(
@@ -178,7 +187,8 @@ class _CharacterPackagePageState extends State<CharacterPackagePage> {
                   : IconButton(
                       tooltip: context.l10n.p20UploadAction,
                       icon: Icon(Icons.upload),
-                      onPressed: () => _upload(video.source, video.asset)),
+                      onPressed: () =>
+                          _upload(video.source, video.asset, video.title)),
               onTap: () {
                 if (widget.picking) {
                   setState(() {
@@ -187,7 +197,7 @@ class _CharacterPackagePageState extends State<CharacterPackagePage> {
                         : selected.add(video.id);
                   });
                 } else {
-                  _upload(video.source, video.asset);
+                  _upload(video.source, video.asset, video.title);
                 }
               },
             )),

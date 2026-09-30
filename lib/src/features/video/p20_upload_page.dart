@@ -1,3 +1,4 @@
+import 'upload_display_names.dart';
 import 'dart:async';
 import '../../device/p20_device_profile.dart';
 import '../../localization/localization.dart';
@@ -58,12 +59,14 @@ class P20UploadPage extends StatefulWidget {
       required this.list,
       required this.framing,
       this.engine,
+      this.displayName,
       this.autoStart = false,
       this.onReturnToList,
       super.key});
   final P20DeviceClient client;
   final P20CommandSession session;
   final String source;
+  final String? displayName;
   final bool asset;
   final P20MediaList list;
   final FanFraming framing;
@@ -139,11 +142,26 @@ class _P20UploadPageState extends State<P20UploadPage> {
       }
       if (_cancelled) throw const P20UploadCancelled();
       preparation = P20FfmpegPreparation(engine, temp,
+          onEncodingProgress: (frames, total) {
+        if (!mounted ||
+            _cancelled ||
+            _stage != P20MediaStage.transcodingVideo) {
+          return;
+        }
+        final value = frames / total;
+        if (_progress == null ||
+            (value * 100).floor() != (_progress! * 100).floor()) {
+          setState(() => _progress = value);
+        }
+      },
           settings: P20TranscodeSettings(
               scale: widget.framing.scale,
               x: widget.framing.x,
               y: widget.framing.y));
-      final name = createP20UploadBaseName();
+      final name = widget.displayName == null
+          ? createP20UploadBaseName()
+          : await UploadDisplayNames.reserve(widget.displayName!);
+      if (_cancelled) throw const P20UploadCancelled();
       final flow = P20MediaUploadFlow(preparation, destination,
           profile: _attemptProfile!, onStage: (stage) {
         if (mounted) {
@@ -225,6 +243,10 @@ class _P20UploadPageState extends State<P20UploadPage> {
                         onPressed: () => Navigator.pop(context, _uploadedName))
                     : null),
             body: ListView(padding: const EdgeInsets.all(24), children: [
+              if (!_attempted || _busy) ...[
+                Text(context.l10n.deviceWifiKeepConnected),
+                const SizedBox(height: 16),
+              ],
               Text(widget.client.profile.kind == P20DeviceKind.single
                   ? context.l10n.p20SingleList
                   : widget.list == P20MediaList.daily
@@ -243,7 +265,9 @@ class _P20UploadPageState extends State<P20UploadPage> {
               ],
               if (_progress != null) ...[
                 Text('${(_progress! * 100).floor()}%'),
-                Text(text.confirmedProgress),
+                Text(_lastActiveStage == P20MediaStage.transcodingVideo
+                    ? context.l10n.deviceEncodingProgress
+                    : text.confirmedProgress),
               ],
               if (!_attempted && !widget.client.isConnected)
                 Text(text.disconnected),

@@ -48,7 +48,9 @@ void main() {
     final source =
         await File('${root.path}/original source.mp4').writeAsBytes([42]);
     final engine = FakeEngine();
+    final progress = <(int, int)>[];
     final prep = P20FfmpegPreparation(engine, root,
+        onEncodingProgress: (frames, total) => progress.add((frames, total)),
         settings: P20TranscodeSettings(scale: 1.2, x: 0.1));
     try {
       final audio = await prep.extractAudio(source);
@@ -72,6 +74,7 @@ void main() {
       expect(engine.commands[2].join(' '), contains('fps=20'));
       expect(engine.commands[2].join(' '), contains('crop=298:298'));
       expect(await video.length(), greaterThan(0));
+      expect(progress, [(1, 1)]);
       await prep.dispose();
       expect(await audio.exists(), isFalse);
       expect(await video.exists(), isFalse);

@@ -60,27 +60,40 @@ class OwnedPackageDownloadController extends ChangeNotifier {
   Future<void> prepare() async {
     if (_disposed || busy || preparing) return;
     preparing = true;
+    allowed.clear();
+    completed.clear();
     message = '';
     _changed();
     try {
       final current = await _bind();
-      allowed.clear();
-      completed.clear();
       final library = await _store!.load();
       for (final item in library.where((p) => p.id == package.id)) {
         completed.addAll(item.videos.map((v) => v.id));
       }
+      var accessFailed = false;
       for (final clip in package.clips) {
-        final access = await DownloadAccessRepository(baseUri)
-            .check(package.id, clip.id, current.token);
         if (_disposed) return;
         if (clip.pricing?.isPaid == true) {
           message = '暂未开放购买';
-        } else if (access == DownloadAccess.allowed) {
-          allowed.add(clip.id);
-        } else {
-          message = _denied(access);
+          continue;
         }
+        try {
+          final access = await DownloadAccessRepository(baseUri)
+              .check(package.id, clip.id, current.token);
+          if (_disposed) return;
+          if (access == DownloadAccess.allowed) {
+            allowed.add(clip.id);
+          } else {
+            message = _denied(access);
+          }
+        } catch (_) {
+          // A network failure for one clip is not a denial for other clips.
+          // Only explicit server approval adds a clip to the allowed set.
+          accessFailed = true;
+        }
+      }
+      if (accessFailed) {
+        message = '暂时无法确认下载权限，请检查网络和账号后重试';
       }
     } catch (_) {
       message = '暂时无法确认下载权限，请检查网络和账号后重试';

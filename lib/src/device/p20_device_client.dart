@@ -1,3 +1,4 @@
+import 'device_socket_connector.dart';
 import 'dart:typed_data';
 import 'dart:async';
 import 'p20_wire_log.dart';
@@ -136,8 +137,7 @@ class P20DeviceClient {
         wireLog
             .event('mode=${kind.name} stage=tcp_start host=$_host port=$_port');
         try {
-          final socket = await Socket.connect(_host, _port,
-              timeout: const Duration(seconds: 5));
+          final socket = await connectDeviceSocket(_host, _port);
           if (!current()) {
             socket.destroy();
             return;

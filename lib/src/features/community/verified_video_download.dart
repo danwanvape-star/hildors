@@ -106,15 +106,21 @@ class VerifiedVideoDownload {
           await get('$prefix/download').timeout(const Duration(seconds: 20));
       final sink = temporary.openWrite();
       var received = 0;
-      try {
+      Stream<List<int>> checkedMedia() async* {
         await for (final chunk in media.timeout(const Duration(seconds: 30))) {
           cancellation?.check();
           received += chunk.length;
           if (received > expectedBytes) throw const FormatException('视频大小不符');
-          sink.add(chunk);
-          await sink.flush();
           onProgress?.call(received, expectedBytes);
+          cancellation?.check();
+          yield chunk;
         }
+      }
+
+      try {
+        // Let the file sink apply backpressure instead of flushing each network
+        // chunk. Completion still waits for close before verifying the file.
+        await sink.addStream(checkedMedia());
       } finally {
         await sink.close();
       }

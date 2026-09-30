@@ -8,6 +8,8 @@
   "accountGuestWarning": "此访客账号尚未验证邮箱。退出后可能无法找回其云端内容，请先验证邮箱再退出。",
   "accountSignedOut": "已退出所有设备。",
   "accountCancel": "取消",
+  "angleResetZero": "复位到 0°",
+  "angleZeroHint": "0° 为设备基准角度，实际正面位置请根据画面微调。",
   "appVersionLabel": "版本号",
   "applicationTitle": "创作者认证",
   "applicationRefresh": "刷新审核结果",
@@ -494,6 +496,7 @@
   "copyDeviceLog": "复制设备通信日志",
   "deviceLogCopied": "日志已复制，包含协议数据，不包含音视频正文。",
   "deviceDeleteAudioNote": "配套音频也会一起删除。",
+  "deviceWifiKeepConnected": "上传期间请保持连接设备 Wi-Fi。如果系统提示切换至更好的网络，请选择“不允许”或“保持连接”。",
   "devicePlayingDelete": "正在播放的视频不能删除，请先播放其他内容",
   "deviceDeleteTitle": "永久删除设备文件？",
   "deviceDeleteIntro": "以下视频将从全息设备中永久删除：",
@@ -529,6 +532,7 @@
   "framePreviewFailed": "视频预览加载失败，请返回后重试。",
   "deviceDeleted": "已从设备永久删除 {name}",
   "frameTime": "{position} / {duration} 秒",
+  "deviceEncodingProgress": "设备视频编码进度",
   "governanceReport": "举报内容",
   "governanceBlock": "屏蔽创作者",
   "governanceCopyright": "侵犯版权",
@@ -820,5 +824,7 @@
   "p20DeviceType": "设备类型",
   "p20DeviceAuto": "自动识别",
   "p20DeviceSingle": "P20（单列表 · 无声）",
-  "p20DeviceDual": "P20 PORTAL（双列表 · 蓝牙）"
+  "p20DeviceDual": "P20 PORTAL（双列表 · 蓝牙）",
+  "uploadDisplayName": "视频名称",
+  "uploadDisplayNameNote": "支持中文，最多 60 个字符。名称仅保存在本手机，设备使用短文件名。"
 }

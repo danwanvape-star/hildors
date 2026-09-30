@@ -1,5 +1,7 @@
 {
   "@@locale": "ja",
+  "angleResetZero": "0°に戻す",
+  "angleZeroHint": "0°はデバイスの基準角度です。映像が正面を向くように微調整してください。",
   "appVersionLabel": "アプリのバージョン",
   "copyDeviceLog": "デバイス通信ログをコピー",
   "deviceLogCopied": "ログをコピーしました。プロトコルのメタデータが含まれますが、メディア本体は含まれません。",
@@ -1090,5 +1092,9 @@
   "supportEmailCopied": "サポートのメールアドレスをコピーしました",
   "supportCopyFailed": "コピーできませんでした。メールアドレスを選択して手動でコピーしてください。",
   "supportNoMailApp": "メールアプリを開けませんでした。アドレスをコピーし、ご利用のメールサービスからお問い合わせください。",
-  "playlistMoveToTop": "先頭に移動"
+  "deviceWifiKeepConnected": "アップロード中はデバイスの Wi-Fi 接続を維持してください。別のネットワークへの切り替えを求められたら、「許可しない」または「接続を維持」を選択してください。",
+  "deviceEncodingProgress": "デバイス用動画のエンコード進捗",
+  "playlistMoveToTop": "先頭に移動",
+  "uploadDisplayName": "動画名",
+  "uploadDisplayNameNote": "60文字まで入力できます。名前はこのスマートフォンにのみ保存され、デバイスでは短いファイル名を使用します。"
 }

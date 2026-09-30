@@ -35,6 +35,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get accountCancel => 'Cancel';
 
   @override
+  String get angleResetZero => 'Reset to 0°';
+
+  @override
+  String get angleZeroHint =>
+      '0° is the device reference angle. Adjust it to align the image with the front.';
+
+  @override
   String get appVersionLabel => 'App version';
 
   @override
@@ -1586,6 +1593,13 @@ class AppLocalizationsEn extends AppLocalizations {
       'The paired audio file will also be deleted.';
 
   @override
+  String get deviceWifiKeepConnected =>
+      'Stay connected to the device Wi-Fi during upload. If your phone asks to switch to a better network, choose “Do not allow” or “Stay connected”.';
+
+  @override
+  String get deviceEncodingProgress => 'Device video encoding progress';
+
+  @override
   String get governanceReport => 'Report content';
 
   @override
@@ -2459,4 +2473,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get p20DeviceDual => 'P20 PORTAL (dual lists, Bluetooth)';
+
+  @override
+  String get uploadDisplayName => 'Video name';
+
+  @override
+  String get uploadDisplayNameNote =>
+      'Up to 60 characters. This name is saved only on this phone; the device uses a short filename.';
 }
