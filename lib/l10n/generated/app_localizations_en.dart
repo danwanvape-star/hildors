@@ -2429,4 +2429,28 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get p20DeviceDual => 'P20 PORTAL (dual lists, Bluetooth)';
+
+  @override
+  String get supportContact => 'Contact support';
+
+  @override
+  String get supportInstructions =>
+      'Email us with the steps to reproduce the issue, your app version and device model. You can attach relevant screenshots.';
+
+  @override
+  String get supportWriteEmail => 'Write an email';
+
+  @override
+  String get supportCopyEmail => 'Copy email address';
+
+  @override
+  String get supportEmailCopied => 'Support email address copied';
+
+  @override
+  String get supportCopyFailed =>
+      'Could not copy. Select the email address to copy it manually.';
+
+  @override
+  String get supportNoMailApp =>
+      'Could not open a mail app. Copy the address and contact us using your email service.';
 }

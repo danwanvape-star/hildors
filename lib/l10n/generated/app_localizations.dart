@@ -4411,6 +4411,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'P20 PORTAL (dual lists, Bluetooth)'**
   String get p20DeviceDual;
+
+  /// No description provided for @supportContact.
+  ///
+  /// In en, this message translates to:
+  /// **'Contact support'**
+  String get supportContact;
+
+  /// No description provided for @supportInstructions.
+  ///
+  /// In en, this message translates to:
+  /// **'Email us with the steps to reproduce the issue, your app version and device model. You can attach relevant screenshots.'**
+  String get supportInstructions;
+
+  /// No description provided for @supportWriteEmail.
+  ///
+  /// In en, this message translates to:
+  /// **'Write an email'**
+  String get supportWriteEmail;
+
+  /// No description provided for @supportCopyEmail.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy email address'**
+  String get supportCopyEmail;
+
+  /// No description provided for @supportEmailCopied.
+  ///
+  /// In en, this message translates to:
+  /// **'Support email address copied'**
+  String get supportEmailCopied;
+
+  /// No description provided for @supportCopyFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not copy. Select the email address to copy it manually.'**
+  String get supportCopyFailed;
+
+  /// No description provided for @supportNoMailApp.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not open a mail app. Copy the address and contact us using your email service.'**
+  String get supportNoMailApp;
 }
 
 class _AppLocalizationsDelegate

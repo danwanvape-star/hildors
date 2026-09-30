@@ -811,5 +811,12 @@
   "p20DeviceType": "设备类型",
   "p20DeviceAuto": "自动识别",
   "p20DeviceSingle": "P20（单列表 · 无声）",
-  "p20DeviceDual": "P20 PORTAL（双列表 · 蓝牙）"
+  "p20DeviceDual": "P20 PORTAL（双列表 · 蓝牙）",
+  "supportContact": "联系客服",
+  "supportInstructions": "如遇到问题，请发送邮件说明操作步骤、App 版本和设备型号，可自行附上相关截图。",
+  "supportWriteEmail": "写邮件",
+  "supportCopyEmail": "复制邮箱",
+  "supportEmailCopied": "客服邮箱已复制",
+  "supportCopyFailed": "复制失败，请长按邮箱地址手动复制。",
+  "supportNoMailApp": "无法打开邮件应用。请复制邮箱地址，在你使用的邮箱中联系我们。"
 }

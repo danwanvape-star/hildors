@@ -1,3 +1,4 @@
+import '../support/support_page.dart';
 import '../customization/custom_plans_page.dart';
 import 'package:flutter/material.dart';
 import '../community/content_governance.dart';
@@ -130,6 +131,7 @@ class ProfilePage extends StatelessWidget {
               ),
               SizedBox(height: 24),
               _SectionLabel(index: '03', title: context.l10n.coreSupport),
+              _Entry(icon: Icons.support_agent, title: context.l10n.supportContact, subtitle: supportEmail, onTap: () => _open(context, const SupportPage())),
               if (LaunchConfig.usFree)
                 _Entry(
                   icon: Icons.shield_outlined,
