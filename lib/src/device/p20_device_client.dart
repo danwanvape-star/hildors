@@ -52,6 +52,8 @@ class P20DeviceClient {
   final bool _verify;
   final bool _configuredModern;
   P20DeviceKind _kind = P20DeviceKind.unknown;
+  P20DeviceKind? _lastVerifiedKind;
+  String? _lastVerifiedEndpoint;
   int _generation = 0;
   int get generation => _generation;
   P20DevicePreference get preference => _preference;
@@ -117,7 +119,10 @@ class P20DeviceClient {
         ? DeviceConnectionState.reconnecting
         : DeviceConnectionState.connecting);
     final kinds = switch (_preference) {
-      P20DevicePreference.auto => [P20DeviceKind.dual, P20DeviceKind.single],
+      P20DevicePreference.auto => _lastVerifiedKind == P20DeviceKind.single &&
+              _lastVerifiedEndpoint == '$_host:$_port'
+          ? [P20DeviceKind.single, P20DeviceKind.dual]
+          : [P20DeviceKind.dual, P20DeviceKind.single],
       P20DevicePreference.dual => [P20DeviceKind.dual],
       P20DevicePreference.single => [P20DeviceKind.single],
     };
@@ -153,7 +158,11 @@ class P20DeviceClient {
                 traceConnectionProbe: _verify);
             _modern = transport;
             try {
-              if (_verify) reply = await transport.request(4);
+              if (_verify) {
+                reply = await transport
+                    .request(4)
+                    .timeout(const Duration(seconds: 3));
+              }
             } finally {
               transport.traceConnectionProbe = false;
             }
@@ -179,6 +188,10 @@ class P20DeviceClient {
           wireLog.event(
               'mode=${kind.name} stage=${_verify ? "verified" : "unverified"}');
           _kind = kind;
+          if (_verify) {
+            _lastVerifiedKind = kind;
+            _lastVerifiedEndpoint = "$_host:$_port";
+          }
           _backoff.reset();
           _emitConnection(DeviceConnectionState.connected);
           return;

@@ -67,6 +67,7 @@ void main() {
         .runAsync(() => Directory.systemTemp.createTemp('p20-progress-')))!;
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(paths, (_) async => temp.path);
+    var returnedToList = false;
     final client = ConnectedClient()..failUpload = true;
     final session = TestSession(client, false);
     addTearDown(session.dispose);
@@ -80,6 +81,7 @@ void main() {
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
         home: P20UploadPage(
+            onReturnToList: () => returnedToList = true,
             client: client,
             session: session,
             source: '${temp.path}/source.mp4',
@@ -107,6 +109,9 @@ void main() {
         0.5);
     expect(find.textContaining('timed out'), findsOneWidget);
     expect(find.textContaining('Uploading video'), findsOneWidget);
+    await tester.ensureVisible(find.text('Back to playlist'));
+    await tester.tap(find.text('Back to playlist'));
+    expect(returnedToList, isTrue);
     await tester.pumpWidget(const SizedBox());
     await tester.runAsync(() => temp.delete(recursive: true));
   });

@@ -52,7 +52,7 @@ void main() {
       await server.close();
     }
   });
-  test('auto fallback probes single using a fresh socket', () async {
+  test('auto silent fallback is bounded and remembers verified single', () async {
     final server = await ServerSocket.bind('127.0.0.1', 0);
     final client = P20DeviceClient(preference: P20DevicePreference.auto);
     var connections = 0;
@@ -60,7 +60,6 @@ void main() {
       final number = ++connections;
       s.listen((bytes) {
         if (number == 1) {
-          s.destroy();
           return;
         }
         expect(bytes, [0xaa, 0, 0, 0, 2, 4, 0, 2, 0xa5]);
@@ -71,6 +70,10 @@ void main() {
       await client.connect(host: '127.0.0.1', port: server.port);
       expect(client.profile.kind, P20DeviceKind.single);
       expect(connections, 2);
+      await client.disconnect();
+      await client.connect(host: '127.0.0.1', port: server.port);
+      expect(connections, 3);
+      expect(client.profile.kind, P20DeviceKind.single);
       expect(client.wireLog.text, contains('stage=tcp_connected'));
       expect(client.wireLog.text, contains('aa 00 00 00 02 04 00 02 a5'));
       expect(client.wireLog.text, contains('55 00 00 00 02 04 32 02 5a'));

@@ -1,3 +1,5 @@
+import 'playlist_management_page.dart';
+import 'device_playlist_draft.dart';
 import '../../device/device_access.dart';
 import 'p20_media_upload_flow.dart';
 import 'p20_upload_page.dart';
@@ -30,6 +32,7 @@ class _CharacterPackagePageState extends State<CharacterPackagePage> {
           SnackBar(content: Text(context.l10n.coreDeviceDisconnected)));
       return;
     }
+    final originRoute = ModalRoute.of(context);
     final generation = device.client.generation;
     var list = P20MediaList.daily;
     if (device.client.profile.listCount == 2) {
@@ -61,10 +64,21 @@ class _CharacterPackagePageState extends State<CharacterPackagePage> {
                     content: Text(frameContext.l10n.coreDeviceDisconnected)));
                 return;
               }
-              final name = await Navigator.of(frameContext).push<String>(
-                  MaterialPageRoute(
+              final name = await Navigator.of(frameContext)
+                  .push<String>(MaterialPageRoute(
                       builder: (_) => P20UploadPage(
                           autoStart: true,
+                          onReturnToList: () {
+                            Navigator.of(frameContext).pushAndRemoveUntil(
+                                MaterialPageRoute<void>(
+                                    builder: (_) => PlaylistManagementPage(
+                                        client: device.client,
+                                        session: device.session,
+                                        initialKind: list == P20MediaList.daily
+                                            ? DevicePlaylistKind.startup
+                                            : DevicePlaylistKind.bluetooth)),
+                                (route) => identical(route, originRoute));
+                          },
                           client: device.client,
                           session: device.session,
                           source: source,

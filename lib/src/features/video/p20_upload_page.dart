@@ -59,6 +59,7 @@ class P20UploadPage extends StatefulWidget {
       required this.framing,
       this.engine,
       this.autoStart = false,
+      this.onReturnToList,
       super.key});
   final P20DeviceClient client;
   final P20CommandSession session;
@@ -68,6 +69,7 @@ class P20UploadPage extends StatefulWidget {
   final FanFraming framing;
   final P20MediaEngine? engine;
   final bool autoStart;
+  final VoidCallback? onReturnToList;
   @override
   State<P20UploadPage> createState() => _P20UploadPageState();
 }
@@ -299,7 +301,8 @@ class _P20UploadPageState extends State<P20UploadPage> {
                     child: Text(text.cancel)),
               if (!_busy && _attempted)
                 FilledButton(
-                    onPressed: () => Navigator.pop(context, _uploadedName),
+                    onPressed: widget.onReturnToList ??
+                        () => Navigator.pop(context, _uploadedName),
                     child: Text(text.close)),
             ])));
   }
