@@ -251,45 +251,6 @@ class _PlaylistManagementPageState extends State<PlaylistManagementPage> {
     }
   }
 
-  Future<void> _adjustDeviceVideo(String fileName) async {
-    final kind = _kind;
-    final selectSource = await showDialog<bool>(
-        context: context,
-        builder: (context) => AlertDialog(
-              title: Text(context.l10n.playlistOriginalTitle),
-              content: Text(context.l10n.playlistOriginalNote),
-              actions: [
-                TextButton(
-                    onPressed: () => Navigator.pop(context, false),
-                    child: Text(context.l10n.playlistCancel)),
-                FilledButton(
-                    onPressed: () => Navigator.pop(context, true),
-                    child: Text(context.l10n.playlistChooseOriginal)),
-              ],
-            ));
-    if (selectSource != true || !mounted) return;
-    try {
-      final picked = await FilePicker.pickFile(
-          type: FileType.custom, allowedExtensions: ['mp4', 'mov', 'm4v']);
-      if (!mounted || picked?.path == null) return;
-      final video = (
-        title: context.l10n.playlistSourceTitle(fileName),
-        source: picked!.path!,
-        asset: false
-      );
-      final key = 'device-source:${kind.name}:$fileName';
-      setState(() => _pending[kind]![key] = video);
-      await _savePending(kind);
-      if (!mounted) return;
-      await _openPending(kind, key, video);
-    } catch (_) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(context.l10n.playlistOriginalFailed)));
-      }
-    }
-  }
-
   Future<void> _removePending(DevicePlaylistKind kind, String key) async {
     final confirmed = await showDialog<bool>(
         context: context,
@@ -473,76 +434,68 @@ class _PlaylistManagementPageState extends State<PlaylistManagementPage> {
                               index < _live.videos.length;
                               index++)
                             Card(
-                                child: Padding(
-                                    padding: EdgeInsets.symmetric(
-                                        horizontal: 8, vertical: 2),
-                                    child: Column(children: [
-                                      Row(children: [
-                                        Text((index + 1).toString()),
-                                        SizedBox(width: 8),
-                                        Expanded(
-                                            child: Tooltip(
-                                                message: _live
-                                                    .videos[index].fileName,
+                              key: ValueKey('device-video-$index'),
+                              child: Padding(
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 8),
+                                child: Row(children: [
+                                  Text((index + 1).toString()),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                      child: Tooltip(
+                                          message: _live.videos[index].fileName,
+                                          child: Text(
+                                              _live.videos[index].fileName,
+                                              maxLines: 1,
+                                              overflow:
+                                                  TextOverflow.ellipsis))),
+                                  IconButton(
+                                      tooltip: context.l10n.devicePlay,
+                                      onPressed: _live.canEdit
+                                          ? () => _live.play(
+                                              _live.videos[index].fileName)
+                                          : null,
+                                      icon: const Icon(Icons.play_arrow)),
+                                  IconButton(
+                                      tooltip: context.l10n.playlistMoveToTop,
+                                      onPressed: _live.canEdit && index > 0
+                                          ? () => _live.move(index, 0)
+                                          : null,
+                                      icon:
+                                          const Icon(Icons.vertical_align_top)),
+                                  PopupMenuButton<String>(
+                                      enabled: _live.canEdit,
+                                      onSelected: (action) {
+                                        switch (action) {
+                                          case 'up':
+                                            _live.move(index, index - 1);
+                                          case 'down':
+                                            _live.move(index, index + 1);
+                                          case 'delete':
+                                            _deleteDeviceVideo(
+                                                _live.videos[index].fileName);
+                                        }
+                                      },
+                                      itemBuilder: (context) => [
+                                            PopupMenuItem(
+                                                value: 'up',
+                                                enabled: index > 0,
                                                 child: Text(
-                                                    _live
-                                                        .videos[index].fileName,
-                                                    maxLines: 1,
-                                                    overflow: TextOverflow
-                                                        .ellipsis))),
-                                        IconButton(
-                                            tooltip: context.l10n.devicePlay,
-                                            onPressed: _live.canEdit
-                                                ? () => _live.play(_live
-                                                    .videos[index].fileName)
-                                                : null,
-                                            icon: Icon(Icons.play_arrow)),
-                                      ]),
-                                      Row(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.spaceEvenly,
-                                          children: [
-                                            IconButton(
-                                                tooltip:
-                                                    context.l10n.playlistUp,
-                                                onPressed:
-                                                    _live.canEdit && index > 0
-                                                        ? () => _live.move(
-                                                            index, index - 1)
-                                                        : null,
-                                                icon: Icon(Icons.arrow_upward)),
-                                            IconButton(
-                                                tooltip:
-                                                    context.l10n.playlistDown,
-                                                onPressed: _live.canEdit &&
-                                                        index + 1 <
-                                                            _live.videos.length
-                                                    ? () => _live.move(
-                                                        index, index + 1)
-                                                    : null,
-                                                icon:
-                                                    Icon(Icons.arrow_downward)),
-                                            IconButton(
-                                                tooltip:
-                                                    context.l10n.playlistFrame,
-                                                onPressed: _live.canEdit
-                                                    ? () => _adjustDeviceVideo(
-                                                        _live.videos[index]
-                                                            .fileName)
-                                                    : null,
-                                                icon: Icon(Icons.crop)),
-                                            IconButton(
-                                                tooltip: context
-                                                    .l10n.deviceDeleteFrom,
-                                                onPressed: _live.canEdit
-                                                    ? () => _deleteDeviceVideo(
-                                                        _live.videos[index]
-                                                            .fileName)
-                                                    : null,
-                                                icon:
-                                                    Icon(Icons.delete_outline)),
+                                                    context.l10n.playlistUp)),
+                                            PopupMenuItem(
+                                                value: 'down',
+                                                enabled: index + 1 <
+                                                    _live.videos.length,
+                                                child: Text(
+                                                    context.l10n.playlistDown)),
+                                            PopupMenuItem(
+                                                value: 'delete',
+                                                child: Text(context
+                                                    .l10n.deviceDeleteFrom)),
                                           ]),
-                                    ]))),
+                                ]),
+                              ),
+                            ),
                         ],
                         if (_live.error != null)
                           Text(_live.error == 'operation_unconfirmed'

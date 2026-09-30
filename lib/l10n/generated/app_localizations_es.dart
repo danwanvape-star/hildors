@@ -36,6 +36,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get accountCancel => 'Cancelar';
 
   @override
+  String get appVersionLabel => 'Versión de la aplicación';
+
+  @override
   String get applicationTitle => 'Verificación de creadores';
 
   @override
@@ -723,7 +726,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get controlsAdd => 'Añadir a la lista';
 
   @override
-  String get controlsControlTitle => 'Controles del dispositivo';
+  String get controlsControlTitle => 'Panel de control';
 
   @override
   String get controlsBrightness => 'Brillo';
@@ -965,7 +968,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get coreConnectP20 => 'Conectar dispositivo';
 
   @override
-  String get coreConnectionSettings => 'Ajustes de conexión';
+  String get coreConnectionSettings => 'Panel de control';
 
   @override
   String get coreDeviceManagement => 'Gestión del dispositivo';
@@ -1045,7 +1048,7 @@ class AppLocalizationsEs extends AppLocalizations {
       'No se pudo aplicar el ajuste. Revisa la conexión del dispositivo e inténtalo de nuevo.';
 
   @override
-  String get corePlaybackBehavior => 'Reproducción';
+  String get corePlaybackBehavior => 'Ajustes de reproducción';
 
   @override
   String get coreLoopMode => 'Modo de repetición';
@@ -1202,7 +1205,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get coreConnectionFailed =>
-      'No se pudo conectar. Revisa el Wi-Fi del dispositivo y los ajustes de conexión e inténtalo de nuevo.';
+      'No se pudo conectar. Conecta el teléfono al Wi-Fi del dispositivo e inténtalo de nuevo.';
 
   @override
   String get coreSystemLabel => 'SISTEMA DEL DISPOSITIVO';
@@ -1939,6 +1942,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String playlistDeviceCount(int count) {
     return 'El dispositivo responde · $count videos';
   }
+
+  @override
+  String get playlistMoveToTop => 'Mover al principio';
 
   @override
   String get submissionDraftSaved =>

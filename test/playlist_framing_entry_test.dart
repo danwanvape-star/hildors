@@ -299,7 +299,7 @@ void main() {
         pending!.keys, contains('${package.id}/${package.videos.single.id}'));
   });
 
-  testWidgets('device-only video asks for the original source before framing',
+  testWidgets('device-only video no longer exposes framing',
       (tester) async {
     tester.view.physicalSize = const Size(320, 1200);
     tester.view.devicePixelRatio = 1;
@@ -321,17 +321,8 @@ void main() {
       of: deviceTile,
       matching: find.byTooltip('调整画面'),
     );
-    expect(adjust, findsOneWidget);
-    await tester.ensureVisible(adjust);
-    await tester.tap(adjust);
-    await pumpUi(tester);
-
-    expect(find.text('需要原始视频'), findsOneWidget);
-    expect(find.textContaining('设备中的文件只有文件名'), findsOneWidget);
-    expect(find.widgetWithText(FilledButton, '选择原始视频'), findsOneWidget);
+    expect(adjust, findsNothing);
     expect(find.byType(FanFramingPage), findsNothing);
-    await tester.tap(find.widgetWithText(TextButton, '取消'));
-    await pumpUi(tester);
     expect(tester.takeException(), isNull);
   });
 }

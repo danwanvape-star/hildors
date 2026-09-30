@@ -1,3 +1,4 @@
+import '../../localization/locale_controller.dart';
 import '../../device/p20_device_profile.dart';
 import 'dart:async';
 
@@ -127,10 +128,33 @@ class _HomePageState extends State<HomePage> {
             ],
           ),
           actions: [
-            IconButton(
-              tooltip: context.l10n.coreDeviceControl,
-              onPressed: _openControl,
-              icon: Icon(Icons.tune),
+            PopupMenuButton<LanguageChoice>(
+              key: const Key('home-language'),
+              tooltip: context.l10n.languageTitle,
+              icon: const Icon(Icons.language),
+              initialValue: LocaleScope.maybeOf(context)?.choice,
+              onSelected: (choice) async {
+                final controller = LocaleScope.maybeOf(context);
+                if (controller == null) return;
+                try {
+                  await controller.setChoice(choice);
+                } catch (_) {
+                  if (!context.mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text(context.l10n.languageSaveFailed)));
+                }
+              },
+              itemBuilder: (context) => [
+                for (final entry in {
+                  LanguageChoice.system: context.l10n.languageSystem,
+                  LanguageChoice.chinese: '简体中文',
+                  LanguageChoice.english: 'English',
+                  LanguageChoice.german: 'Deutsch',
+                  LanguageChoice.spanish: 'Español',
+                  LanguageChoice.japanese: '日本語',
+                }.entries)
+                  PopupMenuItem(value: entry.key, child: Text(entry.value)),
+              ],
             ),
           ],
         ),

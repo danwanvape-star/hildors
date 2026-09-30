@@ -4,6 +4,37 @@ import 'package:hildors_cockpit/src/features/video/playlist_management_page.dart
 import 'p20_live_playlist_test.dart' show LiveClient, LiveSession;
 
 void main() {
+  testWidgets('one-line device rows pin to top and omit framing',
+      (tester) async {
+    final client = LiveClient()..online = true;
+    final session = LiveSession(client);
+    session.files[0] = ['a.mp4', 'b.mp4', 'long_video_filename_c.mp4'];
+    addTearDown(session.dispose);
+    addTearDown(client.dispose);
+    tester.view.physicalSize = const Size(360, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    await tester.pumpWidget(MaterialApp(
+        home: PlaylistManagementPage(client: client, session: session)));
+    await tester.pumpAndSettle();
+    expect(tester.getSize(find.byKey(const ValueKey('device-video-0'))).height,
+        lessThanOrEqualTo(64));
+    expect(find.byIcon(Icons.crop), findsNothing);
+    expect(
+        tester
+            .widget<IconButton>(
+                find.widgetWithIcon(IconButton, Icons.vertical_align_top).first)
+            .onPressed,
+        isNull);
+    await tester.tap(find.byTooltip('置顶').last);
+    await tester.pumpAndSettle();
+    expect(session.calls, contains('move:0:3:2:0'));
+    expect(session.files[0]!.first, 'long_video_filename_c.mp4');
+    expect(tester.getTopLeft(find.text('long_video_filename_c.mp4')).dy,
+        lessThan(tester.getTopLeft(find.text('a.mp4')).dy));
+    expect(tester.takeException(), isNull);
+  });
   testWidgets('delete confirmation cannot delete a replacement device file',
       (tester) async {
     final client = LiveClient()..online = true;
@@ -11,7 +42,9 @@ void main() {
     await tester.pumpWidget(MaterialApp(
         home: PlaylistManagementPage(client: client, session: session)));
     await tester.pumpAndSettle();
-    await tester.tap(find.byIcon(Icons.delete_outline).first);
+    await tester.tap(find.byType(PopupMenuButton<String>).first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('从设备永久删除'));
     await tester.pumpAndSettle();
     client.setOnline(false);
     await tester.pump();
@@ -57,8 +90,9 @@ void main() {
     final add = find.byIcon(Icons.playlist_add);
     final position = tester.getTopLeft(add);
     final headerPosition = tester.getTopLeft(find.text('A 日常播放'));
-    await tester.ensureVisible(find.byIcon(Icons.delete_outline).first);
-    await tester.tap(find.byIcon(Icons.delete_outline).first);
+    await tester.tap(find.byType(PopupMenuButton<String>).first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('从设备永久删除'));
     await tester.pumpAndSettle();
     expect(session.calls.where((s) => s.startsWith('delete:')), isEmpty);
     await tester.tap(find.text('永久删除'));
@@ -94,8 +128,9 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('a.mp4'), findsOneWidget);
     expect(find.text('b.mp4'), findsOneWidget);
-    await tester.ensureVisible(find.byTooltip('下移').first);
-    await tester.tap(find.byTooltip('下移').first);
+    await tester.tap(find.byType(PopupMenuButton<String>).first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('下移'));
     await tester.pumpAndSettle();
     expect(session.calls, contains('move:0:2:0:1'));
     client.setOnline(false);

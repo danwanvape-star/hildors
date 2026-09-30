@@ -34,6 +34,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get accountCancel => '取消';
 
   @override
+  String get appVersionLabel => '版本号';
+
+  @override
   String get applicationTitle => '创作者认证';
 
   @override
@@ -663,7 +666,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get controlsAdd => '加入播放列表';
 
   @override
-  String get controlsControlTitle => '全息座舱控制台';
+  String get controlsControlTitle => '控制台';
 
   @override
   String get controlsBrightness => '亮度';
@@ -901,7 +904,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get coreConnectP20 => '连接设备';
 
   @override
-  String get coreConnectionSettings => '连接设置';
+  String get coreConnectionSettings => '控制台';
 
   @override
   String get coreDeviceManagement => '座舱管理';
@@ -973,7 +976,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get coreSettingFailed => '设置未生效，请检查设备连接后重试。';
 
   @override
-  String get corePlaybackBehavior => '播放行为';
+  String get corePlaybackBehavior => '播放设置';
 
   @override
   String get coreLoopMode => '循环模式';
@@ -1115,7 +1118,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get coreExploreFreeSubtitle => '发现创作机会，分享免费内容。';
 
   @override
-  String get coreConnectionFailed => '无法连接设备。请检查设备 Wi-Fi 和连接设置后重试。';
+  String get coreConnectionFailed => '无法连接设备，请确认手机已连接设备 Wi-Fi 后重试。';
 
   @override
   String get coreSystemLabel => '座舱系统';
@@ -1795,6 +1798,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String playlistDeviceCount(int count) {
     return '设备响应正常 · $count 个视频';
   }
+
+  @override
+  String get playlistMoveToTop => '置顶';
 
   @override
   String get submissionDraftSaved => '已保存草稿，可继续上传视频并送审。';

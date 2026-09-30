@@ -1,5 +1,6 @@
 {
   "@@locale": "de",
+  "appVersionLabel": "App-Version",
   "copyDeviceLog": "Gerätekommunikationsprotokoll kopieren",
   "deviceLogCopied": "Protokoll kopiert. Es enthält Protokollmetadaten; Mediendaten sind nicht enthalten.",
   "deviceDeleteAudioNote": "Die zugehörige Audiodatei wird ebenfalls gelöscht.",
@@ -327,7 +328,7 @@
   "controlsUnavailable": "Keine Videos verfügbar",
   "controlsSelect": "Videos auswählen",
   "controlsAdd": "Zur Wiedergabeliste hinzufügen",
-  "controlsControlTitle": "Gerätesteuerung",
+  "controlsControlTitle": "Steuerung",
   "controlsBrightness": "Helligkeit",
   "controlsAngle": "Winkel (Geräteeinheit und Bereich unbestätigt)",
   "controlsSpeakerTitle": "Namen des Bluetooth-Lautsprechers festlegen",
@@ -466,7 +467,7 @@
   "coreDeviceDisconnected": "Gerät nicht verbunden",
   "coreLanControl": "Steuerung im lokalen Netzwerk · P20 / P20 PORTAL",
   "coreConnectP20": "Gerät verbinden",
-  "coreConnectionSettings": "Verbindungseinstellungen",
+  "coreConnectionSettings": "Steuerung",
   "coreDeviceManagement": "Geräteverwaltung",
   "coreDevices": "Geräte",
   "corePlaylist": "Wiedergabelisten",
@@ -490,7 +491,7 @@
   "coreDeviceSettings": "Geräteeinstellungen",
   "coreReadFailed": "Gerätestatus konnte nicht gelesen werden. Verbinde dich mit dem Geräte-WLAN und versuche es erneut.",
   "coreSettingFailed": "Einstellung konnte nicht übernommen werden. Prüfe die Geräteverbindung und versuche es erneut.",
-  "corePlaybackBehavior": "Wiedergabe",
+  "corePlaybackBehavior": "Wiedergabeeinstellungen",
   "coreLoopMode": "Wiederholungsmodus",
   "coreLoopSubtitle": "Lege fest, wie das Gerät seine aktuelle Wiedergabeliste wiederholt",
   "coreConnectToChange": "Verbinden, um Einstellungen zu lesen und zu ändern",
@@ -536,7 +537,7 @@
   "coreEnter": "Öffnen",
   "coreCreatorFreeSubtitle": "Beantrage die Verifizierung als Kreativer und veröffentliche kostenlose Inhalte",
   "coreExploreFreeSubtitle": "Entdecke Möglichkeiten, kostenlose Inhalte zu erstellen und zu teilen.",
-  "coreConnectionFailed": "Verbindung fehlgeschlagen. Prüfe das Geräte-WLAN und die Verbindungseinstellungen und versuche es erneut.",
+  "coreConnectionFailed": "Keine Verbindung. Verbinde dein Smartphone mit dem Geräte-WLAN und versuche es erneut.",
   "coreSystemLabel": "GERÄTESYSTEM",
   "coreProfileLabel": "NUTZERPROFIL",
   "coreLocalLabel": "LOKAL",
@@ -1088,5 +1089,6 @@
   "supportCopyEmail": "E-Mail-Adresse kopieren",
   "supportEmailCopied": "Support-E-Mail-Adresse kopiert",
   "supportCopyFailed": "Kopieren fehlgeschlagen. Wähle die E-Mail-Adresse aus, um sie manuell zu kopieren.",
-  "supportNoMailApp": "Keine E-Mail-App konnte geöffnet werden. Kopiere die Adresse und kontaktiere uns über deinen E-Mail-Dienst."
+  "supportNoMailApp": "Keine E-Mail-App konnte geöffnet werden. Kopiere die Adresse und kontaktiere uns über deinen E-Mail-Dienst.",
+  "playlistMoveToTop": "An den Anfang"
 }

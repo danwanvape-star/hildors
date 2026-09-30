@@ -1,3 +1,4 @@
+import 'app_version_tile.dart';
 import '../support/support_page.dart';
 import '../customization/custom_plans_page.dart';
 import 'package:flutter/material.dart';
@@ -166,6 +167,7 @@ class ProfilePage extends StatelessWidget {
                 title: context.l10n.coreAbout,
                 subtitle: context.l10n.coreAboutSubtitle,
               ),
+              const AppVersionTile(),
             ],
           ),
         ),

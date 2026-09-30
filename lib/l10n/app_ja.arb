@@ -1,5 +1,6 @@
 {
   "@@locale": "ja",
+  "appVersionLabel": "アプリのバージョン",
   "copyDeviceLog": "デバイス通信ログをコピー",
   "deviceLogCopied": "ログをコピーしました。プロトコルのメタデータが含まれますが、メディア本体は含まれません。",
   "deviceDeleteAudioNote": "対応する音声ファイルも削除されます。",
@@ -327,7 +328,7 @@
   "controlsUnavailable": "利用できる動画がありません",
   "controlsSelect": "動画を選択",
   "controlsAdd": "プレイリストに追加",
-  "controlsControlTitle": "デバイス操作",
+  "controlsControlTitle": "コントロールパネル",
   "controlsBrightness": "明るさ",
   "controlsAngle": "角度（デバイスの単位と範囲は未確認）",
   "controlsSpeakerTitle": "Bluetoothスピーカー名を設定",
@@ -466,7 +467,7 @@
   "coreDeviceDisconnected": "デバイス未接続",
   "coreLanControl": "ローカルネットワーク操作・P20 / P20 PORTAL",
   "coreConnectP20": "デバイスを接続",
-  "coreConnectionSettings": "接続設定",
+  "coreConnectionSettings": "コントロールパネル",
   "coreDeviceManagement": "デバイス管理",
   "coreDevices": "デバイス",
   "corePlaylist": "プレイリスト",
@@ -490,7 +491,7 @@
   "coreDeviceSettings": "デバイス設定",
   "coreReadFailed": "デバイスの状態を取得できませんでした。デバイスのWi-Fiに接続して再試行してください。",
   "coreSettingFailed": "設定を適用できませんでした。デバイスの接続を確認して再試行してください。",
-  "corePlaybackBehavior": "再生",
+  "corePlaybackBehavior": "再生設定",
   "coreLoopMode": "リピートモード",
   "coreLoopSubtitle": "デバイスの現在のプレイリストの繰り返し方法を選択",
   "coreConnectToChange": "接続すると設定を取得・変更できます",
@@ -536,7 +537,7 @@
   "coreEnter": "開く",
   "coreCreatorFreeSubtitle": "クリエイター認証を申請して無料コンテンツを公開",
   "coreExploreFreeSubtitle": "無料コンテンツの制作・共有の機会を見つけましょう。",
-  "coreConnectionFailed": "接続できませんでした。デバイスのWi-Fiと接続設定を確認して再試行してください。",
+  "coreConnectionFailed": "接続できません。スマートフォンをデバイスの Wi-Fi に接続して再試行してください。",
   "coreSystemLabel": "デバイスシステム",
   "coreProfileLabel": "プレイヤープロフィール",
   "coreLocalLabel": "ローカル",
@@ -1088,5 +1089,6 @@
   "supportCopyEmail": "メールアドレスをコピー",
   "supportEmailCopied": "サポートのメールアドレスをコピーしました",
   "supportCopyFailed": "コピーできませんでした。メールアドレスを選択して手動でコピーしてください。",
-  "supportNoMailApp": "メールアプリを開けませんでした。アドレスをコピーし、ご利用のメールサービスからお問い合わせください。"
+  "supportNoMailApp": "メールアプリを開けませんでした。アドレスをコピーし、ご利用のメールサービスからお問い合わせください。",
+  "playlistMoveToTop": "先頭に移動"
 }

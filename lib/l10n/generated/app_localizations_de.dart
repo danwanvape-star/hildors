@@ -35,6 +35,9 @@ class AppLocalizationsDe extends AppLocalizations {
   String get accountCancel => 'Abbrechen';
 
   @override
+  String get appVersionLabel => 'App-Version';
+
+  @override
   String get applicationTitle => 'Verifizierung für Kreative';
 
   @override
@@ -720,7 +723,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get controlsAdd => 'Zur Wiedergabeliste hinzufügen';
 
   @override
-  String get controlsControlTitle => 'Gerätesteuerung';
+  String get controlsControlTitle => 'Steuerung';
 
   @override
   String get controlsBrightness => 'Helligkeit';
@@ -963,7 +966,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get coreConnectP20 => 'Gerät verbinden';
 
   @override
-  String get coreConnectionSettings => 'Verbindungseinstellungen';
+  String get coreConnectionSettings => 'Steuerung';
 
   @override
   String get coreDeviceManagement => 'Geräteverwaltung';
@@ -1044,7 +1047,7 @@ class AppLocalizationsDe extends AppLocalizations {
       'Einstellung konnte nicht übernommen werden. Prüfe die Geräteverbindung und versuche es erneut.';
 
   @override
-  String get corePlaybackBehavior => 'Wiedergabe';
+  String get corePlaybackBehavior => 'Wiedergabeeinstellungen';
 
   @override
   String get coreLoopMode => 'Wiederholungsmodus';
@@ -1201,7 +1204,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get coreConnectionFailed =>
-      'Verbindung fehlgeschlagen. Prüfe das Geräte-WLAN und die Verbindungseinstellungen und versuche es erneut.';
+      'Keine Verbindung. Verbinde dein Smartphone mit dem Geräte-WLAN und versuche es erneut.';
 
   @override
   String get coreSystemLabel => 'GERÄTESYSTEM';
@@ -1939,6 +1942,9 @@ class AppLocalizationsDe extends AppLocalizations {
   String playlistDeviceCount(int count) {
     return 'Gerät antwortet · $count Videos';
   }
+
+  @override
+  String get playlistMoveToTop => 'An den Anfang';
 
   @override
   String get submissionDraftSaved =>

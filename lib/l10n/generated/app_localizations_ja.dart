@@ -35,6 +35,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get accountCancel => 'キャンセル';
 
   @override
+  String get appVersionLabel => 'アプリのバージョン';
+
+  @override
   String get applicationTitle => 'クリエイター認証';
 
   @override
@@ -670,7 +673,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get controlsAdd => 'プレイリストに追加';
 
   @override
-  String get controlsControlTitle => 'デバイス操作';
+  String get controlsControlTitle => 'コントロールパネル';
 
   @override
   String get controlsBrightness => '明るさ';
@@ -908,7 +911,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get coreConnectP20 => 'デバイスを接続';
 
   @override
-  String get coreConnectionSettings => '接続設定';
+  String get coreConnectionSettings => 'コントロールパネル';
 
   @override
   String get coreDeviceManagement => 'デバイス管理';
@@ -980,7 +983,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get coreSettingFailed => '設定を適用できませんでした。デバイスの接続を確認して再試行してください。';
 
   @override
-  String get corePlaybackBehavior => '再生';
+  String get corePlaybackBehavior => '再生設定';
 
   @override
   String get coreLoopMode => 'リピートモード';
@@ -1127,7 +1130,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get coreConnectionFailed =>
-      '接続できませんでした。デバイスのWi-Fiと接続設定を確認して再試行してください。';
+      '接続できません。スマートフォンをデバイスの Wi-Fi に接続して再試行してください。';
 
   @override
   String get coreSystemLabel => 'デバイスシステム';
@@ -1818,6 +1821,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String playlistDeviceCount(int count) {
     return 'デバイス応答あり・動画$count本';
   }
+
+  @override
+  String get playlistMoveToTop => '先頭に移動';
 
   @override
   String get submissionDraftSaved => '下書きを保存しました。動画をアップロードしてから審査に提出してください。';

@@ -35,6 +35,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get accountCancel => 'Cancel';
 
   @override
+  String get appVersionLabel => 'App version';
+
+  @override
   String get applicationTitle => 'Creator verification';
 
   @override
@@ -708,7 +711,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get controlsAdd => 'Add to playlist';
 
   @override
-  String get controlsControlTitle => 'Device controls';
+  String get controlsControlTitle => 'Control panel';
 
   @override
   String get controlsBrightness => 'Brightness';
@@ -948,7 +951,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get coreConnectP20 => 'Connect device';
 
   @override
-  String get coreConnectionSettings => 'Connection settings';
+  String get coreConnectionSettings => 'Control panel';
 
   @override
   String get coreDeviceManagement => 'Device management';
@@ -1027,7 +1030,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Could not apply the setting. Check the device connection and try again.';
 
   @override
-  String get corePlaybackBehavior => 'Playback';
+  String get corePlaybackBehavior => 'Playback settings';
 
   @override
   String get coreLoopMode => 'Repeat mode';
@@ -1180,7 +1183,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get coreConnectionFailed =>
-      'Could not connect. Check the device Wi-Fi and connection settings, then try again.';
+      'Unable to connect. Connect your phone to the device Wi-Fi and try again.';
 
   @override
   String get coreSystemLabel => 'DEVICE SYSTEM';
@@ -1905,6 +1908,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String playlistDeviceCount(int count) {
     return 'Device responding · $count videos';
   }
+
+  @override
+  String get playlistMoveToTop => 'Move to top';
 
   @override
   String get submissionDraftSaved =>

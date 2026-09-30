@@ -11,8 +11,8 @@ class LanguageSettingsTile extends StatelessWidget {
     final strings = context.l10n;
     final labels = {
       LanguageChoice.system: strings.languageSystem,
-      LanguageChoice.english: strings.languageEnglish,
-      LanguageChoice.chinese: strings.languageChinese,
+      LanguageChoice.english: 'English',
+      LanguageChoice.chinese: '简体中文',
       LanguageChoice.german: 'Deutsch',
       LanguageChoice.spanish: 'Español',
       LanguageChoice.japanese: '日本語'

@@ -13,6 +13,7 @@ class ConnectedClient extends P20DeviceClient {
   final calls = <(P20Command, List<int>)>[];
   int playerStatus = 1;
   bool rejectPlayback = false;
+  int playMode = 1;
   @override
   DeviceConnectionState get connectionState => DeviceConnectionState.connected;
   @override
@@ -22,6 +23,7 @@ class ConnectedClient extends P20DeviceClient {
       [List<int> data = const []]) async {
     calls.add((command, data));
     List<int> reply;
+    if (command == P20Command.setPlayMode) playMode = data.single;
     if (command == P20Command.playback) {
       if (rejectPlayback) {
         reply = [3, 2];
@@ -34,6 +36,10 @@ class ConnectedClient extends P20DeviceClient {
         P20Command.queryStatus => [1, playerStatus, 0, 0, 0, 1, 0, 1],
         P20Command.queryCurrentVideo => [1, 0, playerStatus],
         P20Command.queryBluetoothSpeakerName => [0],
+        P20Command.queryPlayMode => [playMode],
+        P20Command.setPlayMode => [playMode, 1],
+        P20Command.setBrightness => [data.single, 1],
+        P20Command.setAngle => [...data, 1],
         P20Command.queryVideoList => [0, 1, 0, ...'a.mp4'.codeUnits],
         _ => [1],
       };
@@ -48,46 +54,49 @@ Widget app(Widget child) => MaterialApp(
     supportedLocales: AppLocalizations.supportedLocales,
     home: child);
 void main() {
-  testWidgets('connected controls query actual playback and toggle both ways',
+  testWidgets('console only exposes brightness and angle without extra queries',
       (tester) async {
-    tester.view.physicalSize = const Size(1000, 1800);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
     final client = ConnectedClient();
     addTearDown(client.dispose);
     await tester.pumpWidget(app(ControlPage(client: client)));
     await tester.pumpAndSettle();
-    expect(client.calls.any((call) => call.$1 == P20Command.queryCurrentVideo),
-        isTrue);
-    await tester.ensureVisible(find.byIcon(Icons.pause));
-    await tester.tap(find.byIcon(Icons.pause));
+    expect(find.text('Control panel'), findsOneWidget);
+    expect(find.byType(Slider), findsNWidgets(2));
+    expect(find.byType(TextField), findsNothing);
+    expect(find.byIcon(Icons.pause), findsNothing);
+    expect(client.calls.map((c) => c.$1),
+        [P20Command.queryPlayMode, P20Command.queryStatus]);
+    tester
+        .widget<DropdownButtonFormField<P20PlayMode>>(
+            find.byType(DropdownButtonFormField<P20PlayMode>))
+        .onChanged!(P20PlayMode.randomLoop);
     await tester.pumpAndSettle();
-    expect(find.byIcon(Icons.play_arrow), findsOneWidget);
-    await tester.tap(find.byIcon(Icons.play_arrow));
+    expect(client.playMode, 3);
+    expect(
+        tester
+            .widget<DropdownButtonFormField<P20PlayMode>>(
+                find.byType(DropdownButtonFormField<P20PlayMode>))
+            .initialValue,
+        P20PlayMode.randomLoop);
+    tester.widget<Slider>(find.byType(Slider).first).onChangeEnd!(45);
     await tester.pumpAndSettle();
     expect(
         client.calls
-            .where((call) => call.$1 == P20Command.playback)
-            .map((call) => call.$2.single),
-        [2, 1]);
+            .any((c) => c.$1 == P20Command.setBrightness && c.$2.single == 45),
+        isTrue);
+    tester.widget<Slider>(find.byType(Slider).last).onChangeEnd!(90);
+    await tester.pumpAndSettle();
+    expect(
+        client.calls.any(
+            (c) => c.$1 == P20Command.setAngle && c.$2.join(',') == '0,90'),
+        isTrue);
   });
-  testWidgets('playback rejection is visible and does not claim pause',
-      (tester) async {
-    tester.view.physicalSize = const Size(1000, 1800);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
-    final client = ConnectedClient()..rejectPlayback = true;
-    addTearDown(client.dispose);
-    await tester.pumpWidget(app(ControlPage(client: client)));
+  testWidgets('offline console disables both adjustments', (tester) async {
+    await tester.pumpWidget(app(const ControlPage()));
     await tester.pumpAndSettle();
-    await tester.tap(find.byIcon(Icons.pause));
-    await tester.pumpAndSettle();
-    final context = tester.element(find.byType(ControlPage));
-    expect(find.text(context.l10n.errorNetwork), findsOneWidget);
-    expect(find.byIcon(Icons.pause), findsOneWidget);
-    expect(client.playerStatus, 1);
+    for (final slider in tester.widgetList<Slider>(find.byType(Slider))) {
+      expect(slider.onChanged, isNull);
+    }
   });
   testWidgets('modern brightness permits zero', (tester) async {
     tester.view.physicalSize = const Size(1000, 1800);

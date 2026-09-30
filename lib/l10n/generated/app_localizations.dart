@@ -152,6 +152,12 @@ abstract class AppLocalizations {
   /// **'Cancel'**
   String get accountCancel;
 
+  /// No description provided for @appVersionLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'App version'**
+  String get appVersionLabel;
+
   /// No description provided for @applicationTitle.
   ///
   /// In en, this message translates to:
@@ -1349,7 +1355,7 @@ abstract class AppLocalizations {
   /// No description provided for @controlsControlTitle.
   ///
   /// In en, this message translates to:
-  /// **'Device controls'**
+  /// **'Control panel'**
   String get controlsControlTitle;
 
   /// No description provided for @controlsBrightness.
@@ -1787,7 +1793,7 @@ abstract class AppLocalizations {
   /// No description provided for @coreConnectionSettings.
   ///
   /// In en, this message translates to:
-  /// **'Connection settings'**
+  /// **'Control panel'**
   String get coreConnectionSettings;
 
   /// No description provided for @coreDeviceManagement.
@@ -1931,7 +1937,7 @@ abstract class AppLocalizations {
   /// No description provided for @corePlaybackBehavior.
   ///
   /// In en, this message translates to:
-  /// **'Playback'**
+  /// **'Playback settings'**
   String get corePlaybackBehavior;
 
   /// No description provided for @coreLoopMode.
@@ -2207,7 +2213,7 @@ abstract class AppLocalizations {
   /// No description provided for @coreConnectionFailed.
   ///
   /// In en, this message translates to:
-  /// **'Could not connect. Check the device Wi-Fi and connection settings, then try again.'**
+  /// **'Unable to connect. Connect your phone to the device Wi-Fi and try again.'**
   String get coreConnectionFailed;
 
   /// No description provided for @coreSystemLabel.
@@ -3493,6 +3499,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Device responding · {count} videos'**
   String playlistDeviceCount(int count);
+
+  /// No description provided for @playlistMoveToTop.
+  ///
+  /// In en, this message translates to:
+  /// **'Move to top'**
+  String get playlistMoveToTop;
 
   /// No description provided for @submissionDraftSaved.
   ///
