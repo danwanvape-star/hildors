@@ -93,11 +93,17 @@ void main() {
         scrollable: find.byType(Scrollable).first);
     expect(find.text('a.mp4'), findsOneWidget);
     expect(find.textContaining('Awaiting protocol support'), findsNothing);
-    final down = find.widgetWithIcon(IconButton, Icons.arrow_downward).first;
-    await tester.ensureVisible(down);
+    final menu = find.descendant(
+        of: find.byKey(const ValueKey('device-video-0')),
+        matching: find.byType(PopupMenuButton<String>));
+    await tester.ensureVisible(menu);
     await tester.pumpAndSettle();
-    await tester.tap(down);
+    await tester.tap(menu);
     await tester.pumpAndSettle();
+    await tester.tap(find.byWidgetPredicate((widget) =>
+        widget is PopupMenuItem<String> && widget.value == 'down'));
+    await tester.pumpAndSettle();
+    expect(session.calls, contains('move:0:2:0:1'));
     await tester.scrollUntilVisible(find.textContaining('did not confirm'), 200,
         scrollable: find.byType(Scrollable).first);
     expect(find.textContaining('did not confirm'), findsOneWidget);

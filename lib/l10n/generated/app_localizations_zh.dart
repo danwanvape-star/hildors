@@ -1188,6 +1188,18 @@ class AppLocalizationsZh extends AppLocalizations {
   String get customUnavailable => '商店支付尚未接通，目前不会收款。';
 
   @override
+  String get customWebsiteTitle => 'Hildors 官方网站';
+
+  @override
+  String get customWebsiteBody => '了解 Hildors 公司及兼容硬件。本版本不提供定制视频购买。';
+
+  @override
+  String get customWebsiteButton => '访问 Hildors 官方网站';
+
+  @override
+  String get customWebsiteError => '无法打开 Hildors 官方网站。';
+
+  @override
   String customBase(String price) {
     return '美元基准参考价：$price；购买时以商店价格为准。';
   }

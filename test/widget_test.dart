@@ -41,11 +41,11 @@ void main() {
     expect(find.text('创作者中心'), findsOneWidget);
     expect(find.text('Holo Roulette'), findsNothing);
     if (LaunchConfig.usFree) {
-      expect(find.text('商店支付尚未接通，目前不会收款。'), findsOneWidget);
+      expect(find.text('了解 Hildors 公司及兼容硬件。本版本不提供定制视频购买。'), findsOneWidget);
       await tester.tap(find.text('定制视频套餐'));
       await tester.pumpAndSettle();
       expect(find.text('定制视频套餐'), findsOneWidget);
-      expect(find.text('商店支付尚未接通，目前不会收款。'), findsOneWidget);
+      expect(find.text('访问 Hildors 官方网站'), findsOneWidget);
     }
   });
 }

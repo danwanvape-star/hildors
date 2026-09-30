@@ -6,8 +6,22 @@ test('email defaults disabled and cannot require verification with no provider',
   const config=emailConfig({});
   assert.equal(config.enabled,false);
   assert.equal(config.requireOrderEmail,false);
+  assert.equal(config.reviewAccess,null);
   assert.throws(()=>emailConfig({HILDORS_REQUIRE_ORDER_EMAIL:'1'}),/provider/i);
   assert.throws(()=>emailConfig({HILDORS_MAIL_PROVIDER:'resend'}),/credential/i);
+});
+
+test('review access requires one normalized email and a six digit code',()=>{
+  const base={HILDORS_MAIL_PROVIDER:'resend',HILDORS_MAIL_FROM:'Hildors <orders@example.com>',
+    HILDORS_MAIL_API_KEY:'test-key',HILDORS_EMAIL_CODE_SECRET:'s'.repeat(40)};
+  for(const credentials of [
+    {HILDORS_REVIEW_EMAIL:'review@example.com'},
+    {HILDORS_REVIEW_CODE:'123456'},
+    {HILDORS_REVIEW_EMAIL:'bad',HILDORS_REVIEW_CODE:'123456'},
+    {HILDORS_REVIEW_EMAIL:'review@example.com',HILDORS_REVIEW_CODE:'12345'},
+  ]) assert.throws(()=>emailConfig({...base,...credentials}),/review access/i);
+  const config=emailConfig({...base,HILDORS_REVIEW_EMAIL:' Review@Example.com ',HILDORS_REVIEW_CODE:'123456'});
+  assert.deepEqual(config.reviewAccess,{email:'review@example.com',code:'123456'});
 });
 
 test('mailer sends only server-owned headers with stable idempotency and refuses redirects',async()=>{

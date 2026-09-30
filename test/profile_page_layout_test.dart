@@ -46,7 +46,7 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 400));
       expect(find.byType(CustomPlansPage), findsOneWidget);
-      expect(find.text('商店支付尚未接通，目前不会收款。'), findsOneWidget);
+      expect(find.text('访问 Hildors 官方网站'), findsOneWidget);
       await tester.pumpWidget(const SizedBox());
     } else {
       expect(find.text('定制订单'), findsOneWidget);

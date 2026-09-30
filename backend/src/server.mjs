@@ -721,7 +721,8 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   const config = runtimeConfig(process.env, fileURLToPath(new URL('../data/', import.meta.url)));
   const directory = config.directory;
   mkdirSync(directory, { recursive: true });
-  const store = createStore(resolve(directory, 'catalog.sqlite'),{emailCodeSecret:config.email.codeSecret});
+  const store = createStore(resolve(directory, 'catalog.sqlite'),{
+    emailCodeSecret:config.email.codeSecret,reviewAccess:config.email.reviewAccess});
   const mailer=createMailer(config.email);
   if (config.seedDemos) seedDemos(store);
   const server = app(store, { adminToken: config.adminToken, adminUsername: config.adminUsername,

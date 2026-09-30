@@ -1201,6 +1201,19 @@ class AppLocalizationsJa extends AppLocalizations {
   String get customUnavailable => 'ストア決済はまだ接続されていません。お支払いは発生しません。';
 
   @override
+  String get customWebsiteTitle => 'Hildors公式サイト';
+
+  @override
+  String get customWebsiteBody =>
+      'Hildorsと対応ハードウェアについてご案内します。このバージョンではカスタム動画を購入できません。';
+
+  @override
+  String get customWebsiteButton => 'Hildors公式サイトを開く';
+
+  @override
+  String get customWebsiteError => 'Hildors公式サイトを開けませんでした。';
+
+  @override
   String customBase(String price) {
     return '基本参考価格（米ドル）：$price。決済時にはストアの価格が適用されます。';
   }

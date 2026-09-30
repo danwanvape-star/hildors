@@ -63,7 +63,7 @@ class _ExplorePageState extends State<ExplorePage> {
         'customization' => LaunchConfig.usFree
             ? _DiscoveryEntry(
                 title: context.l10n.customPlansTitle,
-                description: context.l10n.customUnavailable,
+                description: context.l10n.customWebsiteBody,
                 icon: Icons.movie_creation_outlined,
                 page: const CustomPlansPage(),
               )

@@ -2348,6 +2348,30 @@ abstract class AppLocalizations {
   /// **'Store payments are not connected yet. No payment can be taken.'**
   String get customUnavailable;
 
+  /// No description provided for @customWebsiteTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Hildors official website'**
+  String get customWebsiteTitle;
+
+  /// No description provided for @customWebsiteBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Learn about Hildors and compatible hardware. Custom-video purchases are not available in this release.'**
+  String get customWebsiteBody;
+
+  /// No description provided for @customWebsiteButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Visit the Hildors website'**
+  String get customWebsiteButton;
+
+  /// No description provided for @customWebsiteError.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not open the Hildors website.'**
+  String get customWebsiteError;
+
   /// No description provided for @customBase.
   ///
   /// In en, this message translates to:

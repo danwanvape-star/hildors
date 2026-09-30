@@ -1278,6 +1278,20 @@ class AppLocalizationsDe extends AppLocalizations {
       'Store-Zahlungen sind noch nicht angebunden. Es können keine Zahlungen eingezogen werden.';
 
   @override
+  String get customWebsiteTitle => 'Offizielle Hildors-Website';
+
+  @override
+  String get customWebsiteBody =>
+      'Erfahre mehr über Hildors und kompatible Hardware. Der Kauf individueller Videos ist in dieser Version nicht verfügbar.';
+
+  @override
+  String get customWebsiteButton => 'Hildors-Website besuchen';
+
+  @override
+  String get customWebsiteError =>
+      'Die Hildors-Website konnte nicht geöffnet werden.';
+
+  @override
   String customBase(String price) {
     return 'Basisrichtpreis in USD: $price. Beim Bezahlen gilt der Store-Preis.';
   }
