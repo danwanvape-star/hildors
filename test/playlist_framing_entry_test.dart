@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'package:hildors_cockpit/src/features/video/p20_upload_page.dart';
 import 'package:hildors_cockpit/src/device/device_access.dart';
 import 'package:hildors_cockpit/src/device/p20_device_profile.dart';
 import 'package:hildors_cockpit/src/features/video/character_package_page.dart';
@@ -21,6 +23,7 @@ import 'package:video_player_platform_interface/video_player_platform_interface.
 
 class _FramingVideoPlatform extends VideoPlayerPlatform {
   final sources = <String?>[];
+  Completer<void>? pauseGate;
 
   @override
   Future<void> init() async {}
@@ -45,7 +48,9 @@ class _FramingVideoPlatform extends VideoPlayerPlatform {
   Future<void> play(int playerId) async {}
 
   @override
-  Future<void> pause(int playerId) async {}
+  Future<void> pause(int playerId) async {
+    await pauseGate?.future;
+  }
 
   @override
   Future<void> setLooping(int playerId, bool looping) async {}
@@ -117,6 +122,69 @@ void main() {
     await pumpUi(tester);
     return (client: client, session: session);
   }
+
+  testWidgets('upload cannot be submitted twice while preview pause is pending',
+      (tester) async {
+    var opened = 0;
+    await tester.pumpWidget(MaterialApp(
+        home: FanFramingPage(
+            source: 'https://example.test/video.mp4',
+            asset: false,
+            onUpload: (_, frame) async {
+              opened++;
+            })));
+    await pumpUi(tester);
+    videoPlatform.pauseGate = Completer<void>();
+    final upload = find.widgetWithIcon(FilledButton, Icons.upload);
+    await tester.scrollUntilVisible(upload, 200);
+    await tester.tap(upload);
+    await pumpUi(tester);
+    await tester.tap(upload);
+    await pumpUi(tester);
+    videoPlatform.pauseGate!.complete();
+    await pumpUi(tester);
+    expect(opened, 1);
+  });
+
+  testWidgets(
+      'explicit return after upload failure reaches playlist and keeps pending video',
+      (tester) async {
+    await tester
+        .runAsync(() => PendingPlaylistStore.save(DevicePlaylistKind.startup, {
+              'test': (
+                title: 'Pending test',
+                source: 'https://example.test/video.mp4',
+                asset: false
+              )
+            }));
+    final client = UploadClient(P20DeviceKind.single);
+    final session = LiveSession(client);
+    addTearDown(client.dispose);
+    addTearDown(session.dispose);
+    await tester.pumpWidget(MaterialApp(
+        home: PlaylistManagementPage(client: client, session: session)));
+    await pumpUi(tester);
+    final adjust = find.widgetWithText(TextButton, '调整画面');
+    await tester.scrollUntilVisible(adjust, 200,
+        scrollable: find
+            .descendant(
+                of: find.byType(ListView), matching: find.byType(Scrollable))
+            .last);
+    await tester.tap(adjust);
+    await pumpUi(tester);
+    final upload = find.widgetWithIcon(FilledButton, Icons.upload);
+    await tester.scrollUntilVisible(upload, 200);
+    await tester.tap(upload);
+    await pumpUi(tester);
+    expect(find.byType(P20UploadPage), findsOneWidget);
+    final close = find.text('返回列表');
+    await tester.ensureVisible(close);
+    await tester.tap(close);
+    await pumpUi(tester);
+    expect(find.byType(FanFramingPage), findsNothing);
+    expect(find.byType(PlaylistManagementPage), findsOneWidget);
+    expect(find.text('Pending test'), findsOneWidget);
+  });
 
   for (final kind in [P20DeviceKind.single, P20DeviceKind.dual]) {
     testWidgets('My characters opens direct upload for $kind', (tester) async {

@@ -39,13 +39,28 @@ class _HomePageState extends State<HomePage> {
     super.initState();
     _connection = widget.client.connectionState;
     _subscription = widget.client.connectionStates.listen((state) {
-      if (mounted) setState(() { _connection = state; if (state == DeviceConnectionState.connected) _error = null; });
+      if (mounted) {
+        setState(() {
+          _connection = state;
+          if (state == DeviceConnectionState.connected) _error = null;
+        });
+      }
     });
   }
 
   bool get _busy =>
       _connection == DeviceConnectionState.connecting ||
       _connection == DeviceConnectionState.reconnecting;
+
+  P20DeviceKind get _displayKind {
+    final verified = widget.client.profile.kind;
+    if (verified != P20DeviceKind.unknown) return verified;
+    return switch (widget.client.preference) {
+      P20DevicePreference.single => P20DeviceKind.single,
+      P20DevicePreference.dual => P20DeviceKind.dual,
+      P20DevicePreference.auto => P20DeviceKind.unknown,
+    };
+  }
 
   Future<void> _connect() async {
     setState(() => _error = null);
@@ -184,8 +199,8 @@ class _HomePageState extends State<HomePage> {
                               ),
                               SizedBox(height: 10),
                               _NowPlayingCard(
-                                single: widget.client.profile.kind ==
-                                    P20DeviceKind.single,
+                                single: _displayKind == P20DeviceKind.single,
+                                dual: _displayKind == P20DeviceKind.dual,
                                 height: (constraints.maxHeight - 330)
                                         .clamp(286.0, 600.0) *
                                     MediaQuery.textScalerOf(context)
@@ -296,6 +311,7 @@ class _NowPlayingCard extends StatelessWidget {
   const _NowPlayingCard({
     required this.height,
     required this.single,
+    required this.dual,
     required this.connected,
     required this.onOpenStartup,
     required this.onOpenBluetooth,
@@ -304,6 +320,7 @@ class _NowPlayingCard extends StatelessWidget {
   final bool connected;
   final double height;
   final bool single;
+  final bool dual;
   final VoidCallback onOpenStartup;
   final VoidCallback onOpenBluetooth;
 
@@ -333,7 +350,9 @@ class _NowPlayingCard extends StatelessWidget {
           Text(
               single
                   ? context.l10n.p20SingleList
-                  : context.l10n.corePlaylistSubtitle,
+                  : dual
+                      ? context.l10n.corePlaylistSubtitle
+                      : context.l10n.coreDeviceDisconnected,
               style: const TextStyle(fontSize: 12)),
           const SizedBox(height: 8),
           _StatusPill(connected: connected),
@@ -348,7 +367,7 @@ class _NowPlayingCard extends StatelessWidget {
             onTap: onOpenStartup,
           ),
           const SizedBox(height: 10),
-          if (!single)
+          if (dual)
             _PlaylistShortcut(
               icon: Icons.graphic_eq,
               title: context.l10n.coreMusic,

@@ -199,7 +199,11 @@ class _SettingsPageState extends State<SettingsPage> {
               _SectionLabel(index: '02', title: context.l10n.coreDeviceInfo),
               SizedBox(height: 10),
               _SystemPanel(
-                title: 'P20 / P11',
+                title: switch (widget.client.profile.kind) {
+                  P20DeviceKind.single => 'P20',
+                  P20DeviceKind.dual => 'P20 PORTAL',
+                  P20DeviceKind.unknown => 'P20 / P20 PORTAL',
+                },
                 subtitle: context.l10n.coreLanCockpit,
                 trailing: _StatusPill(
                   label: _version ??

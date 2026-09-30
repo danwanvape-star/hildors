@@ -81,7 +81,7 @@ void main() {
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
         home: P20UploadPage(
-            onReturnToList: () => returnedToList = true,
+            onReturnToList: (_) => returnedToList = true,
             client: client,
             session: session,
             source: '${temp.path}/source.mp4',
@@ -140,6 +140,10 @@ void main() {
                             context,
                             MaterialPageRoute(
                                 builder: (_) => P20UploadPage(
+                                    onReturnToList: systemBack
+                                        ? null
+                                        : (name) =>
+                                            Navigator.of(context).pop(name),
                                     client: client,
                                     session: session,
                                     source: '${temp.path}/source.mp4',

@@ -78,7 +78,7 @@ class P20DeviceClient {
   String _host = '192.168.4.1';
   int _port = 8900;
   final _backoff = ReconnectBackoff();
-  bool _manualDisconnect = true;
+  bool _manualDisconnect = false;
   bool _connecting = false;
   bool _disposed = false;
   DeviceConnectionState _connectionState = DeviceConnectionState.disconnected;
@@ -87,6 +87,8 @@ class P20DeviceClient {
   Stream<DeviceConnectionState> get connectionStates => _connections.stream;
   DeviceConnectionState get connectionState => _connectionState;
   bool get isConnected => _connectionState == DeviceConnectionState.connected;
+  // Initial discovery is allowed; explicit disconnect pauses dashboard retries.
+  bool get autoConnectAllowed => !_manualDisconnect && !_disposed;
 
   Future<void> connect({
     String host = '192.168.4.1',

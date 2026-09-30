@@ -207,15 +207,24 @@ class _PlaylistManagementPageState extends State<PlaylistManagementPage> {
         await _savePending(kind);
       }
       if (!mounted) return;
+      final playlistRoute = ModalRoute.of(context);
       await Navigator.of(context).push(MaterialPageRoute<void>(
           builder: (_) => FanFramingPage(
               source: video.source,
               asset: video.asset,
               onUpload: (framingContext, framing) async {
+                var returnedToList = false;
                 final name = await Navigator.of(framingContext).push<String>(
                     MaterialPageRoute(
                         builder: (_) => P20UploadPage(
                             autoStart: true,
+                            onReturnToList: (name) {
+                              returnedToList = true;
+                              final navigator = Navigator.of(framingContext);
+                              navigator.pop(name);
+                              navigator.popUntil(
+                                  (route) => identical(route, playlistRoute));
+                            },
                             client: widget.client,
                             session: widget.session,
                             source: video.source,
@@ -230,7 +239,9 @@ class _PlaylistManagementPageState extends State<PlaylistManagementPage> {
                 });
                 await _savePending(kind);
                 await _live.refresh();
-                if (framingContext.mounted) Navigator.pop(framingContext);
+                if (!returnedToList && framingContext.mounted) {
+                  Navigator.pop(framingContext);
+                }
               })));
     } catch (_) {
       if (mounted) {

@@ -68,7 +68,7 @@ class _CharacterPackagePageState extends State<CharacterPackagePage> {
                   .push<String>(MaterialPageRoute(
                       builder: (_) => P20UploadPage(
                           autoStart: true,
-                          onReturnToList: () {
+                          onReturnToList: (_) {
                             Navigator.of(frameContext).pushAndRemoveUntil(
                                 MaterialPageRoute<void>(
                                     builder: (_) => PlaylistManagementPage(

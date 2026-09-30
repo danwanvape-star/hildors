@@ -29,6 +29,7 @@ class _DashboardPageState extends State<DashboardPage>
   Future<void> _autoConnect() async {
     if (!mounted ||
         _autoConnecting ||
+        !_client.autoConnectAllowed ||
         _client.connectionState != DeviceConnectionState.disconnected) {
       return;
     }

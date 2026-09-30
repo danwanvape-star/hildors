@@ -1,3 +1,4 @@
+import 'package:hildors_cockpit/src/device/p20_device_profile.dart';
 import 'package:hildors_cockpit/src/config/launch_config.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -13,7 +14,7 @@ void main() {
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
-    final client = P20DeviceClient();
+    final client = P20DeviceClient(preference: P20DevicePreference.dual);
     final session = P20CommandSession(client);
     addTearDown(client.dispose);
     addTearDown(session.dispose);
