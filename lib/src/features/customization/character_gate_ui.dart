@@ -1,3 +1,5 @@
+import 'gate_copy_de.dart';
+import 'gate_copy_es.dart';
 import 'package:flutter/material.dart';
 import 'character_gate_order_progress.dart';
 
@@ -33,6 +35,8 @@ abstract final class GateCopy {
   }
 
   static const _copy = {
+    'de': gateCopyDe,
+    'es': gateCopyEs,
     'zh': {
       'catalogAnonymous': '匿名创作者',
       'catalogAuthorMissing': '作者未提供',
@@ -463,7 +467,7 @@ abstract final class GateCopy {
       'needRights': '権利の確認',
       'needPrivacy': '素材処理への同意',
       'studio': 'ホログラムキャラクタースタジオ',
-      'secure': '登録済みデバイスへ安全に転送',
+      'secure': '連携済みデバイス・管理された納品',
       'journey': 'アイデアから、デスクで出会えるコレクションへ',
       'brief': '依頼内容',
       'quote': '見積もり確認',
@@ -558,7 +562,7 @@ abstract final class GateCopy {
       'rightsTitle': '提出するキャラクターと素材に必要な権利を保有していることを確認します',
       'rightsHelp': '第三者のゲーム・アニメIPは、キャラクターリクエストをご利用ください。',
       'privacyTitle': '事前審査と制作のために、今回の素材を処理することに同意します',
-      'privacyHelp': '素材は公開や他ユーザーのキャラクター学習には使用せず、申請撤回後は保存規定に従って削除します。',
+      'privacyHelp': '素材は公開や他のユーザーのキャラクター学習には使用されません。申請の取り下げ後は、保存方針に従って取り扱われます。',
       'submitReview': '無料事前審査を送信',
       'noCharge': 'このステップでは料金は発生しません',
       'duplicateReviewTitle': '修正申請を審査中です',
@@ -569,7 +573,7 @@ abstract final class GateCopy {
       'typeOriginalFigure': 'オリジナルフィギュア',
       'typeOriginalCharacter': 'オリジナルキャラクター',
       'typeBrandCharacter': 'ブランドキャラクター',
-      'customOrderTitle': '専属カスタム',
+      'customOrderTitle': 'キャラクターのカスタム制作',
       'sourceQuestion': 'このキャラクターはどこから生まれましたか？',
       'sourceIntro': '素材、キャラクターの出所、制作難易度、デバイス適合リスクを無料で事前確認します。',
       'sourceOriginalTitle': '希望するキャラクター',
@@ -579,7 +583,7 @@ abstract final class GateCopy {
       'sourceBrandTitle': 'ブランドまたは権利者を代表している',
       'sourceBrandHelp': 'ブランドキャラクターや商用利用には、権利と用途の追加資料が必要です。',
       'sourceThirdPartyTitle': '好きなゲーム・アニメのキャラクター',
-      'sourceThirdPartyHelp': '好意やグッズの購入だけでは、デジタル改変権を含まない場合があります。',
+      'sourceThirdPartyHelp': 'キャラクターが好きなことやグッズを購入したことだけでは、デジタル化・改変の権利が得られるとは限りません。',
       'authorizationTitle': 'キャラクターの権利',
       'authorizationHero': 'このキャラクターはまだ Hildors で提供できない可能性があります',
       'authorizationHelp':

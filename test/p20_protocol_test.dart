@@ -2,6 +2,35 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hildors_cockpit/src/protocol/p20_protocol.dart';
 
 void main() {
+  test('single additive responses retain framing and checksum validation', () {
+    final decoder =
+        P20FrameDecoder(allowLegacyCrc: false, allowAdditiveCrc: true);
+    expect(decoder.add([0x55, 0, 0]), isEmpty);
+    expect(decoder.add([0, 2, 4, 60, 0x42, 0x5a]).single.data, [60]);
+    expect(decoder.add([0x55, 0, 0, 0, 2, 4, 60, 0x43, 0x5a]), isEmpty);
+    expect(decoder.add([0x55, 0, 0, 0, 2, 4, 60, 0x42, 0xa5]), isEmpty);
+    final frames = decoder.add([
+      0x55,
+      0,
+      0,
+      0,
+      2,
+      4,
+      60,
+      2,
+      0x5a,
+      0x55,
+      0,
+      0,
+      0,
+      2,
+      4,
+      60,
+      0x42,
+      0x5a,
+    ]);
+    expect(frames, hasLength(2));
+  });
   test('encodes power-on request', () {
     expect(
       P20Protocol.encode(P20Command.power, [0x01]),

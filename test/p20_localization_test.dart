@@ -24,7 +24,7 @@ Widget localized(Widget child, {String language = 'en', double scale = 1}) =>
     );
 
 void main() {
-  for (final language in ['en', 'zh']) {
+  for (final language in ['en', 'zh', 'de', 'es', 'ja']) {
     testWidgets(
         '$language upload stages and errors use resources without raw errors',
         (tester) async {
@@ -64,10 +64,14 @@ void main() {
       }
       expect(text.settings, contains('298 × 298'));
       expect(text.settings, contains('20'));
-      expect(text.bluetooth,
-          contains(language == 'en' ? 'source audio is ignored' : '不读取原视频音频'));
-      expect(text.daily,
-          contains(language == 'en' ? 'with or without sound' : '有声和无声'));
+      if (language == 'en' || language == 'zh') {
+        expect(
+            text.bluetooth,
+            contains(
+                language == 'en' ? 'source audio is ignored' : '不读取原视频音频'));
+        expect(text.daily,
+            contains(language == 'en' ? 'with or without sound' : '有声和无声'));
+      }
     });
   }
   testWidgets(
@@ -89,8 +93,7 @@ void main() {
         scrollable: find.byType(Scrollable).first);
     expect(find.text('a.mp4'), findsOneWidget);
     expect(find.textContaining('Awaiting protocol support'), findsNothing);
-    final down =
-        find.widgetWithIcon(OutlinedButton, Icons.arrow_downward).first;
+    final down = find.widgetWithIcon(IconButton, Icons.arrow_downward).first;
     await tester.ensureVisible(down);
     await tester.pumpAndSettle();
     await tester.tap(down);
@@ -104,8 +107,11 @@ void main() {
     await tester.tap(find.text('B Bluetooth'));
     await tester.pumpAndSettle();
     expect(session.calls, contains('read:1'));
-    await tester.scrollUntilVisible(find.text('bluetooth.mp4'), 200,
-        scrollable: find.byType(Scrollable).first);
+    await tester.scrollUntilVisible(find.text('bluetooth.mp4'), -200,
+        scrollable: find
+            .descendant(
+                of: find.byType(ListView), matching: find.byType(Scrollable))
+            .first);
     expect(find.text('bluetooth.mp4'), findsOneWidget);
     expect(find.text('a.mp4'), findsNothing);
     expect(tester.takeException(), isNull);

@@ -1,3 +1,5 @@
+import '../../localization/locale_controller.dart';
+import '../../device/p20_device_profile.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -38,13 +40,28 @@ class _HomePageState extends State<HomePage> {
     super.initState();
     _connection = widget.client.connectionState;
     _subscription = widget.client.connectionStates.listen((state) {
-      if (mounted) setState(() => _connection = state);
+      if (mounted) {
+        setState(() {
+          _connection = state;
+          if (state == DeviceConnectionState.connected) _error = null;
+        });
+      }
     });
   }
 
   bool get _busy =>
       _connection == DeviceConnectionState.connecting ||
       _connection == DeviceConnectionState.reconnecting;
+
+  P20DeviceKind get _displayKind {
+    final verified = widget.client.profile.kind;
+    if (verified != P20DeviceKind.unknown) return verified;
+    return switch (widget.client.preference) {
+      P20DevicePreference.single => P20DeviceKind.single,
+      P20DevicePreference.dual => P20DeviceKind.dual,
+      P20DevicePreference.auto => P20DeviceKind.unknown,
+    };
+  }
 
   Future<void> _connect() async {
     setState(() => _error = null);
@@ -111,10 +128,33 @@ class _HomePageState extends State<HomePage> {
             ],
           ),
           actions: [
-            IconButton(
-              tooltip: context.l10n.coreDeviceControl,
-              onPressed: _openControl,
-              icon: Icon(Icons.tune),
+            PopupMenuButton<LanguageChoice>(
+              key: const Key('home-language'),
+              tooltip: context.l10n.languageTitle,
+              icon: const Icon(Icons.language),
+              initialValue: LocaleScope.maybeOf(context)?.choice,
+              onSelected: (choice) async {
+                final controller = LocaleScope.maybeOf(context);
+                if (controller == null) return;
+                try {
+                  await controller.setChoice(choice);
+                } catch (_) {
+                  if (!context.mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text(context.l10n.languageSaveFailed)));
+                }
+              },
+              itemBuilder: (context) => [
+                for (final entry in {
+                  LanguageChoice.system: context.l10n.languageSystem,
+                  LanguageChoice.chinese: '简体中文',
+                  LanguageChoice.english: 'English',
+                  LanguageChoice.german: 'Deutsch',
+                  LanguageChoice.spanish: 'Español',
+                  LanguageChoice.japanese: '日本語',
+                }.entries)
+                  PopupMenuItem(value: entry.key, child: Text(entry.value)),
+              ],
             ),
           ],
         ),
@@ -139,7 +179,42 @@ class _HomePageState extends State<HomePage> {
                           padding: EdgeInsets.fromLTRB(16, 4, 16, 8),
                           child: Column(
                             children: [
+                              DropdownButtonFormField<P20DevicePreference>(
+                                initialValue: widget.client.preference,
+                                isExpanded: true,
+                                decoration: InputDecoration(
+                                    labelText: context.l10n.p20DeviceType),
+                                items: [
+                                  DropdownMenuItem(
+                                      value: P20DevicePreference.auto,
+                                      child: Text(context.l10n.p20DeviceAuto)),
+                                  DropdownMenuItem(
+                                      value: P20DevicePreference.single,
+                                      child:
+                                          Text(context.l10n.p20DeviceSingle)),
+                                  DropdownMenuItem(
+                                      value: P20DevicePreference.dual,
+                                      child: Text(context.l10n.p20DeviceDual)),
+                                ],
+                                onChanged: (value) async {
+                                  if (value == null) return;
+                                  try {
+                                    await widget.client.setPreference(value);
+                                  } catch (_) {
+                                    if (mounted) {
+                                      setState(() => _error = "connection");
+                                    }
+                                  }
+                                },
+                              ),
                               _DeviceCard(
+                                model: widget.client.profile.kind ==
+                                        P20DeviceKind.single
+                                    ? "P20"
+                                    : widget.client.profile.kind ==
+                                            P20DeviceKind.dual
+                                        ? "P20 PORTAL"
+                                        : null,
                                 connection: _connection,
                                 busy: _busy,
                                 error: _error,
@@ -148,7 +223,9 @@ class _HomePageState extends State<HomePage> {
                               ),
                               SizedBox(height: 10),
                               _NowPlayingCard(
-                                height: (constraints.maxHeight - 258)
+                                single: _displayKind == P20DeviceKind.single,
+                                dual: _displayKind == P20DeviceKind.dual,
+                                height: (constraints.maxHeight - 330)
                                         .clamp(286.0, 600.0) *
                                     MediaQuery.textScalerOf(context)
                                         .scale(1)
@@ -257,6 +334,8 @@ class _CustomizationShortcut extends StatelessWidget {
 class _NowPlayingCard extends StatelessWidget {
   const _NowPlayingCard({
     required this.height,
+    required this.single,
+    required this.dual,
     required this.connected,
     required this.onOpenStartup,
     required this.onOpenBluetooth,
@@ -264,6 +343,8 @@ class _NowPlayingCard extends StatelessWidget {
 
   final bool connected;
   final double height;
+  final bool single;
+  final bool dual;
   final VoidCallback onOpenStartup;
   final VoidCallback onOpenBluetooth;
 
@@ -290,24 +371,33 @@ class _NowPlayingCard extends StatelessWidget {
           Text(context.l10n.corePlaylists,
               style: Theme.of(context).textTheme.headlineSmall),
           const SizedBox(height: 4),
-          Text(context.l10n.corePlaylistSubtitle,
+          Text(
+              single
+                  ? context.l10n.p20SingleList
+                  : dual
+                      ? context.l10n.corePlaylistSubtitle
+                      : context.l10n.coreDeviceDisconnected,
               style: const TextStyle(fontSize: 12)),
           const SizedBox(height: 8),
           _StatusPill(connected: connected),
           const SizedBox(height: 16),
           _PlaylistShortcut(
             icon: Icons.wb_sunny_outlined,
-            title: context.l10n.coreDisplay,
-            subtitle: context.l10n.coreStartupSubtitle,
+            title:
+                single ? context.l10n.p20SingleList : context.l10n.coreDisplay,
+            subtitle: single
+                ? context.l10n.p20DeviceSingle
+                : context.l10n.coreStartupSubtitle,
             onTap: onOpenStartup,
           ),
           const SizedBox(height: 10),
-          _PlaylistShortcut(
-            icon: Icons.graphic_eq,
-            title: context.l10n.coreMusic,
-            subtitle: context.l10n.coreBluetoothSubtitle,
-            onTap: onOpenBluetooth,
-          ),
+          if (dual)
+            _PlaylistShortcut(
+              icon: Icons.graphic_eq,
+              title: context.l10n.coreMusic,
+              subtitle: context.l10n.coreBluetoothSubtitle,
+              onTap: onOpenBluetooth,
+            ),
         ],
       ),
     );
@@ -419,12 +509,14 @@ class _PlaylistShortcut extends StatelessWidget {
 
 class _DeviceCard extends StatelessWidget {
   const _DeviceCard(
-      {required this.connection,
+      {this.model,
+      required this.connection,
       required this.busy,
       required this.error,
       required this.onConnect,
       required this.onControl});
 
+  final String? model;
   final DeviceConnectionState connection;
   final bool busy;
   final String? error;
@@ -459,7 +551,7 @@ class _DeviceCard extends StatelessWidget {
                     children: [
                       Text(status,
                           style: Theme.of(context).textTheme.titleMedium),
-                      Text(context.l10n.coreLanControl),
+                      Text(model ?? context.l10n.coreLanControl),
                     ],
                   ),
                 ),

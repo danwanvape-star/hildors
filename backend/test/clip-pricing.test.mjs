@@ -49,7 +49,9 @@ test('pricing API validates USD minor units, authenticates, versions and audits 
 
 test('free delivery requires no entitlement; paid never inherits package entitlement and revokes public full preview',async t=>{
   const f=await fixture(t);
-  assert.equal((await (await f.delivery('access')).json()).canDownload,false);
+  assert.equal((await (await f.delivery('access')).json()).canDownload,true);
+  assert.equal((await f.delivery('manifest')).status,200);
+  assert.deepEqual(Buffer.from(await (await f.delivery('download')).arrayBuffer()),f.bytes);
   assert.equal((await f.save(free)).status,200);
   assert.equal((await (await f.delivery('access')).json()).canDownload,true);
   assert.deepEqual(Buffer.from(await (await f.delivery('download')).arrayBuffer()),f.bytes);
@@ -73,7 +75,7 @@ test('configured invalid pricing fails closed even with entitlement, while unspe
   const f=await fixture(t);
   f.store.setEntitlement(f.user,f.item.id,'active','fixture');
   assert.equal((await (await f.delivery('access')).json()).canDownload,true);
-  assert.equal((await (await f.request('/v1/catalog')).json()).items[0].clips[0].pricing,undefined);
+  assert.deepEqual((await (await f.request('/v1/catalog')).json()).items[0].clips[0].pricing,free);
   const corrupt = await fixture(t, {mode:'free',currency:'USD',amountMinor:5});
   corrupt.store.setEntitlement(corrupt.user,corrupt.item.id,'active','legacy-import');
   assert.equal((await (await corrupt.delivery('access')).json()).canDownload,false);

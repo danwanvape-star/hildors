@@ -5,7 +5,10 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:intl/intl.dart' as intl;
 
+import 'app_localizations_de.dart';
 import 'app_localizations_en.dart';
+import 'app_localizations_es.dart';
+import 'app_localizations_ja.dart';
 import 'app_localizations_zh.dart';
 
 // ignore_for_file: type=lint
@@ -94,27 +97,12 @@ abstract class AppLocalizations {
 
   /// A list of this localizations delegate's supported locales.
   static const List<Locale> supportedLocales = <Locale>[
+    Locale('de'),
     Locale('en'),
+    Locale('es'),
+    Locale('ja'),
     Locale('zh')
   ];
-
-  /// No description provided for @copyDeviceLog.
-  ///
-  /// In en, this message translates to:
-  /// **'Copy device communication log'**
-  String get copyDeviceLog;
-
-  /// No description provided for @deviceLogCopied.
-  ///
-  /// In en, this message translates to:
-  /// **'Log copied. It contains protocol metadata; media payloads are omitted.'**
-  String get deviceLogCopied;
-
-  /// No description provided for @deviceDeleteAudioNote.
-  ///
-  /// In en, this message translates to:
-  /// **'The paired audio file will also be deleted.'**
-  String get deviceDeleteAudioNote;
 
   /// No description provided for @accountTitle.
   ///
@@ -163,6 +151,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Cancel'**
   String get accountCancel;
+
+  /// No description provided for @appVersionLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'App version'**
+  String get appVersionLabel;
 
   /// No description provided for @applicationTitle.
   ///
@@ -1361,7 +1355,7 @@ abstract class AppLocalizations {
   /// No description provided for @controlsControlTitle.
   ///
   /// In en, this message translates to:
-  /// **'Device controls'**
+  /// **'Control panel'**
   String get controlsControlTitle;
 
   /// No description provided for @controlsBrightness.
@@ -1787,19 +1781,19 @@ abstract class AppLocalizations {
   /// No description provided for @coreLanControl.
   ///
   /// In en, this message translates to:
-  /// **'Local network control · P20 / P11'**
+  /// **'Local network control · P20 / P20 PORTAL'**
   String get coreLanControl;
 
   /// No description provided for @coreConnectP20.
   ///
   /// In en, this message translates to:
-  /// **'Connect P20'**
+  /// **'Connect device'**
   String get coreConnectP20;
 
   /// No description provided for @coreConnectionSettings.
   ///
   /// In en, this message translates to:
-  /// **'Connection settings'**
+  /// **'Control panel'**
   String get coreConnectionSettings;
 
   /// No description provided for @coreDeviceManagement.
@@ -1883,7 +1877,7 @@ abstract class AppLocalizations {
   /// No description provided for @coreLanHelpSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Connect to a P20/P11 hotspot and troubleshoot'**
+  /// **'Connect to a P20 / P20 PORTAL hotspot and troubleshoot'**
   String get coreLanHelpSubtitle;
 
   /// No description provided for @coreAppSettings.
@@ -1907,7 +1901,7 @@ abstract class AppLocalizations {
   /// No description provided for @coreAboutSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Character Portal · P20/P11 support'**
+  /// **'Character Portal · P20 / P20 PORTAL support'**
   String get coreAboutSubtitle;
 
   /// No description provided for @corePlayerProfile.
@@ -1943,7 +1937,7 @@ abstract class AppLocalizations {
   /// No description provided for @corePlaybackBehavior.
   ///
   /// In en, this message translates to:
-  /// **'Playback'**
+  /// **'Playback settings'**
   String get corePlaybackBehavior;
 
   /// No description provided for @coreLoopMode.
@@ -2027,7 +2021,7 @@ abstract class AppLocalizations {
   /// No description provided for @coreGoHomeConnect.
   ///
   /// In en, this message translates to:
-  /// **'Go to Home to connect your P20 / P11'**
+  /// **'Go to Home to connect your P20 / P20 PORTAL'**
   String get coreGoHomeConnect;
 
   /// No description provided for @coreOpeningLan.
@@ -2219,7 +2213,7 @@ abstract class AppLocalizations {
   /// No description provided for @coreConnectionFailed.
   ///
   /// In en, this message translates to:
-  /// **'Could not connect. Check the device Wi-Fi and connection settings, then try again.'**
+  /// **'Unable to connect. Connect your phone to the device Wi-Fi and try again.'**
   String get coreConnectionFailed;
 
   /// No description provided for @coreSystemLabel.
@@ -2912,6 +2906,24 @@ abstract class AppLocalizations {
   /// **'{position} / {duration} seconds'**
   String frameTime(int position, int duration);
 
+  /// No description provided for @copyDeviceLog.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy device communication log'**
+  String get copyDeviceLog;
+
+  /// No description provided for @deviceLogCopied.
+  ///
+  /// In en, this message translates to:
+  /// **'Log copied. It contains protocol metadata; media payloads are omitted.'**
+  String get deviceLogCopied;
+
+  /// No description provided for @deviceDeleteAudioNote.
+  ///
+  /// In en, this message translates to:
+  /// **'The paired audio file will also be deleted.'**
+  String get deviceDeleteAudioNote;
+
   /// No description provided for @governanceReport.
   ///
   /// In en, this message translates to:
@@ -3488,6 +3500,12 @@ abstract class AppLocalizations {
   /// **'Device responding · {count} videos'**
   String playlistDeviceCount(int count);
 
+  /// No description provided for @playlistMoveToTop.
+  ///
+  /// In en, this message translates to:
+  /// **'Move to top'**
+  String get playlistMoveToTop;
+
   /// No description provided for @submissionDraftSaved.
   ///
   /// In en, this message translates to:
@@ -3968,6 +3986,48 @@ abstract class AppLocalizations {
   /// **'{name} (legacy)'**
   String submissionLegacyTag(String name);
 
+  /// No description provided for @supportContact.
+  ///
+  /// In en, this message translates to:
+  /// **'Contact support'**
+  String get supportContact;
+
+  /// No description provided for @supportInstructions.
+  ///
+  /// In en, this message translates to:
+  /// **'Email us with the steps to reproduce the issue, your app version and device model. You can attach relevant screenshots.'**
+  String get supportInstructions;
+
+  /// No description provided for @supportWriteEmail.
+  ///
+  /// In en, this message translates to:
+  /// **'Write an email'**
+  String get supportWriteEmail;
+
+  /// No description provided for @supportCopyEmail.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy email address'**
+  String get supportCopyEmail;
+
+  /// No description provided for @supportEmailCopied.
+  ///
+  /// In en, this message translates to:
+  /// **'Support email address copied'**
+  String get supportEmailCopied;
+
+  /// No description provided for @supportCopyFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not copy. Select the email address to copy it manually.'**
+  String get supportCopyFailed;
+
+  /// No description provided for @supportNoMailApp.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not open a mail app. Copy the address and contact us using your email service.'**
+  String get supportNoMailApp;
+
   /// No description provided for @p20Refresh.
   ///
   /// In en, this message translates to:
@@ -4073,7 +4133,7 @@ abstract class AppLocalizations {
   /// No description provided for @p20FramingNote.
   ///
   /// In en, this message translates to:
-  /// **'Saving records only the framing. Tap Convert and upload to prepare and transfer the device files.'**
+  /// **'Upload uses the current framing. No separate save is needed.'**
   String get p20FramingNote;
 
   /// No description provided for @p20ConnectedCount.
@@ -4369,6 +4429,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Preview video'**
   String get creatorMediaPreview;
+
+  /// No description provided for @p20SingleList.
+  ///
+  /// In en, this message translates to:
+  /// **'Device videos'**
+  String get p20SingleList;
+
+  /// No description provided for @p20SingleValidationPending.
+  ///
+  /// In en, this message translates to:
+  /// **'Video upload for this device is awaiting hardware validation.'**
+  String get p20SingleValidationPending;
+
+  /// No description provided for @p20SingleTransferComplete.
+  ///
+  /// In en, this message translates to:
+  /// **'Transfer confirmed. Playback is awaiting hardware validation.'**
+  String get p20SingleTransferComplete;
+
+  /// No description provided for @p20DeviceType.
+  ///
+  /// In en, this message translates to:
+  /// **'Device type'**
+  String get p20DeviceType;
+
+  /// No description provided for @p20DeviceAuto.
+  ///
+  /// In en, this message translates to:
+  /// **'Detect automatically'**
+  String get p20DeviceAuto;
+
+  /// No description provided for @p20DeviceSingle.
+  ///
+  /// In en, this message translates to:
+  /// **'P20 (single list, silent)'**
+  String get p20DeviceSingle;
+
+  /// No description provided for @p20DeviceDual.
+  ///
+  /// In en, this message translates to:
+  /// **'P20 PORTAL (dual lists, Bluetooth)'**
+  String get p20DeviceDual;
 }
 
 class _AppLocalizationsDelegate
@@ -4382,7 +4484,7 @@ class _AppLocalizationsDelegate
 
   @override
   bool isSupported(Locale locale) =>
-      <String>['en', 'zh'].contains(locale.languageCode);
+      <String>['de', 'en', 'es', 'ja', 'zh'].contains(locale.languageCode);
 
   @override
   bool shouldReload(_AppLocalizationsDelegate old) => false;
@@ -4391,8 +4493,14 @@ class _AppLocalizationsDelegate
 AppLocalizations lookupAppLocalizations(Locale locale) {
   // Lookup logic when only language code is specified.
   switch (locale.languageCode) {
+    case 'de':
+      return AppLocalizationsDe();
     case 'en':
       return AppLocalizationsEn();
+    case 'es':
+      return AppLocalizationsEs();
+    case 'ja':
+      return AppLocalizationsJa();
     case 'zh':
       return AppLocalizationsZh();
   }

@@ -9,15 +9,6 @@ class AppLocalizationsZh extends AppLocalizations {
   AppLocalizationsZh([String locale = 'zh']) : super(locale);
 
   @override
-  String get copyDeviceLog => '复制设备通信日志';
-
-  @override
-  String get deviceLogCopied => '日志已复制，包含协议数据，不包含音视频正文。';
-
-  @override
-  String get deviceDeleteAudioNote => '配套音频也会一起删除。';
-
-  @override
   String get accountTitle => '账号管理';
 
   @override
@@ -41,6 +32,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get accountCancel => '取消';
+
+  @override
+  String get appVersionLabel => '版本号';
 
   @override
   String get applicationTitle => '创作者认证';
@@ -672,7 +666,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get controlsAdd => '加入播放列表';
 
   @override
-  String get controlsControlTitle => '全息座舱控制台';
+  String get controlsControlTitle => '控制台';
 
   @override
   String get controlsBrightness => '亮度';
@@ -904,13 +898,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get coreDeviceDisconnected => '设备未连接';
 
   @override
-  String get coreLanControl => '局域网控制 · P20 / P11';
+  String get coreLanControl => '局域网控制 · P20 / P20 PORTAL';
 
   @override
-  String get coreConnectP20 => '连接 P20';
+  String get coreConnectP20 => '连接设备';
 
   @override
-  String get coreConnectionSettings => '连接设置';
+  String get coreConnectionSettings => '控制台';
 
   @override
   String get coreDeviceManagement => '座舱管理';
@@ -952,7 +946,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get coreLanHelp => '局域网连接帮助';
 
   @override
-  String get coreLanHelpSubtitle => '连接 P20/P11 热点及常见问题排查';
+  String get coreLanHelpSubtitle => '连接 P20 / P20 PORTAL 热点及常见问题排查';
 
   @override
   String get coreAppSettings => '设备与 App 设置';
@@ -964,7 +958,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get coreAbout => '关于 HILDORS';
 
   @override
-  String get coreAboutSubtitle => 'Character Portal · P20/P11 兼容架构';
+  String get coreAboutSubtitle => 'Character Portal · P20 / P20 PORTAL 兼容架构';
 
   @override
   String get corePlayerProfile => '玩家档案';
@@ -982,7 +976,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get coreSettingFailed => '设置未生效，请检查设备连接后重试。';
 
   @override
-  String get corePlaybackBehavior => '播放行为';
+  String get corePlaybackBehavior => '播放设置';
 
   @override
   String get coreLoopMode => '循环模式';
@@ -1024,7 +1018,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get coreCockpitOnline => '座舱在线';
 
   @override
-  String get coreGoHomeConnect => '请先返回首页连接 P20 / P11';
+  String get coreGoHomeConnect => '请先返回首页连接 P20 / P20 PORTAL';
 
   @override
   String get coreOpeningLan => '正在建立局域网控制通道';
@@ -1124,7 +1118,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get coreExploreFreeSubtitle => '发现创作机会，分享免费内容。';
 
   @override
-  String get coreConnectionFailed => '无法连接设备。请检查设备 Wi-Fi 和连接设置后重试。';
+  String get coreConnectionFailed => '无法连接设备，请确认手机已连接设备 Wi-Fi 后重试。';
 
   @override
   String get coreSystemLabel => '座舱系统';
@@ -1494,6 +1488,15 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String get copyDeviceLog => '复制设备通信日志';
+
+  @override
+  String get deviceLogCopied => '日志已复制，包含协议数据，不包含音视频正文。';
+
+  @override
+  String get deviceDeleteAudioNote => '配套音频也会一起删除。';
+
+  @override
   String get governanceReport => '举报内容';
 
   @override
@@ -1797,6 +1800,9 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String get playlistMoveToTop => '置顶';
+
+  @override
   String get submissionDraftSaved => '已保存草稿，可继续上传视频并送审。';
 
   @override
@@ -2043,6 +2049,27 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String get supportContact => '联系客服';
+
+  @override
+  String get supportInstructions => '如遇到问题，请发送邮件说明操作步骤、App 版本和设备型号，可自行附上相关截图。';
+
+  @override
+  String get supportWriteEmail => '写邮件';
+
+  @override
+  String get supportCopyEmail => '复制邮箱';
+
+  @override
+  String get supportEmailCopied => '客服邮箱已复制';
+
+  @override
+  String get supportCopyFailed => '复制失败，请长按邮箱地址手动复制。';
+
+  @override
+  String get supportNoMailApp => '无法打开邮件应用。请复制邮箱地址，在你使用的邮箱中联系我们。';
+
+  @override
   String get p20Refresh => '刷新设备列表';
 
   @override
@@ -2094,7 +2121,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get p20UploadAction => '转码并上传';
 
   @override
-  String get p20FramingNote => '保存只记录展示范围；点击转码并上传后，才会处理并传输设备文件。';
+  String get p20FramingNote => '上传将使用当前画面大小和位置，无需单独保存。';
 
   @override
   String p20ConnectedCount(int count) {
@@ -2251,4 +2278,25 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get creatorMediaPreview => '预览视频';
+
+  @override
+  String get p20SingleList => '设备视频';
+
+  @override
+  String get p20SingleValidationPending => '该机型视频上传待实机验证。';
+
+  @override
+  String get p20SingleTransferComplete => '传输完成，播放待实机验证。';
+
+  @override
+  String get p20DeviceType => '设备类型';
+
+  @override
+  String get p20DeviceAuto => '自动识别';
+
+  @override
+  String get p20DeviceSingle => 'P20（单列表 · 无声）';
+
+  @override
+  String get p20DeviceDual => 'P20 PORTAL（双列表 · 蓝牙）';
 }

@@ -1,7 +1,9 @@
+import 'dart:typed_data';
 import 'dart:async';
 import 'p20_wire_log.dart';
 import 'dart:io';
-import 'dart:typed_data';
+import 'p20_device_profile.dart';
+import 'p20_single_connection.dart';
 
 import '../protocol/p20_protocol.dart';
 import 'reconnect_backoff.dart';
@@ -34,26 +36,49 @@ class DeviceStatus {
 class P20DeviceClient {
   P20DeviceClient(
       {this.frameCrc = P20Protocol.crc,
-      this.modernProtocol = false,
-      this.verifyOnConnect = false});
+      bool modernProtocol = false,
+      P20DevicePreference? preference,
+      this.verifyOnConnect = false})
+      : _preference = preference ??
+            (modernProtocol
+                ? P20DevicePreference.dual
+                : P20DevicePreference.single),
+        _verify = preference != null || verifyOnConnect,
+        _configuredModern = modernProtocol;
 
   final wireLog = P20WireLog();
   final int frameCrc;
-  final bool modernProtocol;
+  P20DevicePreference _preference;
+  final bool _verify;
+  final bool _configuredModern;
+  P20DeviceKind _kind = P20DeviceKind.unknown;
+  P20DeviceKind? _lastVerifiedKind;
+  String? _lastVerifiedEndpoint;
+  int _generation = 0;
+  int get generation => _generation;
+  P20DevicePreference get preference => _preference;
+  P20DeviceProfile get profile => P20DeviceProfile.forKind(_kind);
+  bool get modernProtocol => _kind == P20DeviceKind.unknown
+      ? (_preference == P20DevicePreference.dual || _configuredModern)
+      : _kind == P20DeviceKind.dual;
+  P20SingleConnection? _single;
   final bool verifyOnConnect;
   P20V2Connection? _modern;
   P20UploadSnapshot? lastUploadSnapshot;
+  bool _uploading = false;
+  bool get canUploadVideo =>
+      isConnected &&
+      (profile.kind == P20DeviceKind.dual ||
+          profile.kind == P20DeviceKind.single);
   Socket? _socket;
-  StreamSubscription<Uint8List>? _subscription;
   Timer? _reconnectTimer;
-  final _decoder = P20FrameDecoder();
   final _frames = StreamController<P20Frame>.broadcast();
   final _connections = StreamController<DeviceConnectionState>.broadcast();
 
   String _host = '192.168.4.1';
   int _port = 8900;
   final _backoff = ReconnectBackoff();
-  bool _manualDisconnect = true;
+  bool _manualDisconnect = false;
   bool _connecting = false;
   bool _disposed = false;
   DeviceConnectionState _connectionState = DeviceConnectionState.disconnected;
@@ -62,6 +87,8 @@ class P20DeviceClient {
   Stream<DeviceConnectionState> get connectionStates => _connections.stream;
   DeviceConnectionState get connectionState => _connectionState;
   bool get isConnected => _connectionState == DeviceConnectionState.connected;
+  // Initial discovery is allowed; explicit disconnect pauses dashboard retries.
+  bool get autoConnectAllowed => !_manualDisconnect && !_disposed;
 
   Future<void> connect({
     String host = '192.168.4.1',
@@ -78,64 +105,115 @@ class P20DeviceClient {
     await _open(reconnecting: false);
   }
 
+  Future<void> setPreference(P20DevicePreference preference) async {
+    await disconnect();
+    _preference = preference;
+    await connect(host: _host, port: _port);
+  }
+
   Future<void> _open({required bool reconnecting}) async {
     if (_connecting || _manualDisconnect || _disposed) return;
     _connecting = true;
+    final attempt = _generation;
+    bool current() =>
+        !_disposed && !_manualDisconnect && attempt == _generation;
     _emitConnection(reconnecting
         ? DeviceConnectionState.reconnecting
         : DeviceConnectionState.connecting);
+    final kinds = switch (_preference) {
+      P20DevicePreference.auto => _lastVerifiedKind == P20DeviceKind.single &&
+              _lastVerifiedEndpoint == '$_host:$_port'
+          ? [P20DeviceKind.single, P20DeviceKind.dual]
+          : [P20DeviceKind.dual, P20DeviceKind.single],
+      P20DevicePreference.dual => [P20DeviceKind.dual],
+      P20DevicePreference.single => [P20DeviceKind.single],
+    };
+    Object? failure;
     try {
-      final socket = await Socket.connect(
-        _host,
-        _port,
-        timeout: const Duration(seconds: 5),
-      );
-      if (_manualDisconnect || _disposed) {
-        await socket.close();
-        return;
-      }
-      socket.setOption(SocketOption.tcpNoDelay, true);
-      _socket = socket;
-      if (modernProtocol) {
-        late final P20V2Connection transport;
-        transport = P20V2Connection(socket, wireLog: wireLog, onClosed: () {
-          if (identical(_modern, transport)) {
-            unawaited(_handleTransportClosed());
-          }
-        });
-        _modern = transport;
-        if (verifyOnConnect) {
-          final reply = await transport.request(0x04);
-          if (reply.data.length != 1 || reply.data.single > 100) {
-            throw const FormatException('Invalid device brightness response');
-          }
-          if (_disposed ||
-              _manualDisconnect ||
-              !identical(_modern, transport)) {
+      for (final kind in kinds) {
+        if (!current()) return;
+        var stage = 'tcp';
+        wireLog
+            .event('mode=${kind.name} stage=tcp_start host=$_host port=$_port');
+        try {
+          final socket = await Socket.connect(_host, _port,
+              timeout: const Duration(seconds: 5));
+          if (!current()) {
+            socket.destroy();
             return;
           }
-        }
-      } else {
-        _subscription = socket.listen(
-          (bytes) {
-            for (final frame in _decoder.add(bytes)) {
-              _frames.add(frame);
+          wireLog.event('mode=${kind.name} stage=tcp_connected');
+          stage = 'probe';
+          socket.setOption(SocketOption.tcpNoDelay, true);
+          _socket = socket;
+          void closed() {
+            if (current() && isConnected && identical(_socket, socket)) {
+              unawaited(_handleTransportClosed());
             }
-          },
-          onError: (_) => _handleTransportClosed(),
-          onDone: _handleTransportClosed,
-          cancelOnError: true,
-        );
+          }
+
+          P20Frame? reply;
+          if (kind == P20DeviceKind.dual) {
+            final transport = P20V2Connection(socket,
+                wireLog: wireLog,
+                onClosed: closed,
+                traceConnectionProbe: _verify);
+            _modern = transport;
+            try {
+              if (_verify) {
+                reply = await transport
+                    .request(4)
+                    .timeout(const Duration(seconds: 3));
+              }
+            } finally {
+              transport.traceConnectionProbe = false;
+            }
+          } else {
+            final transport = P20SingleConnection(socket,
+                onClosed: closed,
+                wireLog: wireLog,
+                traceConnectionProbe: _verify);
+            _single = transport;
+            try {
+              if (_verify) reply = await transport.request(4, [0]);
+            } finally {
+              transport.traceConnectionProbe = false;
+            }
+          }
+          if (reply != null &&
+              (reply.data.length != 1 ||
+                  reply.data.single > 100 ||
+                  (kind == P20DeviceKind.single && reply.data.single < 1))) {
+            throw const FormatException('Invalid device brightness response');
+          }
+          if (!current()) return;
+          wireLog.event(
+              'mode=${kind.name} stage=${_verify ? "verified" : "unverified"}');
+          _kind = kind;
+          if (_verify) {
+            _lastVerifiedKind = kind;
+            _lastVerifiedEndpoint = "$_host:$_port";
+          }
+          _backoff.reset();
+          _emitConnection(DeviceConnectionState.connected);
+          return;
+        } catch (error) {
+          if (!current()) return;
+          final osCode =
+              error is SocketException ? error.osError?.errorCode : null;
+          wireLog.event(
+              'mode=${kind.name} stage=${stage}_failed error=${error.runtimeType} osCode=${osCode ?? "none"}');
+          failure = error;
+          await _closeTransport(invalidate: false);
+        }
       }
-      _backoff.reset();
-      _emitConnection(DeviceConnectionState.connected);
-    } catch (_) {
-      await _closeTransport();
-      _emitConnection(DeviceConnectionState.disconnected);
-      if (reconnecting) _scheduleReconnect();
-      rethrow;
+      if (current()) {
+        _emitConnection(DeviceConnectionState.disconnected);
+        if (reconnecting) _scheduleReconnect();
+        throw failure ?? StateError('Device not recognized');
+      }
     } finally {
-      _connecting = false;
+      if (attempt == _generation) _connecting = false;
     }
   }
 
@@ -143,7 +221,7 @@ class P20DeviceClient {
     if (_manualDisconnect || _disposed) return;
     await _closeTransport();
     _emitConnection(DeviceConnectionState.disconnected);
-    _scheduleReconnect();
+    if (!_uploading) _scheduleReconnect();
   }
 
   void _scheduleReconnect() {
@@ -164,6 +242,7 @@ class P20DeviceClient {
 
   Future<void> retryNow() async {
     if (_disposed) throw StateError('Client has been disposed');
+    if (_uploading) throw StateError('Device upload in progress');
     _manualDisconnect = false;
     _reconnectTimer?.cancel();
     _backoff.reset();
@@ -180,19 +259,26 @@ class P20DeviceClient {
     _emitConnection(DeviceConnectionState.disconnected);
   }
 
-  Future<void> _closeTransport() async {
-    final subscription = _subscription;
+  Future<void> _closeTransport({bool invalidate = true}) async {
+    if (invalidate) {
+      _generation++;
+      _connecting = false;
+    }
     final socket = _socket;
     final modern = _modern;
+    final single = _single;
     _modern = null;
-    _subscription = null;
+    _single = null;
     _socket = null;
-    await subscription?.cancel();
+    _kind = P20DeviceKind.unknown;
+    lastUploadSnapshot = null;
     if (modern != null) {
       await modern.close();
-    } else {
-      await socket?.close();
     }
+    if (single != null) {
+      await single.close();
+    }
+    socket?.destroy();
   }
 
   void _emitConnection(DeviceConnectionState state) {
@@ -211,11 +297,10 @@ class P20DeviceClient {
       unawaited(operation.catchError((Object _) {}));
       return;
     }
-    final socket = _socket;
-    if (socket == null || !isConnected) {
-      throw StateError('Device is not connected');
-    }
-    socket.add(P20Protocol.encode(command, data, frameCrc));
+    if (!isConnected) throw StateError('Device is not connected');
+    unawaited(requestFrame(command, data).catchError((Object error) {
+      return P20Frame(command: command.code, data: Uint8List(0));
+    }));
   }
 
   P20V2Connection _requireModern() {
@@ -228,16 +313,47 @@ class P20DeviceClient {
 
   Future<P20Frame> requestFrame(P20Command command,
       [List<int> data = const []]) async {
-    final frame = await _requireModern().request(command.code, data);
-    if (!_disposed) _frames.add(frame);
+    if (!isConnected) throw StateError('Device is not connected');
+    if (!modernProtocol &&
+        const {0x10, 0x73, 0x74, 0xc1, 0xc2}.contains(command.code)) {
+      throw UnsupportedError('Unsupported single-list command');
+    }
+    final epoch = generation;
+    final frame = modernProtocol
+        ? await _requireModern().request(command.code, data)
+        : await _single!.request(command.code, data);
+    if (epoch != generation || _disposed) throw StateError('Device changed');
+    _frames.add(frame);
     return frame;
   }
 
   Future<void> uploadFile(File file, int listId, List<int> gbkName,
-      {void Function(int acknowledged, int total)? onProgress}) {
+      {void Function(int acknowledged, int total)? onProgress}) async {
+    if (!canUploadVideo) {
+      throw StateError('Device video upload is not available');
+    }
+    if (gbkName.length > profile.maxUploadNameBytes) {
+      throw ArgumentError(
+          'Upload filename exceeds 12 bytes including extension');
+    }
+    if (_uploading) throw StateError('Device upload in progress');
+    _uploading = true;
     lastUploadSnapshot = null;
-    return _requireModern().upload(file, listId, gbkName,
-        onProgress: onProgress, onState: (state) => lastUploadSnapshot = state);
+    final epoch = generation;
+    try {
+      if (profile.kind == P20DeviceKind.single) {
+        if (listId != 0) throw ArgumentError.value(listId, 'listId');
+        await _single!.upload(file, gbkName, onProgress: onProgress);
+      } else {
+        await _requireModern().upload(file, listId, gbkName,
+            onProgress: onProgress, onState: (state) {
+          if (epoch == generation) lastUploadSnapshot = state;
+        });
+      }
+      if (epoch != generation) throw StateError('Device changed');
+    } finally {
+      _uploading = false;
+    }
   }
 
   void setPower(bool on) => send(P20Command.power, [on ? 0x01 : 0x02]);

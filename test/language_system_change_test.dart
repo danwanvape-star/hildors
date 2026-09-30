@@ -6,32 +6,48 @@ import 'package:hildors_cockpit/src/localization/language_settings_tile.dart';
 
 class _Storage implements LocaleStorage {
   String? value;
-  @override Future<String?> read() async => value;
-  @override Future<void> write(String value) async { this.value = value; }
+  @override
+  Future<String?> read() async => value;
+  @override
+  Future<void> write(String value) async {
+    this.value = value;
+  }
 }
 
 void main() {
-  testWidgets('system changes apply only in system mode; selection survives restart', (tester) async {
+  testWidgets(
+      'system changes apply only in system mode; selection survives restart',
+      (tester) async {
     final storage = _Storage();
     final controller = LocaleController(storage: storage);
     addTearDown(controller.dispose);
     addTearDown(tester.binding.platformDispatcher.clearLocalesTestValue);
-    Widget app(LocaleController state) => LocaleScope(controller: state,
-      child: ListenableBuilder(listenable: state, builder: (context, _) => MaterialApp(
-        locale: state.locale,
-        localeListResolutionCallback: (locales, _) => resolveAppLocale(locales),
-        localizationsDelegates: AppLocalizations.localizationsDelegates,
-        supportedLocales: AppLocalizations.supportedLocales,
-        home: Builder(builder: (context) => Scaffold(body: Column(children: [
-          Text(context.l10n.coreHome), const LanguageSettingsTile(),
-        ]))),
-      )),
-    );
+    Widget app(LocaleController state) => LocaleScope(
+          controller: state,
+          child: ListenableBuilder(
+              listenable: state,
+              builder: (context, _) => MaterialApp(
+                    locale: state.locale,
+                    localeListResolutionCallback: (locales, _) =>
+                        resolveAppLocale(locales),
+                    localizationsDelegates:
+                        AppLocalizations.localizationsDelegates,
+                    supportedLocales: AppLocalizations.supportedLocales,
+                    home: Builder(
+                        builder: (context) => Scaffold(
+                                body: Column(children: [
+                              Text(context.l10n.coreHome),
+                              const LanguageSettingsTile(),
+                            ]))),
+                  )),
+        );
     tester.binding.platformDispatcher.localesTestValue = [const Locale('fr')];
     await tester.pumpWidget(app(controller));
     await tester.pumpAndSettle();
     expect(find.text('Home'), findsOneWidget);
-    tester.binding.platformDispatcher.localesTestValue = [const Locale('zh', 'TW')];
+    tester.binding.platformDispatcher.localesTestValue = [
+      const Locale('zh', 'TW')
+    ];
     await tester.pumpAndSettle();
     expect(find.text('首页'), findsOneWidget);
     await controller.setChoice(LanguageChoice.english);
@@ -49,6 +65,16 @@ void main() {
     tester.binding.platformDispatcher.localesTestValue = [const Locale('en')];
     await tester.pumpAndSettle();
     expect(find.text('Home'), findsOneWidget);
+    for (final code in ['de', 'es', 'ja']) {
+      tester.binding.platformDispatcher.localesTestValue = [Locale(code)];
+      await tester.pumpAndSettle();
+      expect(find.text(lookupAppLocalizations(Locale(code)).coreHome),
+          findsOneWidget);
+      expect(
+          Localizations.localeOf(
+              tester.element(find.byType(LanguageSettingsTile))),
+          Locale(code));
+    }
     expect(tester.takeException(), isNull);
   });
 }

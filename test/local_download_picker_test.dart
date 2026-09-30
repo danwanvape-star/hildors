@@ -9,7 +9,6 @@ import 'package:hildors_cockpit/src/features/customization/character_entitlement
 import 'package:hildors_cockpit/src/features/customization/customization_order_repository.dart';
 import 'package:hildors_cockpit/src/features/video/character_package_picker.dart';
 import 'package:hildors_cockpit/src/features/video/character_video_package.dart';
-import 'package:hildors_cockpit/src/features/video/pending_playlist_store.dart';
 
 void main() {
   testWidgets('deletion confirmation removes only managed local files',
@@ -90,16 +89,27 @@ void main() {
               durationSeconds: 3,
               asset: false)
         ]);
-    Map<String, PendingVideo>? saved;
+    List<PackageVideoSelection>? saved;
     await tester.pumpWidget(MaterialApp(
-        home: CharacterPackagePicker(
-            picking: false,
-            repository: MemoryCharacterEntitlementRepository([demo.id]),
-            orderRepository: MemoryCustomizationOrderRepository(),
-            loadDownloaded: () async => [local],
-            saveToPlaylist: (_, videos) async {
-              saved = videos;
-            })));
+        home: Builder(
+            builder: (context) => Scaffold(
+                    body: TextButton(
+                  child: const Text('open picker'),
+                  onPressed: () async {
+                    saved = await Navigator.of(context)
+                        .push<List<PackageVideoSelection>>(MaterialPageRoute(
+                            builder: (_) => CharacterPackagePicker(
+                                  picking: true,
+                                  repository:
+                                      MemoryCharacterEntitlementRepository(
+                                          [demo.id]),
+                                  orderRepository:
+                                      MemoryCustomizationOrderRepository(),
+                                  loadDownloaded: () async => [local],
+                                )));
+                  },
+                )))));
+    await tester.tap(find.text('open picker'));
     await tester.pumpAndSettle();
     expect(find.text(demo.title), findsOneWidget);
     expect(find.text('已下载 1/3 个视频'), findsOneWidget);
@@ -112,11 +122,9 @@ void main() {
     await tester.pump();
     await tester.tap(find.text('添加 1 个视频到待处理区'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('日常展示'));
-    await tester.pumpAndSettle();
-    expect(saved!.values.single.asset, isFalse);
-    expect(saved!.values.single.source, '/private/download-1/video.mp4');
-    expect(saved!.keys.single, startsWith('local/'));
+    expect(saved!.single.video.asset, isFalse);
+    expect(saved!.single.video.source, '/private/download-1/video.mp4');
+    expect(saved!.single.key, startsWith('local/'));
     expect(tester.takeException(), isNull);
   });
 }

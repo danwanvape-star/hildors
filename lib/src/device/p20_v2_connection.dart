@@ -55,12 +55,13 @@ class P20V2Connection {
   P20V2Connection(this._socket,
       {this.timeout = const Duration(seconds: 15),
       this.onClosed,
-      this.wireLog}) {
+      this.wireLog,
+      this.traceConnectionProbe = false}) {
     _responses = StreamIterator(_incoming.stream);
     // Keep reading while idle so a paused response iterator cannot conceal EOF.
     _subscription = _socket.listen((bytes) {
       if (_closed) return;
-      if (_tracingUpload) wireLog?.record('RX', bytes);
+      if (_tracingUpload || traceConnectionProbe) wireLog?.record('RX', bytes);
       try {
         for (final frame in decoder.add(bytes)) {
           _incoming.add(frame);
@@ -73,6 +74,7 @@ class P20V2Connection {
         onError: (Object _) => unawaited(close()));
   }
   final P20WireLog? wireLog;
+  bool traceConnectionProbe;
   final decoder = P20V2Decoder();
   final Socket _socket;
   final Duration timeout;
@@ -121,7 +123,9 @@ class P20V2Connection {
 
   Future<void> _write(List<int> bytes, {bool media = false}) async {
     if (_closed) throw StateError('P20 connection is closed');
-    if (_tracingUpload) wireLog?.record('TX', bytes, media: media);
+    if (_tracingUpload || traceConnectionProbe) {
+      wireLog?.record('TX', bytes, media: media);
+    }
     _socket.add(bytes);
     await _socket.flush().timeout(timeout);
   }

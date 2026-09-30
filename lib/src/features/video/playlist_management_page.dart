@@ -1,6 +1,8 @@
+import '../../device/p20_device_profile.dart';
 import '../../localization/localization.dart';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../device/device_error_message.dart';
 import '../../device/p20_command_session.dart';
@@ -50,6 +52,7 @@ class _PlaylistManagementPageState extends State<PlaylistManagementPage> {
 
   Future<void> _deleteDeviceVideo(String name) async {
     final listId = _live.listId;
+    final deviceGeneration = widget.client.generation;
     final confirmed = await showDialog<bool>(
         context: context,
         builder: (context) => AlertDialog(
@@ -61,7 +64,8 @@ class _PlaylistManagementPageState extends State<PlaylistManagementPage> {
                       children: [
                     Text(context.l10n.deviceDeleteIntro),
                     Text(name),
-                    Text(context.l10n.deviceDeleteAudioNote),
+                    if (widget.client.profile.supportsAudio)
+                      Text(context.l10n.deviceDeleteAudioNote),
                     Text(context.l10n.deviceDeleteNote),
                   ])),
               actions: [
@@ -75,6 +79,7 @@ class _PlaylistManagementPageState extends State<PlaylistManagementPage> {
             ));
     if (!mounted ||
         confirmed != true ||
+        deviceGeneration != widget.client.generation ||
         listId != _live.listId ||
         !_live.canEdit) {
       return;
@@ -202,14 +207,24 @@ class _PlaylistManagementPageState extends State<PlaylistManagementPage> {
         await _savePending(kind);
       }
       if (!mounted) return;
+      final playlistRoute = ModalRoute.of(context);
       await Navigator.of(context).push(MaterialPageRoute<void>(
           builder: (_) => FanFramingPage(
               source: video.source,
               asset: video.asset,
               onUpload: (framingContext, framing) async {
+                var returnedToList = false;
                 final name = await Navigator.of(framingContext).push<String>(
                     MaterialPageRoute(
                         builder: (_) => P20UploadPage(
+                            autoStart: true,
+                            onReturnToList: (name) {
+                              returnedToList = true;
+                              final navigator = Navigator.of(framingContext);
+                              navigator.pop(name);
+                              navigator.popUntil(
+                                  (route) => identical(route, playlistRoute));
+                            },
                             client: widget.client,
                             session: widget.session,
                             source: video.source,
@@ -224,51 +239,14 @@ class _PlaylistManagementPageState extends State<PlaylistManagementPage> {
                 });
                 await _savePending(kind);
                 await _live.refresh();
-                if (framingContext.mounted) Navigator.pop(framingContext);
+                if (!returnedToList && framingContext.mounted) {
+                  Navigator.pop(framingContext);
+                }
               })));
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text(context.l10n.playlistReadFailed)));
-      }
-    }
-  }
-
-  Future<void> _adjustDeviceVideo(String fileName) async {
-    final kind = _kind;
-    final selectSource = await showDialog<bool>(
-        context: context,
-        builder: (context) => AlertDialog(
-              title: Text(context.l10n.playlistOriginalTitle),
-              content: Text(context.l10n.playlistOriginalNote),
-              actions: [
-                TextButton(
-                    onPressed: () => Navigator.pop(context, false),
-                    child: Text(context.l10n.playlistCancel)),
-                FilledButton(
-                    onPressed: () => Navigator.pop(context, true),
-                    child: Text(context.l10n.playlistChooseOriginal)),
-              ],
-            ));
-    if (selectSource != true || !mounted) return;
-    try {
-      final picked = await FilePicker.pickFile(
-          type: FileType.custom, allowedExtensions: ['mp4', 'mov', 'm4v']);
-      if (!mounted || picked?.path == null) return;
-      final video = (
-        title: context.l10n.playlistSourceTitle(fileName),
-        source: picked!.path!,
-        asset: false
-      );
-      final key = 'device-source:${kind.name}:$fileName';
-      setState(() => _pending[kind]![key] = video);
-      await _savePending(kind);
-      if (!mounted) return;
-      await _openPending(kind, key, video);
-    } catch (_) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(context.l10n.playlistOriginalFailed)));
       }
     }
   }
@@ -366,22 +344,28 @@ class _PlaylistManagementPageState extends State<PlaylistManagementPage> {
                                   crossAxisAlignment:
                                       CrossAxisAlignment.stretch,
                                   children: [
-                                    SegmentedButton<DevicePlaylistKind>(
-                                      segments: [
-                                        ButtonSegment(
-                                            value: DevicePlaylistKind.startup,
-                                            label: Text(context.l10n.p20Daily)),
-                                        ButtonSegment(
-                                            value: DevicePlaylistKind.bluetooth,
-                                            label: Text(
-                                                context.l10n.p20Bluetooth)),
-                                      ],
-                                      selected: {_kind},
-                                      onSelectionChanged: _live.busy
-                                          ? null
-                                          : (value) => _live
-                                              .selectList(value.single.index),
-                                    ),
+                                    if (widget.client.profile.kind ==
+                                        P20DeviceKind.single)
+                                      Text(context.l10n.p20SingleList)
+                                    else
+                                      SegmentedButton<DevicePlaylistKind>(
+                                        segments: [
+                                          ButtonSegment(
+                                              value: DevicePlaylistKind.startup,
+                                              label:
+                                                  Text(context.l10n.p20Daily)),
+                                          ButtonSegment(
+                                              value:
+                                                  DevicePlaylistKind.bluetooth,
+                                              label: Text(
+                                                  context.l10n.p20Bluetooth)),
+                                        ],
+                                        selected: {_kind},
+                                        onSelectionChanged: _live.busy
+                                            ? null
+                                            : (value) => _live
+                                                .selectList(value.single.index),
+                                      ),
                                     SizedBox(height: 12),
                                     if (!_live.connected) ...[
                                       Text(context.l10n.p20ConnectNote),
@@ -409,7 +393,11 @@ class _PlaylistManagementPageState extends State<PlaylistManagementPage> {
                                         initialValue: _live.mode,
                                         isExpanded: true,
                                         decoration: InputDecoration(
-                                            labelText: context.l10n.p20Mode,
+                                            labelText:
+                                                widget.client.profile.kind ==
+                                                        P20DeviceKind.single
+                                                    ? context.l10n.coreLoopMode
+                                                    : context.l10n.p20Mode,
                                             border: OutlineInputBorder()),
                                         items: [
                                           for (final mode in P20PlayMode.values)
@@ -446,83 +434,86 @@ class _PlaylistManagementPageState extends State<PlaylistManagementPage> {
                               index < _live.videos.length;
                               index++)
                             Card(
-                                child: Padding(
-                                    padding: EdgeInsets.symmetric(
-                                        horizontal: 8, vertical: 2),
-                                    child: Column(children: [
-                                      Row(children: [
-                                        Text((index + 1).toString()),
-                                        SizedBox(width: 8),
-                                        Expanded(
-                                            child: Tooltip(
-                                                message: _live
-                                                    .videos[index].fileName,
+                              key: ValueKey('device-video-$index'),
+                              child: Padding(
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 8),
+                                child: Row(children: [
+                                  Text((index + 1).toString()),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                      child: Tooltip(
+                                          message: _live.videos[index].fileName,
+                                          child: Text(
+                                              _live.videos[index].fileName,
+                                              maxLines: 1,
+                                              overflow:
+                                                  TextOverflow.ellipsis))),
+                                  IconButton(
+                                      tooltip: context.l10n.devicePlay,
+                                      onPressed: _live.canEdit
+                                          ? () => _live.play(
+                                              _live.videos[index].fileName)
+                                          : null,
+                                      icon: const Icon(Icons.play_arrow)),
+                                  IconButton(
+                                      tooltip: context.l10n.playlistMoveToTop,
+                                      onPressed: _live.canEdit && index > 0
+                                          ? () => _live.move(index, 0)
+                                          : null,
+                                      icon:
+                                          const Icon(Icons.vertical_align_top)),
+                                  PopupMenuButton<String>(
+                                      enabled: _live.canEdit,
+                                      onSelected: (action) {
+                                        switch (action) {
+                                          case 'up':
+                                            _live.move(index, index - 1);
+                                          case 'down':
+                                            _live.move(index, index + 1);
+                                          case 'delete':
+                                            _deleteDeviceVideo(
+                                                _live.videos[index].fileName);
+                                        }
+                                      },
+                                      itemBuilder: (context) => [
+                                            PopupMenuItem(
+                                                value: 'up',
+                                                enabled: index > 0,
                                                 child: Text(
-                                                    _live
-                                                        .videos[index].fileName,
-                                                    maxLines: 1,
-                                                    overflow: TextOverflow
-                                                        .ellipsis))),
-                                        IconButton(
-                                            tooltip: context.l10n.devicePlay,
-                                            onPressed: _live.canEdit
-                                                ? () => _live.play(_live
-                                                    .videos[index].fileName)
-                                                : null,
-                                            icon: Icon(Icons.play_arrow)),
-                                      ]),
-                                      Row(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.spaceEvenly,
-                                          children: [
-                                            IconButton(
-                                                tooltip:
-                                                    context.l10n.playlistUp,
-                                                onPressed:
-                                                    _live.canEdit && index > 0
-                                                        ? () => _live.move(
-                                                            index, index - 1)
-                                                        : null,
-                                                icon: Icon(Icons.arrow_upward)),
-                                            IconButton(
-                                                tooltip:
-                                                    context.l10n.playlistDown,
-                                                onPressed: _live.canEdit &&
-                                                        index + 1 <
-                                                            _live.videos.length
-                                                    ? () => _live.move(
-                                                        index, index + 1)
-                                                    : null,
-                                                icon:
-                                                    Icon(Icons.arrow_downward)),
-                                            IconButton(
-                                                tooltip:
-                                                    context.l10n.playlistFrame,
-                                                onPressed: _live.canEdit
-                                                    ? () => _adjustDeviceVideo(
-                                                        _live.videos[index]
-                                                            .fileName)
-                                                    : null,
-                                                icon: Icon(Icons.crop)),
-                                            IconButton(
-                                                tooltip: context
-                                                    .l10n.deviceDeleteFrom,
-                                                onPressed: _live.canEdit
-                                                    ? () => _deleteDeviceVideo(
-                                                        _live.videos[index]
-                                                            .fileName)
-                                                    : null,
-                                                icon:
-                                                    Icon(Icons.delete_outline)),
+                                                    context.l10n.playlistUp)),
+                                            PopupMenuItem(
+                                                value: 'down',
+                                                enabled: index + 1 <
+                                                    _live.videos.length,
+                                                child: Text(
+                                                    context.l10n.playlistDown)),
+                                            PopupMenuItem(
+                                                value: 'delete',
+                                                child: Text(context
+                                                    .l10n.deviceDeleteFrom)),
                                           ]),
-                                    ]))),
+                                ]),
+                              ),
+                            ),
                         ],
                         if (_live.error != null)
                           Text(_live.error == 'operation_unconfirmed'
                               ? context.l10n.p20Unconfirmed
-                              : context.l10n.errorNetwork),
+                              : context.l10n.p20ReadFailed),
                         if (_connectionError != null)
                           Text(context.l10n.errorNetwork),
+                        OutlinedButton.icon(
+                          icon: const Icon(Icons.copy_rounded),
+                          label: Text(context.l10n.copyDeviceLog),
+                          onPressed: () async {
+                            await Clipboard.setData(ClipboardData(
+                                text: widget.client.wireLog.text));
+                            if (!context.mounted) return;
+                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                                content: Text(context.l10n.deviceLogCopied)));
+                          },
+                        ),
                         SizedBox(height: 20),
                         Text(context.l10n.p20Pending),
                         Text(context.l10n.p20PendingNote),

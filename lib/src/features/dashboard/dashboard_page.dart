@@ -1,3 +1,4 @@
+import '../../device/p20_device_profile.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:hildors_cockpit/src/localization/localization.dart';
@@ -11,8 +12,11 @@ import '../home/home_page.dart';
 import '../profile/profile_page.dart';
 
 class DashboardPage extends StatefulWidget {
-  const DashboardPage({super.key, this.autoConnect = true});
+  const DashboardPage(
+      {super.key, this.autoConnect = true, this.client, this.session});
   final bool autoConnect;
+  final P20DeviceClient? client;
+  final P20CommandSession? session;
 
   @override
   State<DashboardPage> createState() => _DashboardPageState();
@@ -25,7 +29,10 @@ class _DashboardPageState extends State<DashboardPage>
   Future<void> _autoConnect() async {
     if (!mounted ||
         _autoConnecting ||
-        _client.connectionState != DeviceConnectionState.disconnected) { return; }
+        !_client.autoConnectAllowed ||
+        _client.connectionState != DeviceConnectionState.disconnected) {
+      return;
+    }
     _autoConnecting = true;
     try {
       await _client.connect();
@@ -61,8 +68,10 @@ class _DashboardPageState extends State<DashboardPage>
   @override
   void initState() {
     super.initState();
-    _client = P20DeviceClient(modernProtocol: true, verifyOnConnect: true);
-    _session = P20CommandSession(_client);
+    _client = widget.client ??
+        P20DeviceClient(
+            preference: P20DevicePreference.auto, verifyOnConnect: true);
+    _session = widget.session ?? P20CommandSession(_client);
     _projection = P20ProjectionService(_client, _session);
     WidgetsBinding.instance.addObserver(this);
     _startAutoConnect();
@@ -133,8 +142,8 @@ class _DashboardPageState extends State<DashboardPage>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _autoTimer?.cancel();
-    _session.dispose();
-    _client.dispose();
+    if (widget.session == null) _session.dispose();
+    if (widget.client == null) _client.dispose();
     super.dispose();
   }
 }

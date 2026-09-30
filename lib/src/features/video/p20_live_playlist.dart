@@ -1,3 +1,4 @@
+import '../../device/p20_device_profile.dart';
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import '../../device/p20_device_client.dart';
@@ -7,9 +8,11 @@ import '../../device/p20_command_session.dart';
 class P20LivePlaylist extends ChangeNotifier {
   P20LivePlaylist(this.client, this.session, {this.listId = 0}) {
     _subscription = client.connectionStates.listen((state) {
+      if (client.profile.kind == P20DeviceKind.single) listId = 0;
       _invalidate();
       if (state == DeviceConnectionState.connected) unawaited(refresh());
     });
+    if (client.profile.kind == P20DeviceKind.single) listId = 0;
     if (client.isConnected) unawaited(refresh());
   }
   final P20DeviceClient client;
@@ -38,7 +41,8 @@ class P20LivePlaylist extends ChangeNotifier {
   }
 
   Future<void> selectList(int value) async {
-    RangeError.checkValueInInterval(value, 0, 1);
+    RangeError.checkValueInInterval(
+        value, 0, client.profile.kind == P20DeviceKind.single ? 0 : 1);
     if (busy || listId == value) return;
     listId = value;
     _invalidate();

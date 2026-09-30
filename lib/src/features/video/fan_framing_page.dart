@@ -95,6 +95,7 @@ class _FanFramingPageState extends State<FanFramingPage> {
   Offset _focal = Offset.zero;
   String? _error;
   bool _saving = false;
+  bool _uploading = false;
   bool _restoreFailed = false;
 
   @override
@@ -150,9 +151,6 @@ class _FanFramingPageState extends State<FanFramingPage> {
           framing: _frame,
           sourceSize: _player!.value.size);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(context.l10n.frameSaved),
-      ));
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -161,6 +159,25 @@ class _FanFramingPageState extends State<FanFramingPage> {
       }
     } finally {
       if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  Future<void> _submitUpload() async {
+    if (_uploading || _saving || _player == null) return;
+    setState(() => _uploading = true);
+    final framing = _frame;
+    try {
+      await _save();
+      if (!mounted) return;
+      await _player?.pause();
+      if (mounted) await widget.onUpload!(context, framing);
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(context.l10n.errorGeneric)));
+      }
+    } finally {
+      if (mounted) setState(() => _uploading = false);
     }
   }
 
@@ -290,24 +307,11 @@ class _FanFramingPageState extends State<FanFramingPage> {
             if (_restoreFailed) Text(context.l10n.frameRestoreFailed),
           ],
           SizedBox(height: 20),
-          FilledButton.icon(
-              onPressed: player == null || _saving ? null : _save,
-              icon: Icon(Icons.save_outlined),
-              label: Text(
-                  _saving ? context.l10n.frameSaving : context.l10n.frameSave)),
-          SizedBox(height: 8),
-          OutlinedButton(
-              onPressed: widget.onUpload == null || player == null || _saving
-                  ? null
-                  : () async {
-                      await _player?.pause();
-                      if (context.mounted) {
-                        await widget.onUpload!(context, _frame);
-                      }
-                    },
-              child: Text(widget.onUpload == null
-                  ? context.l10n.p20UploadEntry
-                  : context.l10n.p20UploadAction)),
+          if (widget.onUpload != null)
+            FilledButton.icon(
+                onPressed: player == null || _saving ? null : _submitUpload,
+                icon: const Icon(Icons.upload),
+                label: Text(context.l10n.p20UploadAction)),
           Text(context.l10n.p20FramingNote, textAlign: TextAlign.center),
         ],
       )),

@@ -1,6 +1,8 @@
+import '../../device/p20_device_profile.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:hildors_cockpit/src/localization/localization.dart';
 
 import '../../device/p20_command_session.dart';
@@ -122,10 +124,54 @@ class _SettingsPageState extends State<SettingsPage> {
             padding: EdgeInsets.fromLTRB(18, 8, 18, 32),
             children: [
               const LanguageSettingsTile(),
+              DropdownButtonFormField<P20DevicePreference>(
+                isExpanded: true,
+                initialValue: widget.client.preference,
+                decoration:
+                    InputDecoration(labelText: context.l10n.p20DeviceType),
+                items: [
+                  DropdownMenuItem(
+                      value: P20DevicePreference.auto,
+                      child: Text(context.l10n.p20DeviceAuto)),
+                  DropdownMenuItem(
+                      value: P20DevicePreference.single,
+                      child: Text(context.l10n.p20DeviceSingle)),
+                  DropdownMenuItem(
+                      value: P20DevicePreference.dual,
+                      child: Text(context.l10n.p20DeviceDual)),
+                ],
+                onChanged: _busy
+                    ? null
+                    : (value) async {
+                        if (value == null) return;
+                        setState(() {
+                          _busy = true;
+                          _message = null;
+                        });
+                        try {
+                          await widget.client.setPreference(value);
+                        } catch (_) {
+                          if (mounted) setState(() => _message = 'read');
+                        } finally {
+                          if (mounted) setState(() => _busy = false);
+                        }
+                      },
+              ),
               _ConnectionPanel(
                 state: _connection,
                 busy: _busy,
                 onRead: _connected && !_busy ? _load : null,
+              ),
+              OutlinedButton.icon(
+                icon: const Icon(Icons.copy_rounded),
+                label: Text(context.l10n.copyDeviceLog),
+                onPressed: () async {
+                  await Clipboard.setData(
+                      ClipboardData(text: widget.client.wireLog.text));
+                  if (!context.mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text(context.l10n.deviceLogCopied)));
+                },
               ),
               if (_message != null) ...[
                 SizedBox(height: 10),
@@ -153,7 +199,11 @@ class _SettingsPageState extends State<SettingsPage> {
               _SectionLabel(index: '02', title: context.l10n.coreDeviceInfo),
               SizedBox(height: 10),
               _SystemPanel(
-                title: 'P20 / P11',
+                title: switch (widget.client.profile.kind) {
+                  P20DeviceKind.single => 'P20',
+                  P20DeviceKind.dual => 'P20 PORTAL',
+                  P20DeviceKind.unknown => 'P20 / P20 PORTAL',
+                },
                 subtitle: context.l10n.coreLanCockpit,
                 trailing: _StatusPill(
                   label: _version ??

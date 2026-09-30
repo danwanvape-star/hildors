@@ -31,7 +31,14 @@ class _VideoPageState extends State<VideoPage> {
     super.initState();
     _connection = widget.client.connectionState;
     _connectionSubscription = widget.client.connectionStates.listen((value) {
-      if (mounted) setState(() => _connection = value);
+      if (mounted) {
+        setState(() {
+          _connection = value;
+          _videos = const [];
+          _playingIndex = null;
+          _message = null;
+        });
+      }
     });
   }
 
@@ -41,10 +48,11 @@ class _VideoPageState extends State<VideoPage> {
       _loading = true;
       _message = null;
     });
+    final generation = widget.client.generation;
     try {
       final videos = await widget.session.queryVideos();
       final current = await widget.session.queryCurrentVideo();
-      if (mounted) {
+      if (mounted && widget.client.generation == generation) {
         setState(() {
           _videos = videos;
           _playingIndex =
@@ -68,6 +76,7 @@ class _VideoPageState extends State<VideoPage> {
   }
 
   Future<void> _delete(P20VideoEntry video) async {
+    final deviceGeneration = widget.client.generation;
     if (_playingIndex == video.index) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(context.l10n.devicePlayingDelete)),
@@ -111,7 +120,12 @@ class _VideoPageState extends State<VideoPage> {
         ],
       ),
     );
-    if (confirmed != true) return;
+    if (confirmed != true ||
+        !mounted ||
+        !widget.client.isConnected ||
+        deviceGeneration != widget.client.generation) {
+      return;
+    }
     try {
       await widget.session.deleteVideo(video.fileName);
       await _refresh();

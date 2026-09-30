@@ -1,0 +1,1091 @@
+{
+  "copyDeviceLog": "Copiar registro de comunicación del dispositivo",
+  "deviceLogCopied": "Registro copiado. Contiene metadatos del protocolo; se omiten los datos multimedia.",
+  "deviceDeleteAudioNote": "También se eliminará el archivo de audio asociado.",
+  "accountTitle": "Cuenta",
+  "accountGuest": "Cuenta de invitado",
+  "accountNone": "Sin sesión iniciada",
+  "accountSignOut": "Cerrar sesión en todos los dispositivos",
+  "accountSignOutConfirm": "Se cerrará la sesión de tu cuenta en todos los dispositivos. No se eliminarán tu cuenta ni los videos locales. Es posible que debas iniciar sesión de nuevo para acceder al contenido en la nube.",
+  "accountGuestWarning": "Esta cuenta de invitado no tiene un correo verificado. Si cierras sesión, podrías perder el acceso a su contenido en la nube. Verifica un correo antes de cerrar sesión.",
+  "accountSignedOut": "Se cerró la sesión en todos los dispositivos.",
+  "accountCancel": "Cancelar",
+  "applicationTitle": "Verificación de creadores",
+  "applicationRefresh": "Actualizar estado de revisión",
+  "applicationRetry": "Actualizar y reintentar",
+  "applicationLoadFailed": "No se pudo cargar tu solicitud. Actualiza para continuar.",
+  "applicationNoTags": "Las categorías de personajes aún no están disponibles. Inténtalo más tarde.",
+  "applicationApproved": "Creador verificado",
+  "applicationOpenStudio": "Abrir estudio de creadores",
+  "applicationPending": "Solicitud en revisión",
+  "applicationSuspended": "Acceso de creador suspendido",
+  "applicationReviewNote": "El equipo revisa las solicitudes manualmente. Actualiza para consultar tu estado.",
+  "applicationRejected": "Actualiza tu solicitud según los comentarios de la revisión y vuelve a enviarla.",
+  "applicationRoles": "Especialidades de personajes",
+  "applicationDirections": "Especialidades de contenido",
+  "applicationName": "Nombre público del creador",
+  "applicationNameHint": "Por ejemplo, NovaStudio o Nova2026",
+  "applicationNameRule": "Usa letras y números, con al menos una letra. Máximo 80 caracteres.",
+  "applicationEmail": "Correo electrónico (identificador del creador)",
+  "applicationRegion": "Ubicación del creador",
+  "applicationChina": "China continental",
+  "applicationUs": "Estados Unidos",
+  "applicationEea": "Espacio Económico Europeo",
+  "applicationUk": "Reino Unido",
+  "applicationJapan": "Japón",
+  "applicationHk": "Hong Kong",
+  "applicationMo": "Macao",
+  "applicationTw": "Taiwán",
+  "applicationAsia": "Otra región de Asia",
+  "applicationOther": "Otra región",
+  "applicationAdult": "Tengo al menos 18 años",
+  "applicationAgreement": "Acepto las normas para creadores, los requisitos de confidencialidad y las normas contra las transacciones fuera de la plataforma",
+  "applicationWorks": "Videos que he creado",
+  "applicationWorkNote": "Sube entre 1 y 10 videos MP4 creados por ti, de hasta 15 MB cada uno. Estas muestras son privadas y solo se usan para la verificación. El equipo evalúa su cantidad, calidad y creatividad.",
+  "applicationUpload": "Subir mis creaciones",
+  "applicationUploadFailed": "La carga falló. No se añadió el video.",
+  "applicationRetryUpload": "Reintentar carga",
+  "applicationRemoveFailed": "Quitar carga fallida",
+  "applicationSample": "Muestra de verificación",
+  "applicationPrivate": "Subida · Muestra privada",
+  "applicationPreview": "Vista previa de la muestra",
+  "applicationRemove": "Quitar muestra",
+  "applicationSave": "Guardar borrador",
+  "applicationSubmit": "Enviar solicitud",
+  "applicationPreviewTitle": "Vista previa de la muestra de verificación",
+  "applicationInvalidName": "Usa hasta 80 letras y números, con al menos una letra.",
+  "applicationInvalidEmail": "Introduce un correo válido antes de subir archivos.",
+  "applicationRoleRequired": "Selecciona al menos una especialidad de personajes.",
+  "applicationDirectionRequired": "Selecciona al menos una especialidad de contenido.",
+  "applicationAdultRequired": "Confirma que tienes al menos 18 años.",
+  "applicationAgreementRequired": "Lee y acepta las normas para creadores.",
+  "applicationMp4": "Selecciona un video MP4.",
+  "applicationTooLarge": "Cada video debe ocupar como máximo 15 MB. Comprímelo y vuelve a intentarlo.",
+  "applicationLimit": "No subas más de 10 muestras.",
+  "applicationEmailUsed": "Otro creador ya usa este correo. Usa uno diferente.",
+  "applicationInvalidFields": "Revisa tu nombre, especialidades, correo y aceptación de las condiciones.",
+  "applicationProcessorBusy": "El servicio de validación de videos está ocupado. Inténtalo más tarde.",
+  "applicationLocked": "Esta solicitud está bloqueada. Actualiza para consultar el estado de revisión.",
+  "applicationVideoLimit": "Quita una muestra antes de añadir otra. El límite es 10.",
+  "applicationVideoInvalid": "El video no superó la validación. Selecciona un MP4 que se pueda reproducir e inténtalo de nuevo.",
+  "applicationVideoRequired": "Sube al menos un video que supere la validación.",
+  "applicationConflict": "La solicitud ha cambiado. Actualiza y vuelve a intentarlo.",
+  "applicationPreviewFailed": "La vista previa falló. Vuelve atrás e inténtalo de nuevo.",
+  "applicationGrade": "Nivel de creador: {grade}",
+  "applicationUploading": "Subiendo y validando: {name}",
+  "@applicationGrade": {
+    "placeholders": {
+      "grade": {
+        "type": "String"
+      }
+    }
+  },
+  "@applicationUploading": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "applicationDirectionAction": "Acciones sencillas",
+  "applicationDirectionDance": "Música y baile",
+  "applicationDirectionEffects": "Efectos visuales",
+  "applicationDirectionGrowth": "Desarrollo de personajes",
+  "applicationGradeSilver": "Plata",
+  "applicationGradeGold": "Oro",
+  "applicationGradeDiamond": "Diamante",
+  "applicationGradeMaster": "Maestro",
+  "applicationGradeLegend": "Leyenda",
+  "authTitle": "Iniciar sesión con correo electrónico",
+  "authExplanation": "Inicia sesión con tu correo para acceder a tu cuenta desde otro dispositivo y recibir avisos del servicio. Al iniciar sesión se cambia de cuenta; sus datos no se combinan. Si una cuenta anterior no tiene un correo verificado, contacta con soporte para recuperarla.",
+  "authEmail": "Correo electrónico",
+  "authSend": "Enviar código",
+  "authResend": "Reenviar código",
+  "authSent": "Código enviado. Caduca en 10 minutos.",
+  "authCode": "Código de 6 dígitos",
+  "authChange": "Cambiar correo",
+  "authVerify": "Verificar e iniciar sesión",
+  "authInvalidEmail": "Introduce una dirección de correo válida.",
+  "authInvalidCode": "Introduce el código de 6 dígitos.",
+  "authResendSeconds": "Reenviar en {seconds} s",
+  "@authResendSeconds": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "appName": "Hildors",
+  "languageTitle": "Idioma",
+  "languageSystem": "Usar idioma del sistema",
+  "languageEnglish": "English",
+  "languageChinese": "简体中文",
+  "languageFallback": "Las variantes del chino usan chino simplificado. Los demás idiomas no compatibles usan inglés.",
+  "languageSaveFailed": "No se pudo guardar el idioma. Inténtalo de nuevo.",
+  "commonRetry": "Reintentar",
+  "commonCancel": "Cancelar",
+  "commonClose": "Cerrar",
+  "commonSave": "Guardar",
+  "commonLoading": "Cargando…",
+  "errorNetwork": "No se pudo conectar. Revisa tu conexión e inténtalo de nuevo.",
+  "errorSession": "Inicia sesión de nuevo para continuar.",
+  "errorPermission": "Este contenido no está disponible para tu cuenta.",
+  "errorConflict": "Este elemento ha cambiado. Actualízalo e inténtalo de nuevo.",
+  "errorTooLarge": "Este archivo es demasiado grande. Elige uno más pequeño.",
+  "errorRateLimit": "Hay demasiadas solicitudes. Inténtalo más tarde.",
+  "errorGeneric": "Se produjo un error. Inténtalo de nuevo.",
+  "errorEmailCode": "Revisa tu correo y el código de verificación. Es posible que el código haya caducado.",
+  "errorServiceUnavailable": "Este servicio no está disponible temporalmente. Inténtalo más tarde.",
+  "fileBytes": "{value} B",
+  "@fileBytes": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "fileKilobytes": "{value} KB",
+  "@fileKilobytes": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "fileMegabytes": "{value} MB",
+  "@fileMegabytes": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "catalogCollection": "Colección",
+  "catalogLibrary": "Biblioteca",
+  "catalogMyCharacters": "Mis personajes",
+  "catalogLoadFailed": "No se pudo cargar la biblioteca",
+  "catalogCheckNetwork": "Revisa tu conexión e inténtalo de nuevo.",
+  "catalogSearch": "Buscar personajes, videos o géneros",
+  "catalogRefresh": "Actualizar biblioteca",
+  "catalogSource": "Origen",
+  "catalogFormat": "Formato",
+  "catalogGenre": "Género",
+  "catalogAll": "Todos",
+  "catalogOfficial": "De Hildors",
+  "catalogCreatorWorks": "Contenido de creadores",
+  "catalogAnonymous": "Creador anónimo",
+  "catalogSingle": "Video individual",
+  "catalogPackage": "Paquete de personaje",
+  "catalogEmpty": "No hay contenido que coincida",
+  "catalogClear": "Borrar filtros",
+  "catalogResults": "Resultados",
+  "catalogDescriptionMissing": "La descripción del personaje aún no está disponible",
+  "catalogPackVideos": "Videos de este paquete",
+  "catalogVideo": "Video",
+  "catalogNoPreview": "La vista previa no está disponible en este momento",
+  "catalogDurationUnknown": "Duración no disponible",
+  "catalogStoryMissing": "Aún no hay historia del personaje",
+  "catalogStory": "Historia del personaje",
+  "catalogStoryCollapse": "Contraer historia",
+  "catalogStoryExpand": "Leer historia completa",
+  "catalogImageLoading": "Cargando imagen",
+  "catalogImageRetry": "No se pudo cargar la imagen. Toca para reintentar",
+  "playerNoSource": "No hay videos disponibles",
+  "playerBuffering": "Almacenando video en búfer…",
+  "playerLoading": "Cargando video…",
+  "playerSlow": "Está tardando más de lo esperado. Revisa tu conexión o vuelve a intentarlo.",
+  "playerPause": "Pausar vista previa",
+  "playerPlay": "Reproducir vista previa",
+  "playerZoom": "Pellizca para ampliar · Toca dos veces para restablecer",
+  "playerFailed": "La reproducción falló. Inténtalo de nuevo.",
+  "playerTimeout": "Se agotó el tiempo de carga del video. Inténtalo de nuevo.",
+  "playerLoadFailed": "No se pudo cargar el video. Inténtalo de nuevo.",
+  "playerAuthFailed": "No se pudo actualizar el acceso. Vuelve a tus envíos e inténtalo de nuevo.",
+  "downloadTitle": "Guardar en Mis personajes",
+  "downloadUnavailable": "Las compras no están disponibles",
+  "downloadFree": "Descargar gratis",
+  "downloadInfo": "Los videos gratuitos se pueden descargar y ver sin conexión en Mis personajes. Las compras no están disponibles.",
+  "downloadCancel": "Cancelar descarga",
+  "downloadAvailable": "Descargar videos disponibles",
+  "downloadDone": "Descargado",
+  "downloadRefresh": "Actualizar acceso",
+  "downloadView": "Ver Mis personajes",
+  "downloadDisabled": "Las descargas no están disponibles temporalmente. Inténtalo más tarde.",
+  "downloadSignIn": "Inicia sesión de nuevo para descargar.",
+  "downloadDenied": "Este video no está disponible para descargar. Actualiza el acceso e inténtalo de nuevo.",
+  "downloadAccessFailed": "No se pudo verificar el acceso a la descarga. Revisa tu conexión y tu cuenta e inténtalo de nuevo.",
+  "downloadFinished": "Descarga completada. Se guardó en Mis personajes.",
+  "downloadCancelled": "Descarga cancelada. Los videos ya descargados permanecen en Mis personajes.",
+  "downloadFailed": "Descarga incompleta. Revisa tu conexión, el almacenamiento y el acceso a tu cuenta e inténtalo de nuevo.",
+  "catalogSummary": "{count} elementos · {creators} de creadores",
+  "@catalogSummary": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "creators": {
+        "type": "int"
+      }
+    }
+  },
+  "catalogRefreshed": "Biblioteca actualizada: {count} elementos, incluidos {creators} de creadores",
+  "@catalogRefreshed": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "creators": {
+        "type": "int"
+      }
+    }
+  },
+  "catalogCount": "{format} · {count} videos",
+  "@catalogCount": {
+    "placeholders": {
+      "format": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "catalogSeconds": "{seconds} s",
+  "@catalogSeconds": {
+    "placeholders": {
+      "seconds": {
+        "type": "String"
+      }
+    }
+  },
+  "catalogCreatorSpace": "Creaciones de {name}",
+  "@catalogCreatorSpace": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "catalogPublished": "Creaciones publicadas · {count}",
+  "@catalogPublished": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "downloadProgress": "Descargados: {count}/{total}",
+  "@downloadProgress": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "downloadActive": "Descargando: {name}",
+  "@downloadActive": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "downloadPrice": "US$ {price} · Comprar para descargar",
+  "@downloadPrice": {
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "controlsDeleteTitle": "¿Eliminar las descargas locales?",
+  "controlsDeleteNote": "Se eliminarán de la aplicación los archivos descargados de esta colección. Conservarás el acceso en la nube para volver a descargarlos.",
+  "controlsCancel": "Cancelar",
+  "controlsDelete": "Eliminar",
+  "controlsDeleteFailed": "No se pudo eliminar. Inténtalo de nuevo.",
+  "controlsDeleteLocal": "Eliminar descargas locales",
+  "controlsNoVideos": "Aún no hay videos disponibles para este personaje.",
+  "controlsPreviewLocal": "Vista previa del video descargado",
+  "controlsExamples": "Colecciones de muestra oficiales · Seleccionar videos",
+  "controlsChooseList": "Elige una lista de reproducción",
+  "controlsPendingNote": "Los videos se añaden primero a los elementos pendientes. Aún no se han subido al dispositivo.",
+  "controlsStartup": "Visualización diaria",
+  "controlsBluetooth": "Modo música",
+  "controlsAddFailed": "No se pudieron añadir los videos. Inténtalo de nuevo.",
+  "controlsMyCharacters": "Mis personajes",
+  "controlsLoadFailed": "No se pudieron cargar tus personajes. Toca para reintentar.",
+  "controlsEmpty": "Aún no hay personajes disponibles",
+  "controlsEmptyNote": "Descarga un personaje de la biblioteca de contenido y luego elige sus videos.",
+  "controlsLibrary": "Biblioteca de contenido",
+  "controlsBrowse": "Explorar biblioteca de contenido",
+  "controlsPickNote": "Elige un personaje y luego selecciona videos para esta lista.",
+  "controlsListNote": "Añade videos de personajes a Visualización diaria o Modo música.",
+  "controlsUnavailable": "No hay videos disponibles",
+  "controlsSelect": "Seleccionar videos",
+  "controlsAdd": "Añadir a la lista",
+  "controlsControlTitle": "Panel de control",
+  "controlsBrightness": "Brillo",
+  "controlsAngle": "Ángulo (unidades y rango del dispositivo sin confirmar)",
+  "controlsSpeakerTitle": "Definir nombre del altavoz Bluetooth",
+  "controlsSpeakerName": "Nombre del altavoz",
+  "controlsSave": "Guardar",
+  "controlsSpeaker": "Altavoz Bluetooth",
+  "controlsConnectSpeaker": "Conecta el dispositivo para leer el nombre de su altavoz.",
+  "controlsReading": "Leyendo…",
+  "controlsNameUnknown": "Nombre sin cargar",
+  "controlsRefreshName": "Actualizar nombre",
+  "controlsEditName": "Editar nombre",
+  "controlsDisconnected": "Desconectado",
+  "controlsConnecting": "Conectando…",
+  "controlsReconnecting": "Reconectando…",
+  "controlsConnected": "Conectado",
+  "controlsIp": "IP del dispositivo",
+  "controlsPort": "Puerto predeterminado: 8900",
+  "controlsStopReconnect": "Detener reconexión",
+  "controlsDisconnect": "Desconectar",
+  "controlsConnect": "Conectar",
+  "controlsQuick": "Controles rápidos",
+  "controlsPowerOn": "Encender",
+  "controlsPowerOff": "Apagar",
+  "controlsPrevious": "Anterior",
+  "controlsPause": "Pausar",
+  "controlsPlay": "Reproducir",
+  "controlsNext": "Siguiente",
+  "controlsRefreshStatus": "Actualizar estado",
+  "controlsStatus": "Estado del dispositivo",
+  "controlsLan": "Control por red local",
+  "controlsMode": "Modo de funcionamiento",
+  "controlsAudioSource": "Fuente de audio Bluetooth",
+  "controlsProtocol": "Pendiente de compatibilidad del protocolo",
+  "controlsLocalPlayback": "Reproducción del dispositivo",
+  "controlsBluetoothWaiting": "Esperando Bluetooth",
+  "controlsBluetoothAudio": "Audio Bluetooth",
+  "controlsWaitingSource": "Esperando una fuente de audio",
+  "controlsAudioPlaying": "Audio en reproducción",
+  "controlsAudioPaused": "Audio en pausa",
+  "controlsWasDisconnected": "Desconectado",
+  "controlsBatteryFull": "Carga completa",
+  "controlsBattery": "Batería del dispositivo",
+  "controlsProtocolNote": "El protocolo actual no informa del modo de funcionamiento ni del estado de Bluetooth. Estos indicadores requieren una actualización del protocolo del dispositivo.",
+  "controlsPackageCount": "Colección de personaje · {count} videos",
+  "@controlsPackageCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "controlsDownloaded": "{count}/{total} videos descargados",
+  "@controlsDownloaded": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "controlsSeconds": "{seconds} segundos",
+  "@controlsSeconds": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "controlsAddCount": "Añadir {count} videos a pendientes",
+  "@controlsAddCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "controlsVideoCount": "{count} videos",
+  "@controlsVideoCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "controlsAdded": "Añadido a los pendientes de {list}. Aún no se ha subido al dispositivo.",
+  "@controlsAdded": {
+    "placeholders": {
+      "list": {
+        "type": "String"
+      }
+    }
+  },
+  "controlsNamedPlaying": "{name} · En reproducción",
+  "@controlsNamedPlaying": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "controlsNamedPaused": "{name} · En pausa",
+  "@controlsNamedPaused": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "controlsCharging": "{percent}% · Cargando",
+  "@controlsCharging": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "coreHome": "Inicio",
+  "coreCollection": "Colección",
+  "coreExplore": "Explorar",
+  "coreProfile": "Perfil",
+  "coreDeviceControl": "Controles del dispositivo",
+  "coreCustomCharacter": "Personaliza tu personaje holográfico",
+  "corePlaylists": "Listas del dispositivo",
+  "corePlaylistSubtitle": "Modos de visualización y música",
+  "coreDisplay": "Modo visualización",
+  "coreStartupSubtitle": "Gestionar el contenido reproducido al encender",
+  "coreMusic": "Modo música",
+  "coreBluetoothSubtitle": "Gestionar el contenido reproducido con audio Bluetooth",
+  "coreOnline": "En línea",
+  "coreDisconnected": "Desconectado",
+  "coreDeviceConnected": "Dispositivo conectado",
+  "coreConnecting": "Conectando…",
+  "coreReconnecting": "Reconectando…",
+  "coreDeviceDisconnected": "Dispositivo desconectado",
+  "coreLanControl": "Control por red local · P20 / P20 PORTAL",
+  "coreConnectP20": "Conectar dispositivo",
+  "coreConnectionSettings": "Panel de control",
+  "coreDeviceManagement": "Gestión del dispositivo",
+  "coreDevices": "Dispositivos",
+  "corePlaylist": "Listas de reproducción",
+  "coreDeviceContent": "Contenido del dispositivo",
+  "coreCharacterAssets": "Personajes",
+  "coreCustomOrders": "Pedidos personalizados",
+  "coreOrdersSubtitle": "Sigue la producción y la entrega. Encontrarás los personajes recibidos en Colección.",
+  "coreCreatorCenter": "Centro de creadores",
+  "coreCreatorSubtitle": "Solicitudes, tareas de producción e ingresos",
+  "coreSupport": "Soporte",
+  "corePlaybackGuide": "Modos de reproducción",
+  "corePlaybackGuideSubtitle": "Descubre cómo cambian los modos de visualización y música",
+  "coreLanHelp": "Ayuda con la red local",
+  "coreLanHelpSubtitle": "Conectarse al punto de acceso de P20 / P20 PORTAL y resolver problemas",
+  "coreAppSettings": "Ajustes del dispositivo y la aplicación",
+  "coreAppSettingsSubtitle": "Opciones del dispositivo, preferencias de reproducción y versión",
+  "coreAbout": "Acerca de HILDORS",
+  "coreAboutSubtitle": "Portal de personajes · Compatible con P20 / P20 PORTAL",
+  "corePlayerProfile": "Perfil de usuario",
+  "coreLocalAccount": "Perfil local · Guardado en este dispositivo",
+  "coreDeviceSettings": "Ajustes del dispositivo",
+  "coreReadFailed": "No se pudo leer el estado del dispositivo. Conéctate a su red Wi-Fi e inténtalo de nuevo.",
+  "coreSettingFailed": "No se pudo aplicar el ajuste. Revisa la conexión del dispositivo e inténtalo de nuevo.",
+  "corePlaybackBehavior": "Ajustes de reproducción",
+  "coreLoopMode": "Modo de repetición",
+  "coreLoopSubtitle": "Elige cómo repite el dispositivo la lista actual",
+  "coreConnectToChange": "Conéctate para consultar y cambiar los ajustes",
+  "coreDeviceInfo": "Información del dispositivo",
+  "coreLanCockpit": "Dispositivo de red local",
+  "coreNotRead": "Aún sin leer",
+  "coreReadInfo": "Leer información del dispositivo",
+  "coreHelp": "Ayuda",
+  "coreModesHelpSubtitle": "Cambio automático entre los modos de visualización y música",
+  "coreHotspotHelp": "Conexión al punto de acceso del dispositivo y solución de problemas",
+  "coreDeviceConnecting": "Conectando al dispositivo",
+  "coreDeviceReconnecting": "Restableciendo conexión",
+  "coreCockpitOnline": "Dispositivo en línea",
+  "coreGoHomeConnect": "Ve a Inicio para conectar tu P20 / P20 PORTAL",
+  "coreOpeningLan": "Estableciendo control por red local",
+  "coreRetryingLan": "Conexión interrumpida. Reintentando automáticamente",
+  "coreLanReady": "Control por red local conectado",
+  "coreSync": "Sincronizar estado del dispositivo",
+  "coreSingleLoop": "Repetir uno",
+  "coreSequenceLoop": "Repetir todos",
+  "coreRandomLoop": "Reproducción aleatoria",
+  "coreSingleOnce": "Reproducir una vez",
+  "coreCheckWifi": "Revisa el Wi-Fi de tu teléfono",
+  "coreCheckWifiBody": "Conecta tu teléfono al punto de acceso de P20 o al mismo router que tu P20.",
+  "coreCheckAddress": "Revisa la dirección de control",
+  "coreCheckAddressBody": "En modo de punto de acceso, la dirección predeterminada es 192.168.4.1 y el puerto TCP es 8900.",
+  "coreLanPermission": "Permitir acceso a la red local",
+  "coreLanPermissionBody": "En iOS, permite el acceso a la red local. En Android, concede los permisos solicitados de dispositivos cercanos y red.",
+  "coreReconnect": "Reconectar",
+  "coreReconnectBody": "Vuelve a los controles del dispositivo y toca Conectar. Tras una desconexión inesperada, la aplicación reintenta la conexión después de 1, 2, 4, 8, 15 y 30 segundos.",
+  "coreOfflineWifiHelp": "El aviso «Sin internet» no significa necesariamente que el control del dispositivo haya fallado. Puedes seguir controlándolo mientras tu teléfono permanezca en la red local de P20.",
+  "coreLocalPlayback": "Reproducción del dispositivo",
+  "coreLocalPlaybackBody": "P20 reproduce los videos guardados en el dispositivo, incluido su audio. Usa este modo para la reproducción al encender, las secuencias repetidas y el contenido fijo.",
+  "coreBluetoothSpeaker": "Altavoz Bluetooth",
+  "coreBluetoothSpeakerBody": "Un teléfono o una computadora envía audio a P20 por Bluetooth mientras P20 reproduce el video configurado para el modo Bluetooth.",
+  "coreSeparateConnections": "Hildors controla P20 por Wi-Fi local. El control por red local y el audio Bluetooth usan conexiones independientes.",
+  "coreCharacterPortal": "Portal de personajes",
+  "coreExploreSubtitle": "Personaliza personajes, comparte tus deseos y crea.",
+  "coreWishSubtitle": "Comparte tus deseos y sigue las novedades sobre licencias",
+  "coreCreatorExploreSubtitle": "Solicitudes, tareas e ingresos",
+  "coreWish": "Deseos de personajes",
+  "coreCustomize": "Personaliza tu personaje",
+  "coreEnter": "Abrir",
+  "coreCreatorFreeSubtitle": "Solicita la verificación de creador y publica contenido gratuito",
+  "coreExploreFreeSubtitle": "Explora oportunidades para crear y compartir contenido gratuito.",
+  "coreConnectionFailed": "No se pudo conectar. Conecta el teléfono al Wi-Fi del dispositivo e inténtalo de nuevo.",
+  "coreSystemLabel": "SISTEMA DEL DISPOSITIVO",
+  "coreProfileLabel": "PERFIL DE USUARIO",
+  "coreLocalLabel": "LOCAL",
+  "corePilotLabel": "PILOTO HILDORS",
+  "coreServiceLabel": "SERVICIO PRINCIPAL",
+  "coreCreatorLabel": "CREADOR",
+  "coreOnlineLabel": "EN LÍNEA",
+  "coreConnectingLabel": "CONECTANDO",
+  "coreReconnectingLabel": "RECONECTANDO",
+  "coreOfflineLabel": "SIN CONEXIÓN",
+  "creatorWorkbench": "Estudio de creadores",
+  "creatorOriginal": "Contenido original",
+  "creatorFreeNote": "Sube un video o una colección de personaje para revisión. Esta versión solo admite envíos gratuitos. El contenido se publica tras su aprobación.",
+  "creatorPublishingNote": "Sube videos o colecciones de personajes para revisión. Los creadores estándar y verificados publican contenido gratuito; los socios pueden fijar precios.",
+  "creatorSubmissions": "Subir / Mis envíos",
+  "creatorTasks": "Proyectos personalizados",
+  "creatorTasksNote": "Consulta los proyectos disponibles y los pedidos personalizados en curso",
+  "customPlansTitle": "Videos personalizados",
+  "customOrdersTitle": "Mis pedidos personalizados",
+  "customUnavailable": "Los pagos de la tienda aún no están conectados. No se puede realizar ningún cobro.",
+  "customBase": "Precio base de referencia en USD: {price}. Al pagar se usa el precio de la tienda.",
+  "customSeconds": "Video de {seconds} segundos",
+  "customRequest": "Enviar requisitos para revisión",
+  "customName": "Nombre del personaje / proyecto",
+  "customRequirements": "Tus requisitos",
+  "customMaterials": "Añadir imágenes de referencia",
+  "customMaterialCount": "{count} imágenes de referencia",
+  "customPrivacy": "Los materiales de referencia se usan para evaluar y producir este pedido privado. Su exhibición pública requiere un consentimiento aparte.",
+  "customConsent": "Acepto que se usen estos materiales para este pedido.",
+  "customValidation": "Introduce un nombre de proyecto y los requisitos, y confirma el aviso de uso de materiales.",
+  "customImageError": "Elige hasta 8 imágenes JPG/PNG, de un máximo de 8 MB cada una.",
+  "customSubmitted": "Solicitud enviada para revisión. No se ha realizado ningún cobro.",
+  "customTerms": "Revisa el alcance confirmado antes de pagar",
+  "customContent": "Contenido que se entregará",
+  "customPeriod": "Plazo de entrega",
+  "customRevisions": "Alcance de las revisiones",
+  "customRights": "Derechos de uso",
+  "customAcceptTerms": "Acepto este alcance confirmado y sus condiciones.",
+  "customPay": "Pagar {price}",
+  "customRestore": "Consultar compras pendientes",
+  "customTestMode": "PAGO DE PRUEBA — sin cargos reales",
+  "customAccept": "Aceptar entrega",
+  "customRevise": "Solicitar revisión",
+  "customRevisionNote": "Describe la revisión que solicitas",
+  "customStatusReview": "Requisitos en revisión",
+  "customStatusInfo": "Se necesita más información",
+  "customStatusQuote": "Alcance confirmado; pendiente de pago",
+  "customStatusMaking": "En producción",
+  "customStatusQc": "Revisión de calidad",
+  "customStatusAccept": "Listo para tu revisión",
+  "customStatusDelivered": "Entregado",
+  "customStatusRejected": "Solicitud rechazada",
+  "customStatusWithdrawn": "Retirado / reembolsado",
+  "customPending": "El pago está pendiente. La producción comienza solo después de la verificación del servidor.",
+  "customEmpty": "Aún no hay elementos disponibles.",
+  "@customBase": {
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "@customPay": {
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "@customSeconds": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "@customMaterialCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "customAudioNone": "Sin audio — paquete básico",
+  "customAudioMatched": "Audio seleccionado por la plataforma",
+  "customAudioHelp": "Seleccionamos música de fondo o efectos de sonido sencillos para tu video. No se admiten canciones específicas, narraciones ni archivos de audio subidos.",
+  "customAudioTotal": "Total de referencia en USD: {price}",
+  "customAudioRate": "Recargo por selección de audio: {percent}%",
+  "@customAudioTotal": {
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "@customAudioRate": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "customSupplement": "Actualizar requisitos y volver a enviar",
+  "customSupplementSaved": "Requisitos actualizados enviados para revisión.",
+  "customSaveDelivery": "Guardar entrega en Mis personajes",
+  "customSavedDelivery": "Guardado en Mis personajes para usar sin conexión.",
+  "customSavingDelivery": "Descargando entrega privada…",
+  "customConfirmDelivery": "¿Aceptar esta versión como entrega final?",
+  "customRevisionLimit": "Solicitudes de revisión: {used} de {limit}",
+  "@customRevisionLimit": {
+    "placeholders": {
+      "used": {
+        "type": "int"
+      },
+      "limit": {
+        "type": "int"
+      }
+    }
+  },
+  "customProgress": "Avances de producción",
+  "deletionTitle": "Eliminar cuenta",
+  "deletionExplanation": "Solicita la eliminación de tu cuenta de Hildors y sus datos asociados. Se enviará una solicitud para revisión; los datos no se eliminarán de inmediato ni se cerrará tu sesión. Puedes consultar su estado aquí o cancelarla mientras esté pendiente.",
+  "deletionSubmit": "Solicitar eliminación de la cuenta",
+  "deletionConfirm": "¿Enviar esta solicitud de eliminación? Tu cuenta seguirá activa mientras se revise la solicitud.",
+  "deletionNone": "No hay solicitudes de eliminación pendientes.",
+  "deletionReceived": "Solicitud recibida",
+  "deletionReview": "En revisión",
+  "deletionInformation": "Se necesita más información",
+  "deletionCancelled": "Solicitud cancelada",
+  "deletionCancel": "Cancelar solicitud de eliminación",
+  "deletionRefresh": "Actualizar estado",
+  "deletionReference": "ID de solicitud: {id}",
+  "@deletionReference": {
+    "placeholders": {
+      "id": {
+        "type": "String"
+      }
+    }
+  },
+  "devicePlayingDelete": "Reproduce otro video antes de eliminar este.",
+  "deviceDeleteTitle": "¿Eliminar este archivo del dispositivo de forma permanente?",
+  "deviceDeleteIntro": "Este video se eliminará permanentemente del dispositivo holográfico:",
+  "deviceDeleteNote": "Esta acción no se puede deshacer. Las copias descargadas en tu teléfono y los registros de compra se conservarán.",
+  "deviceCancel": "Cancelar",
+  "deviceDelete": "Eliminar permanentemente",
+  "deviceVideoLibrary": "Videos del dispositivo",
+  "deviceRefresh": "Actualizar",
+  "deviceConnectFirst": "Primero conecta tu dispositivo en Controles.",
+  "deviceReadVideos": "Cargar videos del dispositivo",
+  "devicePlaying": "En reproducción",
+  "devicePlay": "Reproducir",
+  "deviceMore": "Más acciones",
+  "deviceDeleteFrom": "Eliminar del dispositivo",
+  "frameSaved": "Encuadre guardado. El video original no ha cambiado; no se ha convertido ni subido.",
+  "frameSaveFailed": "No se pudo guardar. Inténtalo de nuevo.",
+  "frameTitle": "Ajustar encuadre circular",
+  "frameCircle": "El círculo marca el área de visualización del dispositivo.",
+  "frameInstructions": "Pellizca para ampliar y arrastra para cambiar la posición. Reproduce el video completo para comprobar que el personaje y sus movimientos permanecen dentro del círculo.",
+  "framePause": "Pausar vista previa",
+  "framePlay": "Reproducir vista previa",
+  "framePlaybackFailed": "La reproducción falló. Vuelve atrás e inténtalo de nuevo.",
+  "frameZoom": "Ampliación",
+  "frameFit": "Ajustar cuadro completo",
+  "frameFill": "Rellenar círculo",
+  "frameReset": "Restablecer",
+  "frameFitNote": "Ajustar conserva el cuadro completo. Rellenar recorta los bordes.",
+  "frameRestoreFailed": "No se pudo cargar el encuadre guardado. Ajústalo y guárdalo de nuevo.",
+  "frameSaving": "Guardando…",
+  "frameSave": "Guardar encuadre",
+  "frameUnavailable": "Convertir y subir · No disponible",
+  "framePending": "Por ahora solo se guarda el encuadre. La conversión de video para el dispositivo aún no está disponible.",
+  "framePreviewFailed": "No se pudo cargar la vista previa. Vuelve atrás e inténtalo de nuevo.",
+  "deviceDeleted": "Se eliminó {name} del dispositivo.",
+  "frameTime": "{position} / {duration} segundos",
+  "@deviceDeleted": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@frameTime": {
+    "placeholders": {
+      "position": {
+        "type": "int"
+      },
+      "duration": {
+        "type": "int"
+      }
+    }
+  },
+  "governanceReport": "Denunciar contenido",
+  "governanceBlock": "Bloquear creador",
+  "governanceCopyright": "Infracción de derechos de autor",
+  "governanceAbuse": "Acoso o abuso",
+  "governanceSexual": "Contenido sexual",
+  "governanceViolence": "Violencia",
+  "governanceSpam": "Contenido no deseado",
+  "governanceOther": "Otro",
+  "governanceDetails": "Detalles (opcional)",
+  "governanceReportNote": "Tu denuncia se enviará a nuestro equipo de revisión. Si se trata de derechos de autor, describe la obra original y dónde aparece. No incluyas información personal sensible.",
+  "governanceCancel": "Cancelar",
+  "governanceSubmit": "Enviar denuncia",
+  "governanceReceived": "Denuncia recibida. Referencia: {reference}",
+  "@governanceReceived": {
+    "placeholders": {
+      "reference": {
+        "type": "String"
+      }
+    }
+  },
+  "governanceBlockNote": "Oculta el contenido de este creador en el catálogo de esta cuenta. Puedes desbloquearlo en Denuncias y creadores bloqueados.",
+  "governanceBlocked": "Creador bloqueado.",
+  "governanceAuthError": "Tu sesión ha caducado. Inicia sesión de nuevo.",
+  "governanceUnavailableError": "Este contenido ya no está disponible.",
+  "governanceInvalidError": "Revisa tu denuncia e inténtalo de nuevo.",
+  "governanceConflictError": "Esta acción no está disponible. Actualiza e inténtalo de nuevo.",
+  "governanceNetworkError": "No se pudo conectar. Inténtalo de nuevo.",
+  "governanceTitle": "Denuncias y creadores bloqueados",
+  "governanceRefresh": "Actualizar",
+  "governanceReports": "Mis denuncias",
+  "governanceBlocks": "Creadores bloqueados",
+  "governanceEmpty": "Aún no hay elementos.",
+  "governanceUnblock": "Desbloquear",
+  "governanceStatusReceived": "Recibida",
+  "governanceStatusReview": "En revisión",
+  "governanceStatusAction": "Medidas tomadas",
+  "governanceStatusNoViolation": "No se encontró ninguna infracción",
+  "playlistFromCharacters": "Elegir de Mis personajes",
+  "playlistChooseCharacter": "Elige videos de tus personajes",
+  "playlistFromPhone": "Importar del teléfono",
+  "playlistFromDevice": "Añadir videos existentes del dispositivo",
+  "playlistPickFailed": "No se pudo seleccionar un video. Inténtalo de nuevo.",
+  "playlistPendingSaveFailed": "No se pudieron guardar los elementos pendientes y podrían perderse al salir. Inténtalo de nuevo.",
+  "playlistRetry": "Reintentar",
+  "playlistReselectTitle": "Selecciona de nuevo el video original",
+  "playlistReselectNote": "El archivo se movió o se borró su caché temporal. La entrada de la lista permanece. Vuelve a seleccionar el original y confirma su encuadre.",
+  "playlistCancel": "Cancelar",
+  "playlistReselect": "Seleccionar de nuevo",
+  "playlistReadFailed": "No se pudo leer el video. Inténtalo de nuevo.",
+  "playlistOriginalTitle": "Se necesita el video original",
+  "playlistOriginalNote": "En el dispositivo solo está disponible el nombre del archivo. Elige el video original de tu teléfono para ajustar el encuadre. Al guardar solo se registra el encuadre; al convertir y subir se añade un nuevo archivo al dispositivo y se conserva el original.",
+  "playlistChooseOriginal": "Elegir video original",
+  "playlistOriginalFailed": "No se pudo leer el video original. Inténtalo de nuevo.",
+  "playlistRemovePending": "¿Quitar el video pendiente?",
+  "playlistRemovePendingNote": "Solo se quitará esta entrada de la lista. Se conservarán los videos del teléfono y del dispositivo.",
+  "playlistRemove": "Quitar",
+  "playlistReadLocalFailed": "No se pudo cargar la lista local. Inténtalo de nuevo.",
+  "playlistSaveLocalFailed": "No se pudo guardar la lista local. Inténtalo de nuevo.",
+  "playlistAddDevice": "Añadir desde la biblioteca del dispositivo",
+  "playlistAllAdded": "Todos los videos del dispositivo ya están en este borrador.",
+  "playlistConnectFirst": "Conecta el dispositivo antes de reproducir.",
+  "playlistNotUploaded": "Este video no está en el dispositivo. Es necesario convertirlo y subirlo antes de reproducirlo.",
+  "playlistRemoveTitle": "¿Quitar de la lista?",
+  "playlistRemoveList": "Quitar de la lista",
+  "playlistUndo": "Deshacer",
+  "playlistTitle": "Listas del dispositivo",
+  "playlistReadDevice": "Leer videos del dispositivo",
+  "playlistStartup": "Al encender",
+  "playlistBluetooth": "Bluetooth",
+  "playlistStartupNote": "El dispositivo reproduce esta lista al encenderse.",
+  "playlistBluetoothNote": "El dispositivo cambia a esta lista cuando se conecta Bluetooth.",
+  "playlistLoop": "Modo de repetición",
+  "playlistListLoop": "Repetir lista",
+  "playlistSingleLoop": "Repetir uno",
+  "playlistOnce": "Reproducir una vez",
+  "playlistOrder": "Orden de reproducción",
+  "playlistAddVideo": "Añadir video",
+  "playlistPendingLoadFailed": "No se pudieron cargar los elementos pendientes. Toca para reintentar.",
+  "playlistPending": "Videos pendientes · Sin subir al dispositivo",
+  "playlistPendingNote": "Las entradas pendientes hacen referencia a los archivos originales. La conversión aún no está disponible. Mantén los archivos originales en su ubicación después de ajustar el encuadre.",
+  "playlistConvertPending": "Pendiente de conversión · Sin subir",
+  "playlistFrame": "Ajustar encuadre",
+  "playlistRemovePendingAction": "Quitar video pendiente",
+  "playlistEmpty": "Esta lista está vacía",
+  "playlistFirst": "Primer video predeterminado",
+  "playlistUp": "Mover arriba",
+  "playlistDown": "Mover abajo",
+  "playlistRemoveDraft": "Quitar del borrador",
+  "playlistSaveDevice": "Guardar en el dispositivo · Pendiente de compatibilidad del protocolo",
+  "playlistRecovery": "Tras desconectar Bluetooth",
+  "playlistRecoveryNote": "Reanudar el video anterior del dispositivo cuando sea compatible. Pendiente de confirmación del protocolo.",
+  "playlistDisconnected": "Dispositivo desconectado",
+  "playlistReadDeviceFailed": "Red conectada · No se pudo leer el dispositivo",
+  "playlistReadDeviceReady": "Red conectada · Toca para leer",
+  "playlistReadNote": "Lee el contenido del dispositivo para verificar la conexión de control.",
+  "playlistConnectNote": "Conéctate al Wi-Fi del dispositivo y luego lee su lista.",
+  "playlistRead": "Leer",
+  "playlistSourceTitle": "{name} · Encuadre original",
+  "@playlistSourceTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "playlistSent": "Enviado al dispositivo: {name}",
+  "@playlistSent": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "playlistRemoveNote": "Quitar «{name}» solo de esta lista. Se conservarán los archivos del teléfono y del dispositivo.",
+  "@playlistRemoveNote": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "playlistRemoved": "Se quitó {name} de la lista",
+  "@playlistRemoved": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "playlistCount": "{count} videos",
+  "@playlistCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "playlistDeviceCount": "El dispositivo responde · {count} videos",
+  "@playlistDeviceCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "submissionDraftSaved": "Borrador guardado. Sube tus videos y luego envíalos para revisión.",
+  "submissionTitle": "Mis envíos",
+  "submissionRefresh": "Actualizar envíos",
+  "submissionCreate": "Crear envío",
+  "submissionEmpty": "Aún no hay envíos. Crea un borrador, sube tus videos y envíalo tras la validación.",
+  "submissionUpdated": "Envío actualizado.",
+  "submissionFree": "Gratis",
+  "submissionPaid": "De pago",
+  "submissionPrice": "Precio (USD)",
+  "submissionDecimals": "Hasta dos decimales",
+  "submissionInvalidPrice": "Introduce un precio positivo en USD con hasta dos decimales.",
+  "submissionReviewNote": "Todos los videos deben revisarse antes de su publicación.",
+  "submissionCancel": "Cancelar",
+  "submissionSavePrice": "Guardar precio",
+  "submissionSubmitted": "Enviado para revisión. La edición está bloqueada durante la revisión.",
+  "submissionPartnerNote": "Los socios pueden publicar videos gratuitos o de pago. Todo el contenido debe revisarse.",
+  "submissionFreeNote": "Envía videos gratuitos o colecciones de personajes para revisión.",
+  "submissionCharacterPackage": "Colección de personaje",
+  "submissionSingleVideo": "Video individual",
+  "submissionRejectedReason": "Cambios solicitados",
+  "submissionReviewFeedback": "Comentarios de la revisión",
+  "submissionName": "Título",
+  "submissionNameRequired": "Introduce un título.",
+  "submissionFormat": "Formato del contenido",
+  "submissionSingle": "Video individual",
+  "submissionPackage": "Colección de videos",
+  "submissionTags": "Etiquetas de contenido",
+  "submissionNoTags": "Las etiquetas de contenido aún no están disponibles.",
+  "submissionStory": "Historia del personaje",
+  "submissionStoryRequired": "Introduce una historia del personaje.",
+  "submissionVideos": "Videos",
+  "submissionAddVideo": "Añadir video",
+  "submissionRemoveVideo": "Quitar video",
+  "submissionVideoNameRequired": "Introduce un título para el video.",
+  "submissionSaveDraft": "Guardar borrador",
+  "submissionSaveInfo": "Guardar detalles",
+  "submissionCoverUploaded": "Portada subida",
+  "submissionCover": "Portada de la colección",
+  "submissionCoverTypes": "JPG o PNG",
+  "submissionReplace": "Reemplazar",
+  "submissionUpload": "Subir",
+  "submissionSetPrice": "Fijar precio",
+  "submissionMakeFree": "Ofrecer gratis",
+  "submissionReplaceMp4": "Reemplazar MP4",
+  "submissionUploadMp4": "Subir MP4",
+  "submissionCheckVideo": "Validar video",
+  "submissionResubmit": "Volver a enviar para revisión",
+  "submissionSubmit": "Enviar para revisión",
+  "submissionRequirements": "Valida todos los videos antes de enviarlos. Las colecciones también requieren una portada.",
+  "submissionInfo": "Detalles del contenido",
+  "submissionNoStory": "Aún no hay historia del personaje.",
+  "submissionRetry": "Reintentar",
+  "submissionPending": "En revisión",
+  "submissionPublished": "Publicado",
+  "submissionApproved": "Aprobado, pendiente de publicación",
+  "submissionRejected": "Cambios solicitados",
+  "submissionDraft": "Borrador",
+  "submissionNoMedia": "No se ha subido ningún video",
+  "submissionChecked": "Validación superada",
+  "submissionProcessing": "Validando video",
+  "submissionFailed": "La validación falló. Reemplaza el video e inténtalo de nuevo.",
+  "submissionWaiting": "Subido, pendiente de validación",
+  "submissionApprovalError": "El acceso de creador no está aprobado o está suspendido. Consulta la página de verificación.",
+  "submissionDataError": "No se pudieron leer los datos del envío. Actualiza e inténtalo de nuevo.",
+  "submissionLoadError": "No se pudieron cargar los envíos. Inténtalo más tarde.",
+  "submissionSessionError": "Tu sesión ha caducado. Inicia sesión de nuevo.",
+  "submissionAccessError": "Se necesita una cuenta activa de creador verificado.",
+  "submissionPaidError": "Esta cuenta no permite contenido de pago. Configura el video como gratuito antes de enviarlo.",
+  "submissionPriceError": "Introduce un precio válido en USD con hasta dos decimales.",
+  "submissionConflictError": "El envío ha cambiado. Actualiza e inténtalo de nuevo.",
+  "submissionMediaError": "Primero sube y valida todos los videos.",
+  "submissionCoverError": "Primero sube una portada para la colección.",
+  "submissionTagError": "Algunas etiquetas ya no están disponibles. Actualiza y vuelve a seleccionarlas.",
+  "submissionServerError": "El servicio no está disponible. Inténtalo más tarde.",
+  "submissionRequestError": "No se pudo completar la acción. Revisa tu contenido e inténtalo de nuevo.",
+  "submissionAccountChanged": "Tu cuenta ha cambiado. Actualiza los envíos.",
+  "submissionPreviewError": "El video no se ha subido o la vista previa no está disponible.",
+  "submissionVideoPrice": "Precio del video · {name}",
+  "@submissionVideoPrice": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "submissionVideoName": "Título del video {index}",
+  "@submissionVideoName": {
+    "placeholders": {
+      "index": {
+        "type": "int"
+      }
+    }
+  },
+  "submissionLegacyTag": "{name} (antigua)",
+  "@submissionLegacyTag": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "p20Refresh": "Actualizar lista del dispositivo",
+  "p20Daily": "A Diario",
+  "p20Bluetooth": "B Bluetooth",
+  "p20ConnectNote": "Conéctate para ver la lista guardada en tu dispositivo",
+  "p20ConnectWifi": "Conecta tu teléfono al Wi-Fi del dispositivo y luego toca Conectar dispositivo.",
+  "p20Connecting": "Conectando…",
+  "p20Connect": "Conectar dispositivo",
+  "p20Reading": "Leyendo lista del dispositivo…",
+  "p20ReadFailed": "No se pudo leer la lista del dispositivo",
+  "p20Mode": "Modo de reproducción (compartido por A/B)",
+  "p20OrderNote": "El orden procede de tu dispositivo. Al mover un video se actualiza el dispositivo y se vuelve a leer el orden confirmado.",
+  "p20Empty": "Esta lista del dispositivo está vacía",
+  "p20Pending": "Videos listos para subir",
+  "p20PendingNote": "Estos videos están pendientes en tu teléfono y aún no se han subido al dispositivo.",
+  "p20Unconfirmed": "El dispositivo no confirmó el cambio. Se ha actualizado su estado actual. Revísalo e inténtalo de nuevo.",
+  "p20UploadEntry": "Abre desde una lista del dispositivo para subir",
+  "p20UploadAction": "Convertir y subir",
+  "p20FramingNote": "Se usará el encuadre actual al subir. No es necesario guardarlo por separado.",
+  "p20ConnectedCount": "Dispositivo conectado · {count} videos",
+  "@p20ConnectedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "p20UploadTitle": "Subir al dispositivo",
+  "p20UploadStart": "Preparar y subir",
+  "p20UploadCancel": "Cancelar carga",
+  "p20UploadClose": "Volver a la lista",
+  "p20UploadDisconnected": "Conéctate al dispositivo desde Inicio antes de subir archivos.",
+  "p20UploadDaily": "La lista A Diario admite videos con o sin sonido. Con audio: se extrae el MP3, se convierte el video y se suben primero el audio y luego el video. Sin audio: solo se convierte y sube el video.",
+  "p20UploadBluetooth": "La lista B Bluetooth admite videos con o sin sonido. Solo se convierte y sube el video; se ignora el audio original.",
+  "p20UploadSettings": "298 × 298 · 20 fps · Encuadre actual",
+  "p20UploadDownloadFirst": "Descarga este video en Mis personajes antes de subirlo al dispositivo.",
+  "p20UploadFailed": "La preparación o la carga falló. Revisa el video, la conexión del dispositivo y el almacenamiento e inténtalo de nuevo.",
+  "p20UploadConfirmedProgress": "Confirmado por el dispositivo",
+  "p20UploadFailureStageLabel": "Error durante",
+  "p20UploadConfirmedLabel": "Confirmado",
+  "p20UploadBytesLabel": "bytes",
+  "p20UploadBusy": "El dispositivo está ocupado. Inténtalo en unos momentos.",
+  "p20UploadWriteFailed": "El dispositivo no pudo escribir el archivo. Revisa su tarjeta de almacenamiento.",
+  "p20UploadAlreadyExists": "El archivo ya existe en el dispositivo.",
+  "p20UploadStorageFull": "El almacenamiento o la lista del dispositivo está lleno.",
+  "p20UploadBatteryLow": "La batería del dispositivo está demasiado baja. Cárgalo e inténtalo de nuevo.",
+  "p20UploadRejected": "El dispositivo rechazó el archivo.",
+  "p20UploadConfirmationTimeout": "Se agotó el tiempo de confirmación del dispositivo. Anota la etapa y el progreso que aparecen abajo y vuelve a conectarte.",
+  "p20UploadProcessingTimeout": "Se agotó el tiempo de procesamiento multimedia. Prueba con un video más corto.",
+  "p20UploadConnectionLost": "Se perdió la conexión con el dispositivo. Vuelve a conectarte e inténtalo de nuevo.",
+  "p20UploadLocalFileError": "No se pueden leer o escribir los archivos locales. Revisa el archivo original y el espacio disponible en el teléfono.",
+  "p20UploadInvalidReply": "La respuesta del dispositivo o la secuencia de progreso no coincide. Revisa el protocolo del firmware.",
+  "p20UploadPartial": "El audio se subió, pero el video no terminó de subirse. No se ha eliminado ningún archivo del dispositivo ni se ha reintentado automáticamente.",
+  "p20UploadRefreshFailed": "El dispositivo confirmó la carga, pero no se pudo actualizar la lista. Vuelve a conectarte y actualiza; no subas el archivo otra vez.",
+  "p20UploadCleanupPending": "Los archivos temporales siguen en uso y se han conservado.",
+  "p20UploadWaitingAcceptance": "Esperando aceptación de la carga",
+  "p20UploadTransferring": "Transfiriendo archivo",
+  "p20UploadWaitingCompletion": "Esperando confirmación de finalización",
+  "p20UploadConfirmedCompletion": "El dispositivo confirmó la finalización",
+  "p20UploadReady": "Listo",
+  "p20UploadExtractingAudio": "Comprobando y extrayendo audio si lo hay",
+  "p20UploadConvertingVideo": "Convirtiendo video",
+  "p20UploadUploadingAudio": "Subiendo audio",
+  "p20UploadUploadingVideo": "Subiendo video",
+  "p20UploadRefreshing": "Actualizando lista",
+  "p20UploadComplete": "Carga completada",
+  "p20UploadIncomplete": "Carga incompleta",
+  "p20UploadCancelled": "Cancelado",
+  "p20SingleOnce": "Reproducir una vez",
+  "p20UploadFailureStage": "Error durante: {stage}",
+  "@p20UploadFailureStage": {
+    "placeholders": {
+      "stage": {
+        "type": "String"
+      }
+    }
+  },
+  "p20UploadTransferDetails": "{phase} · Confirmados {acknowledged} / {total} bytes",
+  "@p20UploadTransferDetails": {
+    "placeholders": {
+      "phase": {
+        "type": "String"
+      },
+      "acknowledged": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "creatorMediaOpenFailed": "No se pudo abrir este video. Actualiza tus envíos e inténtalo de nuevo.",
+  "creatorMediaPreviewLabel": "Vista previa del video: {title}",
+  "@creatorMediaPreviewLabel": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "creatorMediaThumbnailPending": "La miniatura aún no está lista. Toca para ver la vista previa.",
+  "creatorMediaPreview": "Vista previa del video",
+  "p20SingleList": "Videos del dispositivo",
+  "p20SingleValidationPending": "La carga de video para este dispositivo está pendiente de validación del hardware.",
+  "p20SingleTransferComplete": "Transferencia confirmada. La reproducción está pendiente de validación del hardware.",
+  "p20DeviceType": "Tipo de dispositivo",
+  "p20DeviceAuto": "Detectar automáticamente",
+  "p20DeviceSingle": "P20 (una lista, sin sonido)",
+  "p20DeviceDual": "P20 PORTAL (dos listas, Bluetooth)",
+  "supportContact": "Contactar con soporte",
+  "supportInstructions": "Envíanos un correo con los pasos para reproducir el problema, la versión de la aplicación y el modelo del dispositivo. Puedes adjuntar capturas de pantalla relevantes.",
+  "supportWriteEmail": "Escribir un correo",
+  "supportCopyEmail": "Copiar dirección de correo",
+  "supportEmailCopied": "Dirección de correo de soporte copiada",
+  "supportCopyFailed": "No se pudo copiar. Selecciona la dirección de correo para copiarla manualmente.",
+  "supportNoMailApp": "No se pudo abrir una aplicación de correo. Copia la dirección y contáctanos desde tu servicio de correo."
+}

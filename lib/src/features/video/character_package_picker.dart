@@ -44,9 +44,9 @@ class _CharacterPackagePickerState extends State<CharacterPackagePicker> {
     final claimed =
         await (widget.repository ?? LocalCharacterEntitlementRepository())
             .loadClaimedCharacterIds();
-    final orders = await (widget.orderRepository ??
-            LocalCustomizationOrderRepository())
-        .loadOrders();
+    final orders =
+        await (widget.orderRepository ?? LocalCustomizationOrderRepository())
+            .loadOrders();
     _store = widget.downloadedStore ?? await DownloadedCharacterStore.current();
     final downloaded = await (widget.loadDownloaded?.call() ??
         _store?.load() ??
@@ -79,7 +79,7 @@ class _CharacterPackagePickerState extends State<CharacterPackagePicker> {
           .push<List<PackageVideoSelection>>(MaterialPageRoute(
               builder: (_) => CharacterPackagePage(
                   package: package,
-                  picking: true,
+                  picking: widget.picking,
                   removeDownload: package.downloaded && _store != null
                       ? () async {
                           await _store!.remove(package.id);
@@ -119,13 +119,15 @@ class _CharacterPackagePickerState extends State<CharacterPackagePicker> {
       });
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text(
-                context.l10n.controlsAdded(target == DevicePlaylistKind.startup ? context.l10n.controlsStartup : context.l10n.controlsBluetooth))));
+            content: Text(context.l10n.controlsAdded(
+                target == DevicePlaylistKind.startup
+                    ? context.l10n.controlsStartup
+                    : context.l10n.controlsBluetooth))));
       }
     } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(context.l10n.controlsAddFailed)));
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(context.l10n.controlsAddFailed)));
       }
     } finally {
       if (mounted) setState(() => _opening = false);
@@ -134,7 +136,9 @@ class _CharacterPackagePickerState extends State<CharacterPackagePicker> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar: widget.embedded ? null : AppBar(title: Text(context.l10n.controlsMyCharacters)),
+        appBar: widget.embedded
+            ? null
+            : AppBar(title: Text(context.l10n.controlsMyCharacters)),
         body: FutureBuilder<List<CharacterVideoPackage>>(
           future: _packages,
           builder: (context, snapshot) {
@@ -154,8 +158,7 @@ class _CharacterPackagePickerState extends State<CharacterPackagePicker> {
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.collections_bookmark_outlined,
-                              size: 40),
+                          Icon(Icons.collections_bookmark_outlined, size: 40),
                           SizedBox(height: 16),
                           Text(context.l10n.controlsEmpty),
                           SizedBox(height: 8),
@@ -168,9 +171,9 @@ class _CharacterPackagePickerState extends State<CharacterPackagePicker> {
                                     MaterialPageRoute<void>(
                                         builder: (_) => Scaffold(
                                             appBar: AppBar(
-                                                title: Text(context.l10n.controlsLibrary)),
-                                            body:
-                                                CollectionCatalogPage())));
+                                                title: Text(context
+                                                    .l10n.controlsLibrary)),
+                                            body: CollectionCatalogPage())));
                                 if (mounted) {
                                   setState(() => _packages = _load());
                                 }
@@ -249,8 +252,8 @@ class _CharacterPackagePickerState extends State<CharacterPackagePicker> {
                                                             fit: BoxFit
                                                                 .contain))),
                                         Padding(
-                                            padding: EdgeInsets.fromLTRB(
-                                                8, 8, 8, 0),
+                                            padding:
+                                                EdgeInsets.fromLTRB(8, 8, 8, 0),
                                             child: Text(package.title,
                                                 maxLines: 2,
                                                 overflow: TextOverflow.ellipsis,
@@ -263,16 +266,27 @@ class _CharacterPackagePickerState extends State<CharacterPackagePicker> {
                                             padding: EdgeInsets.all(8),
                                             child: Text(
                                                 package.videos.isEmpty
-                                                    ? context.l10n.controlsUnavailable
+                                                    ? context.l10n
+                                                        .controlsUnavailable
                                                     : package.downloaded
-                                                        ? context.l10n.controlsDownloaded(package.videos.length, package.totalVideos ?? package.videos.length)
-                                                        : context.l10n.controlsVideoCount(package.videos.length),
-                                                style: TextStyle(
-                                                    fontSize: 11))),
+                                                        ? context.l10n
+                                                            .controlsDownloaded(
+                                                                package.videos
+                                                                    .length,
+                                                                package.totalVideos ??
+                                                                    package
+                                                                        .videos
+                                                                        .length)
+                                                        : context.l10n
+                                                            .controlsVideoCount(
+                                                                package.videos
+                                                                    .length),
+                                                style:
+                                                    TextStyle(fontSize: 11))),
                                         Spacer(),
                                         Padding(
-                                            padding: EdgeInsets.fromLTRB(
-                                                6, 0, 6, 6),
+                                            padding:
+                                                EdgeInsets.fromLTRB(6, 0, 6, 6),
                                             child: OutlinedButton(
                                                 onPressed: _opening ||
                                                         package.videos.isEmpty
@@ -285,8 +299,10 @@ class _CharacterPackagePickerState extends State<CharacterPackagePicker> {
                                                     textStyle: TextStyle(
                                                         fontSize: 12)),
                                                 child: Text(widget.picking
-                                                    ? context.l10n.controlsSelect
-                                                    : context.l10n.controlsAdd))),
+                                                    ? context
+                                                        .l10n.controlsSelect
+                                                    : context
+                                                        .l10n.controlsAdd))),
                                       ])));
                         }, childCount: snapshot.data!.length))),
               ]);

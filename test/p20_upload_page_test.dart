@@ -1,5 +1,6 @@
 import 'package:hildors_cockpit/src/localization/localization.dart';
 import 'dart:async';
+import 'package:hildors_cockpit/src/device/p20_device_profile.dart';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -18,6 +19,9 @@ class ConnectedClient extends P20DeviceClient {
   bool failUpload = false;
   @override
   bool get isConnected => true;
+  @override
+  P20DeviceProfile get profile =>
+      const P20DeviceProfile.forKind(P20DeviceKind.dual);
   @override
   Future<void> uploadFile(File file, int listId, List<int> name,
       {void Function(int, int)? onProgress}) async {
@@ -63,6 +67,7 @@ void main() {
         .runAsync(() => Directory.systemTemp.createTemp('p20-progress-')))!;
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(paths, (_) async => temp.path);
+    var returnedToList = false;
     final client = ConnectedClient()..failUpload = true;
     final session = TestSession(client, false);
     addTearDown(session.dispose);
@@ -76,6 +81,7 @@ void main() {
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
         home: P20UploadPage(
+            onReturnToList: (_) => returnedToList = true,
             client: client,
             session: session,
             source: '${temp.path}/source.mp4',
@@ -103,6 +109,9 @@ void main() {
         0.5);
     expect(find.textContaining('timed out'), findsOneWidget);
     expect(find.textContaining('Uploading video'), findsOneWidget);
+    await tester.ensureVisible(find.text('Back to playlist'));
+    await tester.tap(find.text('Back to playlist'));
+    expect(returnedToList, isTrue);
     await tester.pumpWidget(const SizedBox());
     await tester.runAsync(() => temp.delete(recursive: true));
   });
@@ -131,6 +140,10 @@ void main() {
                             context,
                             MaterialPageRoute(
                                 builder: (_) => P20UploadPage(
+                                    onReturnToList: systemBack
+                                        ? null
+                                        : (name) =>
+                                            Navigator.of(context).pop(name),
                                     client: client,
                                     session: session,
                                     source: '${temp.path}/source.mp4',

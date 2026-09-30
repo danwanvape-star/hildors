@@ -1,7 +1,7 @@
 name: hildors_cockpit
 description: Hildors holographic cockpit controller for Android and iOS.
 publish_to: none
-version: 0.1.66+67
+version: 0.1.84+85
 
 environment:
   sdk: ">=3.3.0 <4.0.0"
@@ -22,6 +22,7 @@ dependencies:
   path_provider: ^2.1.6
   video_player: ^2.14.0
   video_player_media_kit: ^2.0.0
+  url_launcher: ^6.3.2
 
 dev_dependencies:
   flutter_test:
@@ -45,3 +46,8 @@ flutter:
     - family: Poppins
       fonts:
         - asset: assets/fonts/Poppins-Regular.ttf
+
+# Preserve existing GBK mappings while avoiding large runtime map initialization.
+dependency_overrides:
+  gbk_codec:
+    path: third_party/gbk_codec

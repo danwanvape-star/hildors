@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:hildors_cockpit/src/device/p20_device_profile.dart';
 import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hildors_cockpit/src/features/video/p20_media_upload_flow.dart';
@@ -57,6 +58,27 @@ void main() {
     media = FakeMedia(events);
     destination = FakeUpload(events);
     flow = P20MediaUploadFlow(media, destination);
+  });
+  test('single never extracts audio and uploads only bin to list zero',
+      () async {
+    final stages = <P20MediaStage>[];
+    flow = P20MediaUploadFlow(media, destination,
+        profile: const P20DeviceProfile.forKind(P20DeviceKind.single),
+        onStage: stages.add);
+    await flow.run(File('source.mp4'), P20MediaList.daily, 'clip');
+    expect(events, ['transcode', '0:clip.mp4', 'refresh:0']);
+    expect(stages, isNot(contains(P20MediaStage.extractingAudio)));
+    expect(stages, isNot(contains(P20MediaStage.uploadingAudio)));
+  });
+  test('single rejects second list and overlong name before preparation',
+      () async {
+    flow = P20MediaUploadFlow(media, destination,
+        profile: const P20DeviceProfile.forKind(P20DeviceKind.single));
+    await expectLater(flow.run(File('x'), P20MediaList.bluetooth, 'clip'),
+        throwsArgumentError);
+    await expectLater(
+        flow.run(File('x'), P20MediaList.daily, 'x' * 29), throwsArgumentError);
+    expect(events, isEmpty);
   });
   test('cancelling preparation prevents all subsequent upload', () async {
     media.pauseAudio = Completer<void>();

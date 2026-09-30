@@ -9,17 +9,6 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
-  String get copyDeviceLog => 'Copy device communication log';
-
-  @override
-  String get deviceLogCopied =>
-      'Log copied. It contains protocol metadata; media payloads are omitted.';
-
-  @override
-  String get deviceDeleteAudioNote =>
-      'The paired audio file will also be deleted.';
-
-  @override
   String get accountTitle => 'Account';
 
   @override
@@ -44,6 +33,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get accountCancel => 'Cancel';
+
+  @override
+  String get appVersionLabel => 'App version';
 
   @override
   String get applicationTitle => 'Creator verification';
@@ -719,7 +711,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get controlsAdd => 'Add to playlist';
 
   @override
-  String get controlsControlTitle => 'Device controls';
+  String get controlsControlTitle => 'Control panel';
 
   @override
   String get controlsBrightness => 'Brightness';
@@ -953,13 +945,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get coreDeviceDisconnected => 'Device disconnected';
 
   @override
-  String get coreLanControl => 'Local network control · P20 / P11';
+  String get coreLanControl => 'Local network control · P20 / P20 PORTAL';
 
   @override
-  String get coreConnectP20 => 'Connect P20';
+  String get coreConnectP20 => 'Connect device';
 
   @override
-  String get coreConnectionSettings => 'Connection settings';
+  String get coreConnectionSettings => 'Control panel';
 
   @override
   String get coreDeviceManagement => 'Device management';
@@ -1005,7 +997,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get coreLanHelpSubtitle =>
-      'Connect to a P20/P11 hotspot and troubleshoot';
+      'Connect to a P20 / P20 PORTAL hotspot and troubleshoot';
 
   @override
   String get coreAppSettings => 'Device and app settings';
@@ -1018,7 +1010,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get coreAbout => 'About HILDORS';
 
   @override
-  String get coreAboutSubtitle => 'Character Portal · P20/P11 support';
+  String get coreAboutSubtitle => 'Character Portal · P20 / P20 PORTAL support';
 
   @override
   String get corePlayerProfile => 'Player profile';
@@ -1038,7 +1030,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Could not apply the setting. Check the device connection and try again.';
 
   @override
-  String get corePlaybackBehavior => 'Playback';
+  String get corePlaybackBehavior => 'Playback settings';
 
   @override
   String get coreLoopMode => 'Repeat mode';
@@ -1082,7 +1074,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get coreCockpitOnline => 'Device online';
 
   @override
-  String get coreGoHomeConnect => 'Go to Home to connect your P20 / P11';
+  String get coreGoHomeConnect => 'Go to Home to connect your P20 / P20 PORTAL';
 
   @override
   String get coreOpeningLan => 'Establishing local network control';
@@ -1191,7 +1183,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get coreConnectionFailed =>
-      'Could not connect. Check the device Wi-Fi and connection settings, then try again.';
+      'Unable to connect. Connect your phone to the device Wi-Fi and try again.';
 
   @override
   String get coreSystemLabel => 'DEVICE SYSTEM';
@@ -1583,6 +1575,17 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get copyDeviceLog => 'Copy device communication log';
+
+  @override
+  String get deviceLogCopied =>
+      'Log copied. It contains protocol metadata; media payloads are omitted.';
+
+  @override
+  String get deviceDeleteAudioNote =>
+      'The paired audio file will also be deleted.';
+
+  @override
   String get governanceReport => 'Report content';
 
   @override
@@ -1907,6 +1910,9 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get playlistMoveToTop => 'Move to top';
+
+  @override
   String get submissionDraftSaved =>
       'Draft saved. Upload your videos, then submit for review.';
 
@@ -2174,6 +2180,30 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get supportContact => 'Contact support';
+
+  @override
+  String get supportInstructions =>
+      'Email us with the steps to reproduce the issue, your app version and device model. You can attach relevant screenshots.';
+
+  @override
+  String get supportWriteEmail => 'Write an email';
+
+  @override
+  String get supportCopyEmail => 'Copy email address';
+
+  @override
+  String get supportEmailCopied => 'Support email address copied';
+
+  @override
+  String get supportCopyFailed =>
+      'Could not copy. Select the email address to copy it manually.';
+
+  @override
+  String get supportNoMailApp =>
+      'Could not open a mail app. Copy the address and contact us using your email service.';
+
+  @override
   String get p20Refresh => 'Refresh device playlist';
 
   @override
@@ -2231,7 +2261,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get p20FramingNote =>
-      'Saving records only the framing. Tap Convert and upload to prepare and transfer the device files.';
+      'Upload uses the current framing. No separate save is needed.';
 
   @override
   String p20ConnectedCount(int count) {
@@ -2406,4 +2436,27 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get creatorMediaPreview => 'Preview video';
+
+  @override
+  String get p20SingleList => 'Device videos';
+
+  @override
+  String get p20SingleValidationPending =>
+      'Video upload for this device is awaiting hardware validation.';
+
+  @override
+  String get p20SingleTransferComplete =>
+      'Transfer confirmed. Playback is awaiting hardware validation.';
+
+  @override
+  String get p20DeviceType => 'Device type';
+
+  @override
+  String get p20DeviceAuto => 'Detect automatically';
+
+  @override
+  String get p20DeviceSingle => 'P20 (single list, silent)';
+
+  @override
+  String get p20DeviceDual => 'P20 PORTAL (dual lists, Bluetooth)';
 }

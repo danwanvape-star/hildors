@@ -24,7 +24,13 @@ Widget localized(Widget page, Locale locale) => MaterialApp(
     );
 
 void main() {
-  for (final locale in [const Locale('en'), const Locale('zh')]) {
+  for (final locale in [
+    const Locale('en'),
+    const Locale('zh'),
+    const Locale('de'),
+    const Locale('es'),
+    const Locale('ja')
+  ]) {
     testWidgets('core pages render and navigate at large text in $locale',
         (tester) async {
       tester.view.physicalSize = const Size(390, 844);

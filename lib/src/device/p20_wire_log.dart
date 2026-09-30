@@ -15,6 +15,14 @@ class P20WireLog {
       detail,
       if (!media && bytes.length > 4096) '[truncated]'
     ].join(' ');
+    _append(line);
+  }
+
+  /// Callers supply fixed stage labels and numeric diagnostics only.
+  void event(String detail) =>
+      _append('${DateTime.now().toUtc().toIso8601String()} CONNECT $detail');
+
+  void _append(String line) {
     _lines.add(line);
     _characters += line.length;
     while (_characters > 64000 && _lines.length > 1) {

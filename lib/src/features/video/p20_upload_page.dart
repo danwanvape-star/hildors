@@ -1,8 +1,9 @@
 import 'dart:async';
+import '../../device/p20_device_profile.dart';
 import '../../localization/localization.dart';
 import '../../device/p20_v2_connection.dart';
 import 'dart:io';
-import 'dart:math';
+import '../../device/p20_upload_name.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
@@ -15,18 +16,36 @@ import 'p20_media_upload_flow.dart';
 import 'p20_upload_strings.dart';
 
 class P20DeviceDestination implements P20MediaDestination {
-  P20DeviceDestination(this.client, this.session, this.onProgress);
+  P20DeviceDestination(this.client, this.session, this.onProgress)
+      : generation = client.generation;
+  final int generation;
+  void _checkDevice() {
+    if (!client.isConnected || client.generation != generation) {
+      throw StateError('Device changed');
+    }
+  }
+
   final P20DeviceClient client;
   final P20CommandSession session;
   final void Function(int, int) onProgress;
   @override
-  Future<void> cancel() => client.disconnect();
+  Future<void> cancel() async {
+    if (client.generation == generation) await client.disconnect();
+  }
+
   @override
-  Future<void> upload(File file, int listId, String name) =>
-      client.uploadFile(file, listId, name.codeUnits, onProgress: onProgress);
+  Future<void> upload(File file, int listId, String name) async {
+    _checkDevice();
+    await client.uploadFile(file, listId, name.codeUnits,
+        onProgress: onProgress);
+    _checkDevice();
+  }
+
   @override
   Future<void> refresh(int listId) async {
+    _checkDevice();
     await session.queryVideos(listId: listId);
+    _checkDevice();
   }
 }
 
@@ -39,6 +58,8 @@ class P20UploadPage extends StatefulWidget {
       required this.list,
       required this.framing,
       this.engine,
+      this.autoStart = false,
+      this.onReturnToList,
       super.key});
   final P20DeviceClient client;
   final P20CommandSession session;
@@ -47,12 +68,16 @@ class P20UploadPage extends StatefulWidget {
   final P20MediaList list;
   final FanFraming framing;
   final P20MediaEngine? engine;
+  final bool autoStart;
+  final ValueChanged<String?>? onReturnToList;
   @override
   State<P20UploadPage> createState() => _P20UploadPageState();
 }
 
 class _P20UploadPageState extends State<P20UploadPage> {
   P20MediaUploadFlow? _flow;
+  int? _attemptGeneration;
+  P20DeviceProfile? _attemptProfile;
   P20MediaStage _stage = P20MediaStage.idle;
   P20MediaStage _lastActiveStage = P20MediaStage.idle;
   StreamSubscription<DeviceConnectionState>? _connection;
@@ -67,13 +92,30 @@ class _P20UploadPageState extends State<P20UploadPage> {
   @override
   void initState() {
     super.initState();
+    if (widget.autoStart) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _run();
+      });
+    }
     _connection = widget.client.connectionStates.listen((_) {
+      if (_busy &&
+          (!widget.client.isConnected ||
+              widget.client.generation != _attemptGeneration)) {
+        _cancelled = true;
+        unawaited(_flow?.cancel());
+      }
       if (mounted) setState(() {});
     });
   }
 
   Future<void> _run() async {
-    if (_attempted || !widget.client.isConnected) return;
+    if (_attempted || !widget.client.canUploadVideo) return;
+    _attemptGeneration = widget.client.generation;
+    _attemptProfile = widget.client.profile;
+    final destination =
+        P20DeviceDestination(widget.client, widget.session, (done, total) {
+      if (mounted) setState(() => _progress = done / total);
+    });
     setState(() {
       _busy = true;
       _attempted = true;
@@ -101,13 +143,9 @@ class _P20UploadPageState extends State<P20UploadPage> {
               scale: widget.framing.scale,
               x: widget.framing.x,
               y: widget.framing.y));
-      final name =
-          'h${DateTime.now().microsecondsSinceEpoch}_${Random.secure().nextInt(0x7fffffff).toRadixString(16)}';
-      final flow = P20MediaUploadFlow(
-          preparation,
-          P20DeviceDestination(widget.client, widget.session, (done, total) {
-            if (mounted) setState(() => _progress = done / total);
-          }), onStage: (stage) {
+      final name = createP20UploadBaseName();
+      final flow = P20MediaUploadFlow(preparation, destination,
+          profile: _attemptProfile!, onStage: (stage) {
         if (mounted) {
           setState(() {
             _stage = stage;
@@ -126,7 +164,10 @@ class _P20UploadPageState extends State<P20UploadPage> {
       try {
         await flow.run(source, widget.list, name);
       } finally {
-        if (flow.videoUploaded) _uploadedName = '$name.mp4';
+        if (flow.videoUploaded &&
+            widget.client.generation == _attemptGeneration) {
+          _uploadedName = '$name${_attemptProfile!.videoExtension}';
+        }
       }
     } catch (error) {
       _error = error;
@@ -184,13 +225,18 @@ class _P20UploadPageState extends State<P20UploadPage> {
                         onPressed: () => Navigator.pop(context, _uploadedName))
                     : null),
             body: ListView(padding: const EdgeInsets.all(24), children: [
-              Text(widget.list == P20MediaList.daily
-                  ? text.daily
-                  : text.bluetooth),
+              Text(widget.client.profile.kind == P20DeviceKind.single
+                  ? context.l10n.p20SingleList
+                  : widget.list == P20MediaList.daily
+                      ? text.daily
+                      : text.bluetooth),
               const SizedBox(height: 16),
               Text(text.settings),
               const SizedBox(height: 24),
-              Text(text.stage(_stage)),
+              Text(_stage == P20MediaStage.completed &&
+                      _attemptProfile?.kind == P20DeviceKind.single
+                  ? context.l10n.p20SingleTransferComplete
+                  : text.stage(_stage)),
               if (_busy || _progress != null) ...[
                 const SizedBox(height: 12),
                 LinearProgressIndicator(value: _progress)
@@ -238,7 +284,8 @@ class _P20UploadPageState extends State<P20UploadPage> {
                       await Clipboard.setData(
                           ClipboardData(text: widget.client.wireLog.text));
                       if (!context.mounted) return;
-                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(context.l10n.deviceLogCopied)));
+                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                          content: Text(context.l10n.deviceLogCopied)));
                     }),
               if (_flow?.audioUploaded == true && !finishedFile)
                 Text(text.partial),
@@ -246,10 +293,7 @@ class _P20UploadPageState extends State<P20UploadPage> {
               const SizedBox(height: 24),
               if (!_attempted)
                 FilledButton(
-                    onPressed: widget.client.isConnected &&
-                            widget.client.modernProtocol
-                        ? _run
-                        : null,
+                    onPressed: widget.client.canUploadVideo ? _run : null,
                     child: Text(text.start)),
               if (_busy)
                 OutlinedButton(
@@ -257,7 +301,13 @@ class _P20UploadPageState extends State<P20UploadPage> {
                     child: Text(text.cancel)),
               if (!_busy && _attempted)
                 FilledButton(
-                    onPressed: () => Navigator.pop(context, _uploadedName),
+                    onPressed: () {
+                      if (widget.onReturnToList != null) {
+                        widget.onReturnToList!(_uploadedName);
+                      } else {
+                        Navigator.pop(context, _uploadedName);
+                      }
+                    },
                     child: Text(text.close)),
             ])));
   }

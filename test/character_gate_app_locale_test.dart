@@ -15,10 +15,15 @@ void main() {
     expect(GateCopy.text(context, 'actionUnconfirmed'), contains('刷新状态'));
   });
 
-  testWidgets('only implemented English and Chinese locales are declared',
-      (tester) async {
+  testWidgets('all five implemented locales are declared', (tester) async {
     await tester.pumpWidget(const CockpitApp(autoConnectDevice: false));
     final app = tester.widget<MaterialApp>(find.byType(MaterialApp));
-    expect(app.supportedLocales.toSet(), {const Locale('zh'), const Locale('en')});
+    expect(app.supportedLocales.toSet(), {
+      const Locale('zh'),
+      const Locale('en'),
+      const Locale('de'),
+      const Locale('es'),
+      const Locale('ja')
+    });
   });
 }
