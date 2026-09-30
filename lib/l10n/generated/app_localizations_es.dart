@@ -1272,6 +1272,19 @@ class AppLocalizationsEs extends AppLocalizations {
       'Los pagos de la tienda aún no están conectados. No se puede realizar ningún cobro.';
 
   @override
+  String get customWebsiteTitle => 'Sitio web oficial de Hildors';
+
+  @override
+  String get customWebsiteBody =>
+      'Conoce Hildors y el hardware compatible. La compra de vídeos personalizados no está disponible en esta versión.';
+
+  @override
+  String get customWebsiteButton => 'Visitar el sitio web de Hildors';
+
+  @override
+  String get customWebsiteError => 'No se pudo abrir el sitio web de Hildors.';
+
+  @override
   String customBase(String price) {
     return 'Precio base de referencia en USD: $price. Al pagar se usa el precio de la tienda.';
   }

@@ -1090,5 +1090,9 @@
   "supportEmailCopied": "サポートのメールアドレスをコピーしました",
   "supportCopyFailed": "コピーできませんでした。メールアドレスを選択して手動でコピーしてください。",
   "supportNoMailApp": "メールアプリを開けませんでした。アドレスをコピーし、ご利用のメールサービスからお問い合わせください。",
+  "customWebsiteTitle": "Hildors公式サイト",
+  "customWebsiteBody": "Hildorsと対応ハードウェアについてご案内します。このバージョンではカスタム動画を購入できません。",
+  "customWebsiteButton": "Hildors公式サイトを開く",
+  "customWebsiteError": "Hildors公式サイトを開けませんでした。",
   "playlistMoveToTop": "先頭に移動"
 }

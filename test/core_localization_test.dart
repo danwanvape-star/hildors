@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hildors_cockpit/src/device/p20_command_session.dart';
 import 'package:hildors_cockpit/src/device/p20_device_client.dart';
 import 'package:hildors_cockpit/src/experience/projection_service.dart';
+import 'package:hildors_cockpit/src/features/control/control_page.dart';
 import 'package:hildors_cockpit/src/features/home/home_page.dart';
 import 'package:hildors_cockpit/src/features/profile/profile_page.dart';
 import 'package:hildors_cockpit/src/features/settings/lan_connection_guide.dart';
@@ -54,7 +55,13 @@ void main() {
           locale));
       await tester.pumpAndSettle();
       expect(find.text(strings.corePlaylists), findsOneWidget);
-      expect(find.byTooltip(strings.coreDeviceControl), findsOneWidget);
+      final connectionSettings = find.widgetWithText(
+          OutlinedButton, strings.coreConnectionSettings);
+      await tester.ensureVisible(connectionSettings);
+      await tester.pumpAndSettle();
+      await tester.tap(connectionSettings);
+      await tester.pumpAndSettle();
+      expect(find.byType(ControlPage), findsOneWidget);
       expect(tester.takeException(), isNull);
 
       await tester.pumpWidget(

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:url_launcher/url_launcher.dart';
+import '../../config/launch_config.dart';
 import '../../localization/localization.dart';
 import 'cloud_business_intake.dart';
 import 'cloud_order_submission.dart';
@@ -17,6 +19,7 @@ class CustomPlansPage extends StatefulWidget {
 }
 
 class _CustomPlansPageState extends State<CustomPlansPage> {
+  static final Uri _officialWebsite = Uri.https('www.hildors.com', '/');
   CloudBusinessIntake get api => widget.service ?? CloudBusinessIntake.instance;
   List<Map<String, dynamic>> plans = [], orders = [];
   bool busy = true;
@@ -79,6 +82,23 @@ class _CustomPlansPageState extends State<CustomPlansPage> {
     }
   }
 
+  Future<void> openOfficialWebsite() async {
+    var opened = false;
+    try {
+      opened = await launchUrl(
+        _officialWebsite,
+        mode: LaunchMode.externalApplication,
+      );
+    } catch (_) {
+      opened = false;
+    }
+    if (!opened && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(context.l10n.customWebsiteError)),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final l = context.l10n;
@@ -90,33 +110,58 @@ class _CustomPlansPageState extends State<CustomPlansPage> {
               icon: const Icon(Icons.refresh))
         ]),
         body: ListView(padding: const EdgeInsets.all(16), children: [
-          Text(l.customUnavailable),
+          if (LaunchConfig.usFree)
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(l.customWebsiteTitle,
+                        style: Theme.of(context).textTheme.titleMedium),
+                    const SizedBox(height: 8),
+                    Text(l.customWebsiteBody),
+                    const SizedBox(height: 8),
+                    const Text('hildors.com'),
+                    const SizedBox(height: 8),
+                    OutlinedButton.icon(
+                      onPressed: openOfficialWebsite,
+                      icon: const Icon(Icons.open_in_new),
+                      label: Text(l.customWebsiteButton),
+                    )
+                  ],
+                ),
+              ),
+            )
+          else
+            Text(l.customUnavailable),
           if (busy) const LinearProgressIndicator(),
           if (error != null) Text(localizedError(l, error)),
-          for (final p in plans)
-            Card(
-                child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(l.customSeconds(p['durationSeconds'] as int)),
-                          Text(l.customBase(
-                              'US\$${((p['usdBaseCents'] as int) / 100).toStringAsFixed(2)}')),
-                          Text((p['description'] as Map?)?[
-                                  l.localeName.startsWith('zh')
-                                      ? 'zh'
-                                      : 'en'] as String? ??
-                              ''),
-                          TextButton(
-                              onPressed: () => Navigator.push(
-                                  context,
-                                  MaterialPageRoute<void>(
-                                      builder: (_) => _CustomRequestPage(
-                                          plan: p,
-                                          service: api))).then((_) => load()),
-                              child: Text(l.customRequest))
-                        ]))),
+          if (!LaunchConfig.usFree)
+            for (final p in plans)
+              Card(
+                  child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(l.customSeconds(p['durationSeconds'] as int)),
+                            Text(l.customBase(
+                                'US\$${((p['usdBaseCents'] as int) / 100).toStringAsFixed(2)}')),
+                            Text((p['description'] as Map?)?[
+                                    l.localeName.startsWith('zh')
+                                        ? 'zh'
+                                        : 'en'] as String? ??
+                                ''),
+                            TextButton(
+                                onPressed: () => Navigator.push(
+                                    context,
+                                    MaterialPageRoute<void>(
+                                        builder: (_) => _CustomRequestPage(
+                                            plan: p,
+                                            service: api))).then((_) => load()),
+                                child: Text(l.customRequest))
+                          ]))),
           const SizedBox(height: 20),
           Text(l.customOrdersTitle,
               style: Theme.of(context).textTheme.titleLarge),
@@ -376,7 +421,7 @@ class _CustomOrderState extends State<_CustomOrderPage> {
               o['deliverable'] != null
           ? await credentials()
           : <String, String>{};
-      final quote = product == null || product.isEmpty
+      final quote = LaunchConfig.usFree || product == null || product.isEmpty
           ? null
           : await widget.billing.product(product);
       guard();
@@ -675,7 +720,7 @@ class _CustomOrderState extends State<_CustomOrderPage> {
               ListTile(
                   title: Text(f.$2),
                   subtitle: Text(terms[f.$1] as String? ?? '')),
-            if (order['status'] == 'quoted') ...[
+            if (!LaunchConfig.usFree && order['status'] == 'quoted') ...[
               CheckboxListTile(
                   value: accepted,
                   onChanged: busy
